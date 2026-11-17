@@ -24,12 +24,9 @@ final class Commentary(env: Env, ws: StandaloneWSClient)
   private val superseded = Json.obj("type" -> "superseded")
   // The same ids as services/commentary/voices.py and ui/round/src/commentary.ts.
   private val voices = Set(
-    "piper-vais1000",
-    "piper-vais1000-low",
-    "piper-vais1000-high",
-    "piper-vivos-28",
-    "piper-vivos-45",
-    "piper-vivos-40"
+    "vieneu-huu-quan",
+    "vieneu-anh-khoi",
+    "vieneu-manh-dung"
   )
 
   private val requests = new lila.round.CommentaryRequests(
