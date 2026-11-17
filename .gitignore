@@ -2,6 +2,7 @@
 PROMPT.md
 HUONG-DAN-KHOI-DONG.md
 script/
+.commandcode/
 
 # Local service distributions (large, not source)
 elasticsearch-*/
