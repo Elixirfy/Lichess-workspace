@@ -79,7 +79,7 @@ lazy val modules = Seq(
   // level 4
   memo, rating,
   // level 5
-  game, gathering, study, user, puzzle, analyse,
+  game, gathering, study, user, puzzle, analyse, aicoach,
   report, pref, chat, playban, lobby, mailer, oauth, search,
   // level 6
   insight, evaluation, storm,
@@ -143,7 +143,7 @@ lazy val i18n = module("i18n",
     I18n.serialize(
       sourceDir = new File("translation/source"),
       destDir = new File("translation/dest"),
-      dbs = "activity app appeal arena broadcast challenge class coach contact coordinates dgt emails faq features insight keyboardMove lag learn localAnalysis nvui oauthScope onboarding patron perfStat practice preferences puzzle puzzleTheme recap search settings site streamer storm study swiss team teamLead timeago tfa tourname ublog variant video voiceCommands msg report".split(' ').toList,
+      dbs = "activity aicoach app appeal arena broadcast challenge class coach contact coordinates dgt emails faq features insight keyboardMove lag learn localAnalysis nvui oauthScope onboarding patron perfStat practice preferences puzzle puzzleTheme recap search settings site streamer storm study swiss team teamLead timeago tfa tourname ublog variant video voiceCommands msg report".split(' ').toList,
       outputDir = (Compile / resourceManaged).value
     )
   }.taskValue
@@ -262,6 +262,11 @@ lazy val user = module("user",
 lazy val game = module("game",
   Seq(tree, rating, memo),
   Seq(compression) ++ tests.bundle ++ Seq(scalacheck, munitCheck, chess.testKit)
+)
+
+lazy val aicoach = module("aicoach",
+  Seq(game, mon),
+  playWs.bundle
 )
 
 lazy val gameSearch = module("gameSearch",

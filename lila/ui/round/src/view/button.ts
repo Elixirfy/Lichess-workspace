@@ -260,6 +260,12 @@ export function moretime(ctrl: RoundController): LooseVNode {
 }
 
 export function followUp(ctrl: RoundController): VNode {
+  if (ctrl.coach)
+    return hl('div.follow-up', [
+      hl('a.fbt', { attrs: { href: '/ai-coach' } }, i18n.aicoach.newLesson),
+      hl('a.fbt', { attrs: { href: '/ai-coach' } }, i18n.aicoach.changeOpponent),
+      analysisButton(ctrl),
+    ]);
   const d = ctrl.data;
   const rematchable =
     !d.game.rematch &&

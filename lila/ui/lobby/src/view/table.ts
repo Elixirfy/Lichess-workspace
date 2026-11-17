@@ -42,7 +42,16 @@ export default function table(ctrl: LobbyController) {
     });
 
   return hl('div.lobby__table', [
-    hl('div.lobby__start', [site.blindMode && hl('h2', i18n.site.play), lobbyButtons.map(makeLobbyButton)]),
+    hl('div.lobby__start', [
+      site.blindMode && hl('h2', i18n.site.play),
+      lobbyButtons.map(makeLobbyButton),
+      opts.coach &&
+        hl(
+          'a.button.button-metal.lobby__start__button',
+          { attrs: { href: '/ai-coach' } },
+          i18n.aicoach.learn,
+        ),
+    ]),
     site.blindMode
       ? undefined
       : // Use a thunk here so that snabbdom does not rerender; we will do so manually after insert

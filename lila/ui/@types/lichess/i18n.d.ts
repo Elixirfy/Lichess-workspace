@@ -58,6 +58,112 @@ interface I18n {
     /** Supported lichess.org for %1$s months as a %2$s */
     supportedNbMonths: I18nPlural;
   };
+  aicoach: {
+    /** Buổi học đã tạm dừng sau một thời gian không có hoạt động của bạn. */
+    abandoned: string;
+    /** Bạn đang có buổi học. Tải lại trang để tiếp tục. */
+    activeExists: string;
+    /** Điều nên luyện tập */
+    advice: string;
+    /** Ô cần chú ý */
+    attention: string;
+    /** Về thế hiện tại */
+    backToLive: string;
+    /** Đen */
+    black: string;
+    /** Đổi đối thủ */
+    changeOpponent: string;
+    /** Coach */
+    coach: string;
+    /** Màu quân của bạn */
+    color: string;
+    /** Đang kết nối coach… */
+    connecting: string;
+    /** Đã phân tích %1$s / %2$s nước của bạn. */
+    coverage: I18nFormat;
+    /** Chưa tạo được buổi học. Thử lại để tiếp tục cùng yêu cầu. */
+    createError: string;
+    /** Đang tạo buổi học… */
+    creating: string;
+    /** Giải thích nước của bạn */
+    explain: string;
+    /** Có %s nước chưa phân tích được. */
+    failedCoverage: I18nFormat;
+    /** Coach chưa trả lời được yêu cầu này. */
+    failedQuestion: string;
+    /** Ván cờ đã kết thúc. */
+    finished: string;
+    /** Cơ bản tổng hợp */
+    goal: string;
+    /** Gợi ý */
+    hint: string;
+    /** Gợi ý nấc %s / 3 */
+    hintStage: I18nFormat;
+    /** Nước đã đi */
+    history: string;
+    /** Bạn đang xem lịch sử. Về hiện tại để hỏi gợi ý hoặc đe dọa. */
+    historyView: string;
+    /** Learn with your coach */
+    learn: string;
+    /** Cấp độ máy */
+    level: string;
+    /** Thế hiện tại */
+    live: string;
+    /** Buổi học mới */
+    newLesson: string;
+    /** Bạn có thể hỏi coach khi tới lượt. */
+    noCards: string;
+    /** Chỉ khi tôi hỏi */
+    onDemand: string;
+    /** Đang xử lý yêu cầu… */
+    pending: string;
+    /** Thế cờ đã đổi hoặc yêu cầu khác đang chạy. Đang cập nhật. */
+    positionChanged: string;
+    /** Chủ động */
+    proactive: string;
+    /** Yêu cầu chưa hoàn tất. Bạn có thể thử lại. */
+    questionError: string;
+    /** Ngẫu nhiên */
+    random: string;
+    /** Mất kết nối coach. Đang kết nối lại… */
+    reconnecting: string;
+    /** Tiếp tục buổi học */
+    resume: string;
+    /** Chưa thể tiếp tục buổi này. Bạn có thể đang có một buổi học khác. */
+    resumeError: string;
+    /** Thử lại */
+    retry: string;
+    /** Thử lại yêu cầu */
+    retryQuestion: string;
+    /** Cờ tiêu chuẩn, không tính điểm, không đồng hồ. Không lùi nước trong buổi học. */
+    setupInfo: string;
+    /** Bắt đầu học */
+    start: string;
+    /** Tổng kết buổi học */
+    summary: string;
+    /** Chưa thể tổng kết */
+    summaryFailed: string;
+    /** Tổng kết còn thiếu dữ liệu */
+    summaryPartial: string;
+    /** Đang hoàn tất tổng kết */
+    summaryPending: string;
+    /** Tổng kết đã sẵn sàng */
+    summaryReady: string;
+    /** Mức hỗ trợ */
+    support: string;
+    /** Đối thủ đang đe dọa gì? */
+    threat: string;
+    /** Học cùng coach */
+    title: string;
+    /** Không thể tải coach. Thử tải lại. */
+    unavailable: string;
+    /** Biến tham khảo */
+    variation: string;
+    /** Chờ máy đi hoặc coach cập nhật thế cờ. */
+    waiting: string;
+    /** Trắng */
+    white: string;
+  };
   app: {
     /** all releases */
     allReleases: string;

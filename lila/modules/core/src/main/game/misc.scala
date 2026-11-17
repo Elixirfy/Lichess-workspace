@@ -29,7 +29,7 @@ case class SideAndStart(color: Color, startedAtPly: Ply):
   def startColor = startedAtPly.turn
 
 enum GameRule:
-  case noAbort, noRematch, noGiveTime, noClaimWin, noEarlyDraw
+  case noAbort, noRematch, noTakeback, noGiveTime, noClaimWin, noEarlyDraw
 object GameRule:
   val byKey = values.mapBy(_.toString)
 

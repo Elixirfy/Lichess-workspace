@@ -1,0 +1,21 @@
+@import '../../../lib/css/plugin';
+@import '../../../lib/css/component/box';
+@import '../../../lib/css/form/form3';
+
+.coach-setup {
+  max-width: 42rem;
+  margin: 2rem auto;
+
+  p {
+    margin-block: 1em;
+  }
+
+  &__form {
+    display: grid;
+    gap: 1rem;
+
+    select {
+      width: 100%;
+    }
+  }
+}

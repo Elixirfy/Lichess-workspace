@@ -1,0 +1,100 @@
+.round__app.with-coach {
+  @include mq-is-col1 {
+    grid-template-areas: 'pocket-top' 'user-top' 'mat-top' 'board' 'expi-bot' 'mat-bot' 'user-bot' 'pocket-bot' 'controls' 'moves' 'coach' 'voice' 'kb-move';
+    grid-template-rows: auto $col1-user-height $col1-mat-height auto auto $col1-mat-height $col1-user-height auto auto auto auto auto 0;
+  }
+
+  @include mq-at-least-col2 {
+    grid-template-areas:
+      'board voice'
+      'board .'
+      'board mat-top'
+      'board clock-top'
+      'board expi-top'
+      'board user-top'
+      'board coach'
+      'board moves'
+      'board controls'
+      'board user-bot'
+      'board expi-bot'
+      'board clock-bot'
+      'board mat-bot'
+      'board .'
+      'kb-move .';
+    grid-template-rows: minmax(0, 1fr) 0 repeat(11, auto) minmax(0, 1fr);
+  }
+}
+
+.round__coach {
+  grid-area: coach;
+  padding: 0.8em;
+  background: $c-bg-box;
+  border: $border;
+  border-radius: $box-radius-size;
+  overflow-wrap: anywhere;
+
+  .coach-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5em;
+
+    h2 {
+      font-size: 1.1em;
+    }
+
+    small {
+      color: $c-font-dim;
+    }
+  }
+
+  .coach-cards {
+    min-height: 5em;
+    margin-block: 0.5em;
+  }
+
+  .coach-sentence,
+  .coach-empty {
+    margin-block: 0.3em;
+    line-height: 1.5;
+  }
+
+  .coach-context,
+  .coach-coverage {
+    color: $c-font-dim;
+    font-size: 0.8em;
+  }
+
+  .coach-status {
+    margin-bottom: 0.5em;
+
+    p {
+      margin-block: 0.3em;
+    }
+  }
+
+  .coach-questions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
+
+    .button {
+      font-size: 0.8em;
+      padding: 0.5em 0.6em;
+      text-transform: none;
+    }
+  }
+
+  .coach-summary {
+    margin-top: 0.6em;
+
+    summary {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .coach-card {
+      margin-top: 0.6em;
+    }
+  }
+}

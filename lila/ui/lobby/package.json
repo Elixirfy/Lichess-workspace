@@ -9,9 +9,12 @@
     "lib": "workspace:*"
   },
   "build": {
-    "bundle": {
-      "module": "src/lobby.ts",
-      "inline": "src/lobby.inline.ts"
-    }
+    "bundle": [
+      {
+        "module": "src/lobby.ts",
+        "inline": "src/lobby.inline.ts"
+      },
+      "src/lobby.coach.ts"
+    ]
   }
 }

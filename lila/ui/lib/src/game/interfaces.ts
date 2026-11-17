@@ -42,7 +42,7 @@ export interface Game {
   rules?: GameRule[];
 }
 
-export declare type GameRule = 'noAbort' | 'noRematch' | 'noGiveTime' | 'noClaimWin';
+export declare type GameRule = 'noAbort' | 'noRematch' | 'noTakeback' | 'noGiveTime' | 'noClaimWin';
 
 export type TopOrBottom = 'top' | 'bottom';
 

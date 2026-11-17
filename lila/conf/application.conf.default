@@ -11,3 +11,15 @@ include "version"
 user.password.bpass.secret = "9qEYN0ThHer1KWLNekA76Q=="
 
 # override additional values from base.conf here
+aiCoach {
+  enabled = false
+  workerUrl = "http://127.0.0.1:8137"
+  internalToken = ""
+  internalToken = ${?COACH_INTERNAL_TOKEN}
+  parallelism = 1
+  guestRetentionDays = 7
+  accountRetentionDays = 30
+  maxQuestions = 128
+  abandonAfterHours = 24
+  summaryWaitSeconds = 30
+}

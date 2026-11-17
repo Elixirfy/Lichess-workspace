@@ -107,7 +107,7 @@ final private class Takebacker(
       case _ => fufail(ClientError("[takebacker] invalid no " + pov))
 
   def isAllowedIn(game: Game, prefs: Preload[ByColor[Pref]]): Fu[Boolean] =
-    game.canTakebackOrAddTime.so(isAllowedByPrefs(game, prefs))
+    (game.canTakebackOrAddTime && !game.hasRule(_.noTakeback)).so(isAllowedByPrefs(game, prefs))
 
   private def offerTakebackMessage(pov: Pov): String =
     val k = if pov.game.turnOf(pov.color) then 2 else 1
@@ -134,7 +134,8 @@ final private class Takebacker(
 
   private def IfAllowed[A](game: Game, prefs: Preload[ByColor[Pref]])(f: => Fu[A]): Fu[A] =
     if !game.playable then fufail(ClientError("[takebacker] game is over " + game.id))
-    else if !game.canTakebackOrAddTime then fufail(ClientError("[takebacker] game disallows it " + game.id))
+    else if !game.canTakebackOrAddTime || game.hasRule(_.noTakeback) then
+      fufail(ClientError("[takebacker] game disallows it " + game.id))
     else
       isAllowedByPrefs(game, prefs).flatMap:
         if _ then f

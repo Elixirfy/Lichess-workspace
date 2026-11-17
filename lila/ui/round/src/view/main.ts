@@ -13,6 +13,7 @@ import crazyView from '../crazy/crazyView';
 import type RoundController from '../ctrl';
 import { render as renderGround } from '../ground';
 import { next, prev } from '../keyboard';
+import { renderCoach } from './coach';
 import { renderTable } from './table';
 
 export function main(ctrl: RoundController): VNode {
@@ -36,6 +37,7 @@ export function main(ctrl: RoundController): VNode {
     'div.round__app.variant-' + d.game.variant.key,
     {
       class: {
+        'with-coach': !!ctrl.coach,
         'swap-clock': isTouchDevice() && displayColumns() === 1 && storage.boolean('swapClock').get(),
       },
     },
@@ -68,6 +70,7 @@ export function main(ctrl: RoundController): VNode {
       renderTable(ctrl),
       crazyView(ctrl, bottomColor, 'bottom') || materialDiffs[1],
       ctrl.keyboardMove && renderKeyboardMove(ctrl.keyboardMove),
+      renderCoach(ctrl.coach),
     ],
   );
 }

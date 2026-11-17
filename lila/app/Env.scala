@@ -73,6 +73,14 @@ final class Env(
   import pool.given
   val lobby: lila.lobby.Env = wire[lila.lobby.Env]
   val setup: lila.setup.Env = wire[lila.setup.Env]
+  val aiCoach: lila.aicoach.Env = new lila.aicoach.Env(
+    config,
+    mongo.mainDb,
+    game.gameRepo,
+    round.onStart,
+    round.gameProxy,
+    summon[StandaloneWSClient]
+  )
   val simul: lila.simul.Env = wire[lila.simul.Env]
   val appeal: lila.appeal.Env = wire[lila.appeal.Env]
   val timeline: lila.timeline.Env = wire[lila.timeline.Env]

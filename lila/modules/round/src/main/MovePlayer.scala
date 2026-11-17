@@ -153,6 +153,8 @@ final private class MovePlayer(
     // so we should be good here.
     // also used for targeted TvBroadcast subscription
     Bus.publishDyn(MoveGameEvent(game, moveEvent.fen, moveEvent.move), MoveGameEvent.makeChan(game.id))
+    if game.hasAi && game.hasRule(_.noTakeback) && game.hasRule(_.noRematch) then
+      Bus.publishDyn(MoveGameEvent(game, moveEvent.fen, moveEvent.move), MoveGameEvent.coachChan)
 
     // publish correspondence moves
     if game.isCorrespondence && game.nonAi then

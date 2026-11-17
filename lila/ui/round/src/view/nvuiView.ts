@@ -21,6 +21,7 @@ import type { Step } from '../interfaces';
 import { next, prev } from '../keyboard';
 import type { RoundNvuiContext } from '../round.nvui';
 import { plyStep } from '../util';
+import { renderCoach } from './coach';
 import { renderResult } from './replay';
 import { renderTableWatch, renderTablePlay, renderTableEnd } from './table';
 
@@ -85,6 +86,7 @@ export function renderNvui(ctx: RoundNvuiContext): VNode {
             ctrl.isPlaying() && inputForm(ctx),
           ],
       gameInfo(ctx),
+      renderCoach(ctrl.coach),
       ...renderAdvancedSettings(moveStyle, pageStyle, pieceStyle, prefixStyle, positionStyle, boardStyle, {
         redraw: ctrl.redraw,
       }),
@@ -93,6 +95,7 @@ export function renderNvui(ctx: RoundNvuiContext): VNode {
   } else
     return hl('div.nvui', nvuiHook, [
       gameInfo(ctx),
+      renderCoach(ctrl.coach),
       ctrl.isPlaying() && inputForm(ctx),
       pageStyle.get() === 'actions-board'
         ? [renderActions(ctx), renderBoard(ctx)]

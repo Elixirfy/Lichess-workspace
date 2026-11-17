@@ -157,6 +157,7 @@ final class LilaComponents(
   lazy val round: Round = wire[Round]
   lazy val search: Search = wire[Search]
   lazy val setup: Setup = wire[Setup]
+  lazy val aiCoach: AiCoach = wire[AiCoach]
   lazy val simul: Simul = wire[Simul]
   lazy val streamer: Streamer = wire[Streamer]
   lazy val study: Study = wire[Study]

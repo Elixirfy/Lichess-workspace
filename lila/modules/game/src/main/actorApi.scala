@@ -8,6 +8,7 @@ import lila.core.game.{ Game, Pov }
 case class MoveGameEvent(game: Game, fen: Fen.Full, move: Uci)
 object MoveGameEvent:
   def makeChan(gameId: GameId) = s"moveEvent:$gameId"
+  val coachChan = "aiCoachMove"
 
 case class BoardDrawOffer(game: Game)
 object BoardDrawOffer:

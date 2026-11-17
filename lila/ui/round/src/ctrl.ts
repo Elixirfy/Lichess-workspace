@@ -33,6 +33,7 @@ import * as wakeLock from 'lib/wakeLock';
 import * as atomic from './atomic';
 import * as blur from './blur';
 import * as cevalSub from './cevalSub';
+import CoachCtrl from './coach';
 import { CommentaryCtrl } from './commentary';
 import { CorresClockController } from './corresClock/corresClockCtrl';
 import { valid as crazyValid, init as crazyInit, onEnd as crazyEndHook } from './crazy/crazyCtrl';
@@ -100,6 +101,7 @@ export default class RoundController implements MoveRootCtrl {
   blindfoldStorage: LichessBooleanStorage;
   server: Server;
   nvui?: NvuiPlugin;
+  coach?: CoachCtrl;
   vibration: Prop<boolean> = storedBooleanProp('vibration', false);
   streamer: Prop<boolean> = storedBooleanProp('streamermode', false);
 
@@ -178,6 +180,30 @@ export default class RoundController implements MoveRootCtrl {
       pubsub.on('socket.open', () => {
         // Initial page data is already authoritative. Only resync after a disconnect.
         if (this.winProbability?.data?.status === 'stale') this.socket.reload();
+      });
+    }
+
+    if (
+      !d.player.spectator &&
+      d.opponent.ai &&
+      d.game.rules?.includes('noTakeback') &&
+      d.game.rules.includes('noRematch')
+    ) {
+      this.coach = new CoachCtrl(
+        d.game.id,
+        () => ({
+          ply: this.lastPly(),
+          viewedPly: this.ply,
+          status: this.data.game.status.name,
+          live: !this.replaying() && !this.toSubmit,
+        }),
+        redraw,
+        () => this.userJump(this.lastPly()),
+      );
+      setTimeout(() => void this.coach?.start(), 0);
+      window.addEventListener('pagehide', this.coach.stop, { once: true });
+      window.addEventListener('pageshow', event => {
+        if (event.persisted) site.reload();
       });
     }
   }

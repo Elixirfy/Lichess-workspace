@@ -28,6 +28,7 @@ export const rematchable = (data: GameData): boolean => !data.game.rules?.includ
 
 export const takebackable = (data: GameData): boolean =>
   playable(data) &&
+  !data.game.rules?.includes('noTakeback') &&
   data.takebackable &&
   bothPlayersHavePlayed(data) &&
   !data.player.proposingTakeback &&

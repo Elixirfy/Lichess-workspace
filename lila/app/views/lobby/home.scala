@@ -28,13 +28,14 @@ object home:
       )
     Page("")
       .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
-      .i18n(_.variant)
+      .i18n(_.variant, _.aicoach)
       .js(
         PageModule(
           "lobby",
           Json
             .obj(
               "data" -> data,
+              "coach" -> env.aiCoach.enabled,
               "showRatings" -> ctx.pref.showRatings
             )
             .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
@@ -124,6 +125,11 @@ object home:
               ),
               button(cls := "button button-metal lobby__start__button lobby__start__button--ai")(
                 trans.site.playAgainstComputer()
+              ),
+              env.aiCoach.enabled.option(
+                a(cls := "button button-metal lobby__start__button", href := routes.AiCoach.bootstrap)(
+                  trans.aicoach.learn()
+                )
               )
             )
           ),

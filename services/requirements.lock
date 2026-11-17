@@ -1,0 +1,9 @@
+# Python >=3.10; runtime dependencies and package build tools.
+setuptools==80.9.0
+wheel==0.45.1
+annotated-types==0.8.0
+chess==1.11.2
+pydantic==2.12.5
+pydantic_core==2.41.5
+typing-inspection==0.4.5
+typing_extensions==4.16.0

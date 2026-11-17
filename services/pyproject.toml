@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lichess-ai-coach"
+version = "0.1.0"
+description = "Authoritative chess analysis for the Lila AI coach"
+requires-python = ">=3.10"
+dependencies = ["chess==1.11.2", "pydantic==2.12.5"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["chess_analysis*", "coach*"]
+exclude = ["*.tests*"]

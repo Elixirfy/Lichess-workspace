@@ -1,5 +1,14 @@
 # Run `./lila.sh playRoutes` after modifying this file
 
+# AI coach: server-owned sessions and persistent results
+GET   /ai-coach                        controllers.AiCoach.bootstrap
+GET   /ai-coach/games/$gameId<\w{8}>   controllers.AiCoach.forGame(gameId: GameId)
+POST  /ai-coach/sessions               controllers.AiCoach.create
+GET   /ai-coach/sessions/:id           controllers.AiCoach.snapshot(id: String)
+GET   /ai-coach/sessions/:id/events    controllers.AiCoach.events(id: String)
+POST  /ai-coach/sessions/:id/resume    controllers.AiCoach.resume(id: String)
+POST  /ai-coach/sessions/:id/questions controllers.AiCoach.question(id: String)
+
 # Lobby
 GET   /commentary/$gameId<\w{8}>       controllers.Commentary.stream(gameId: GameId, voice: String ?= "piper-vais1000")
 GET   /commentary/voice/$voice<[a-z0-9-]{1,40}> controllers.Commentary.sample(voice: String)

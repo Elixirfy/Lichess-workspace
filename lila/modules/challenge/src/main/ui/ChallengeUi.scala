@@ -94,6 +94,7 @@ final class ChallengeUi(helpers: Helpers):
     r match
       case GameRule.noAbort => ("No abort", Flair("symbols.cross-mark"));
       case GameRule.noRematch => ("No rematch", Flair("symbols.recycling-symbol"));
+      case GameRule.noTakeback => ("No takebacks", Flair("symbols.cross-mark"));
       case GameRule.noGiveTime => ("No giving of time", Flair("objects.alarm-clock"));
       case GameRule.noClaimWin => ("No claiming of win", Flair("objects.hourglass-done"));
       case GameRule.noEarlyDraw => ("No early draw", Flair("people.handshake-light-skin-tone"));

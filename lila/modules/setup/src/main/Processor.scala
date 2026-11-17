@@ -12,6 +12,28 @@ final private[setup] class Processor(
     onStart: lila.core.game.OnStart
 )(using Executor, lila.core.game.IdGenerator, lila.core.game.NewPlayer):
 
+  /** Prepare only. Coach persists its reservation before inserting/starting. */
+  def prepareCoach(color: chess.Color, level: Int)(using me: Option[Me]): Fu[Pov] =
+    if !AiConfig.levels.contains(level) then fufail(IllegalArgumentException("invalid AI level"))
+    else
+      val config = AiConfig.default.copy(
+        variant = chess.variant.Standard,
+        timeMode = TimeMode.Unlimited,
+        fen = None,
+        color = if color.white then lila.lobby.TriColor.White else lila.lobby.TriColor.Black,
+        level = level
+      )
+      for
+        user <- me.map(_.value).traverse(userApi.withPerf(_, config.perfType))
+        pov <- config.pov(user)
+      yield pov.withGame(
+        pov.game.copy(metadata =
+          pov.game.metadata.copy(
+            rules = Set(lila.core.game.GameRule.noTakeback, lila.core.game.GameRule.noRematch)
+          )
+        )
+      )
+
   def ai(config: AiConfig)(using me: Option[Me]): Fu[Pov] = for
     me <- me.map(_.value).traverse(userApi.withPerf(_, config.perfType))
     pov <- config.pov(me)
