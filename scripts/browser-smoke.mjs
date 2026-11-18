@@ -133,15 +133,20 @@ try {
         const panel = document.querySelector('.win-probability');
         const values = [...(panel?.querySelector('.win-probability__values')?.textContent ?? '').matchAll(/(\d+\.\d)%/g)]
           .map(match => Number(match[1]));
-        return panel?.getAttribute('data-source') === source && values.length === 3 &&
-          values.every((value, index) => Math.abs(value - selected[index] * 100) <= 0.100001);
-      }, { source, selected: [selected.white, selected.draw, selected.black] });
+        const decisive = selected[0] + selected[1];
+        return decisive > 0 && panel?.getAttribute('data-source') === source && values.length === 2 &&
+          values.every((value, index) => Math.abs(value - selected[index] / decisive * 100) <= 0.050001);
+      }, { source, selected: [selected.white, selected.black] });
       report.latency_ms.push(Math.round(performance.now() - start));
       const labels = await panel.locator('.win-probability__values').innerText();
       const values = [...labels.matchAll(/(\d+\.\d)%/g)].map(m => Number(m[1]));
-      check(values.length === 3 && Math.abs(values.reduce((a, b) => a + b, 0) - 100) < 0.01, `Ply ${ply}: displayed WDL sums to 100%`);
-      check((await panel.innerText()).match(/\d+\.\d%/g)?.length === 3,
-        `Ply ${ply}: exactly one set of percentages matches the ${source} estimate`);
+      check(values.length === 2 && Math.abs(values.reduce((a, b) => a + b, 0) - 100) < 0.01,
+        `Ply ${ply}: conditional White/Black percentages sum to 100%`);
+      check((await panel.innerText()).match(/\d+\.\d%/g)?.length === 2,
+        `Ply ${ply}: exactly two conditional percentages match the ${source} estimate`);
+      check(await panel.locator('.win-probability__draw').count() === 0 &&
+        (await panel.locator('.win-probability__source').innerText()).includes('không tính hòa'),
+        `Ply ${ply}: no draw segment and conditional meaning is visible`);
       if (humanPlayers && ply >= 4) {
         check(prediction.human?.status === 'ready', `Ply ${ply}: server ratings/clocks produce a human prediction`);
         report.model_id = prediction.human.model_id;
@@ -161,7 +166,7 @@ try {
     await panel.screenshot({ path: resolve(artifacts, `${prefix}-panel.png`) });
     const beforeFlip = await panel.locator('.win-probability__values').innerText();
     await spectator.keyboard.press('f');
-    check(await panel.locator('.win-probability__values').innerText() === beforeFlip, 'Board flip preserves White/draw/Black labels');
+    check(await panel.locator('.win-probability__values').innerText() === beforeFlip, 'Board flip preserves White/Black conditional percentages');
     await spectator.keyboard.press('ArrowLeft');
     await spectator.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'replay');
     check(await panel.locator('.win-probability__values').count() === 0, 'Historical replay hides live-position percentages');
@@ -268,8 +273,12 @@ try {
     if (await drawConfirm.isVisible()) await drawConfirm.click();
     await black.locator('.rcontrols .question .yes').click();
     await spectator.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'finished');
-    check((await panel.locator('.win-probability__values').innerText()).includes('Hòa 100.0%'),
-      'Agreed draw overrides both predictions with 100% draw');
+    check((await panel.locator('.win-probability__status').innerText()).includes('Ván đấu kết thúc hòa') &&
+      await panel.locator('.win-probability__values').count() === 0 &&
+      await panel.locator('.win-probability__bar').count() === 0 &&
+      await panel.getAttribute('data-source') === 'official',
+      'Agreed draw shows the official result without invented White/Black percentages');
+    await panel.screenshot({ path: resolve(artifacts, `${prefix}-draw.png`) });
 
     report.endingGames.aborted = await endingGame('abort', []);
     await white.locator('button.abort').click();

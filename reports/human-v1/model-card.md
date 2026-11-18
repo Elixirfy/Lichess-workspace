@@ -2,9 +2,14 @@
 
 Artifact: `human-logit-v1-54213e4fef50`, evaluated 05/11/2026. This is an experimental
 prediction of White win / draw / Black win in human games. The compact UI prefers this
-estimate when supported and otherwise displays Stockfish WDL, with a caption identifying
-the selected source. These outputs are not blended. It has not been calibrated for the
-local server's population.
+estimate when supported and otherwise uses Stockfish WDL, with a caption identifying
+the selected source. These outputs are not blended. Since 18/11/2026, the UI displays
+only conditional White/Black percentages: W/(W+B) and B/(W+B), rounded together to
+100.0%, with a visible "không tính hòa" caption. A zero decisive probability has no
+conditional percentages; an official draw is shown as the result without percentages.
+The model, API, three-class evaluation below and raw WDL remain unchanged. Neither the
+original predictions nor the conditional display have been calibrated for the local
+server's population.
 
 ## Data and evaluation protocol
 

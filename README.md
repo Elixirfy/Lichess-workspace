@@ -1,12 +1,12 @@
 # Lichess WDL Lab
 
-Fork Lichess tự host, bổ sung một thanh xác suất **Trắng thắng / Hòa / Đen thắng** cho người xem ván cờ tiêu chuẩn. Thanh ưu tiên mô hình người chơi có xét thế cờ, rating và đồng hồ; khi thiếu dữ liệu hoặc ngoài phạm vi, dùng WDL của engine. Nhãn ngắn bên dưới cho biết nguồn; không hiển thị hai bộ tỷ lệ hoặc tên/độ sâu engine.
+Fork Lichess tự host, hiển thị một thanh **Trắng thắng / Đen thắng** cho người xem ván cờ tiêu chuẩn. Hai tỷ lệ cộng lại bằng **100%**, tính với điều kiện ván có bên thắng: `Trắng = W / (W + B)`, `Đen = B / (W + B)`. Phần hòa không xuất hiện trên thanh; dữ liệu WDL gốc vẫn được giữ bên trong. Thanh ưu tiên mô hình người chơi có xét thế cờ, rating và đồng hồ; khi thiếu dữ liệu hoặc ngoài phạm vi, dùng engine. Nhãn bên dưới cho biết nguồn và “không tính hòa”. Ván đã hòa hiện kết quả chính thức; khi `W + B = 0`, giao diện không tự gán tỷ lệ 50/50.
 
 Tiến độ và bằng chứng nằm trong [mốc engine](openspec/changes/live-win-probability/tasks.md) và [mốc mô hình người chơi](openspec/changes/human-win-probability/tasks.md). Phạm vi, kết quả và giới hạn mô hình được ghi trong [model card](reports/human-v1/model-card.md).
 
 **Báo cáo nghiệm thu cuối bằng tiếng Việt:** [bao-cao-nghiem-thu.md](reports/acceptance/bao-cao-nghiem-thu.md), kèm log, JSON và ảnh được lưu trong `reports/acceptance/evidence/`.
 
-**Cập nhật giao diện theo phản hồi:** [một thanh xác suất](reports/acceptance/ui-don-gian.md).
+**Cập nhật giao diện theo phản hồi:** [tỷ lệ Trắng/Đen khi ván có bên thắng](reports/acceptance/two-way-probability/README.md). [Bản ba tỷ lệ trước đây](reports/acceptance/ui-don-gian.md) được giữ làm lịch sử.
 
 **Chơi cờ bằng giọng nói tiếng Việt (thử nghiệm, Vosk + PhoWhisper, không LLM):**
 [Chế độ hiện tại: nước hợp lệ đi ngay, nước sai/chưa rõ có thông báo](reports/voice-v1/direct-moves/README.md).
