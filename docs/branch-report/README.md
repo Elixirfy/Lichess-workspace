@@ -1,9 +1,9 @@
-# Chơi cờ bằng giọng nói tiếng Việt và ưu thế live
+# Chơi cờ bằng giọng nói tiếng Việt, ưu thế live và xem lại
 
 ## Thông tin phiên bản và mục đích tài liệu
 
 - Branch: `codex/vietnamese-voice-input`.
-- Mã nguồn khảo sát: [`162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a`](https://github.com/trantrien1/Lichess-workspace/commit/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a).
+- Mã nguồn khảo sát: [`58cc3607da3886d20bc4e141d3023e8fed971334`](https://github.com/trantrien1/Lichess-workspace/commit/58cc3607da3886d20bc4e141d3023e8fed971334).
 - Ngày tổng hợp: **18/11/2026**. Tài liệu này phục vụ mô tả/so sánh trong báo cáo; không phải một benchmark mới.
 - Nhánh có bản triển khai Vosk + PhoWhisper, không cần LLM để hiểu lệnh; câu hợp lệ đi ngay. Nhánh kế thừa prediction và cập nhật panel hai màu cho cả người chơi lẫn người xem. Đây là nhánh đang phục vụ stack Windows local trong phiên làm việc này.
 
@@ -14,6 +14,8 @@ Cho phép người Việt nói nước đi với nhiều cách gọi quân, cộ
 ## 2. Chức năng đã có trên nhánh
 
 Giữ Shift, đọc “Tốt bê hai tới bê bốn” rồi thả. Vosk xử lý trước; câu chưa được parser xử lý sẽ được nhận lại bằng PhoWhisper local. Nước duy nhất và hợp lệ được gửi ngay, không hỏi xác nhận. Sai luật/chưa hiểu hiện thông báo; mơ hồ yêu cầu nói rõ nguồn. Có trang Thu mẫu để lưu nguyên câu khi người dùng chủ động bấm lưu. Hỗ trợ nhập thành, phong cấp và các cách nói B/D đã ghi trong báo cáo.
+
+Khi xem lại ván standard trên bố cục từ hai cột, thanh dọc hiện Trắng/Đen và phần trăm của node đang chọn. Ưu tiên WDL thật từ engine phân tích, dùng cùng helper W+D/2 với panel live; cp-only dùng mô hình Stockfish 15.1 có nhãn trong tooltip. Tua, flip và nhánh phân tích không kế thừa nhầm kết quả cuối ván.
 
 ## 3. Kiến trúc và cách triển khai
 
@@ -32,7 +34,7 @@ Mở tiếng Việt khỏi danh sách chỉ có ở debug; thêm bộ chuẩn h�
 | Người dùng phải xác nhận ở bản thử nghiệm trước | Câu rõ/hợp lệ đi ngay | Ít thao tác hơn; nếu ASR nhầm thành một nước hợp lệ khác thì vẫn có rủi ro đi nhầm |
 | Kiểm thử transcript hoặc từ rời | Bản thu nguyên câu → ASR production → server move → bot | Đánh giá trọn luồng, không chỉ parser; tập hiện tại vẫn là dữ liệu phát triển của một người |
 | W/(W+B) bỏ hòa gây 0/100 ở thế gần hòa | W+D/2, B+D/2 | Giữ ý nghĩa điểm kỳ vọng: ví dụ 0/87,6/12,4 thành 43,8/56,2; không phải chứng minh model dự đoán chính xác hơn |
-| Analysis có thanh dọc đánh giá | Live panel trên cả hai bàn standard | Không phải mở tab người xem; analysis-page integration vẫn chưa triển khai |
+| Analysis có thanh dọc cp/mate | Hiện ưu thế W+D/2 của node đang chọn ngay trên thanh dọc | Dùng chung phép tính với panel live, không giữ số cũ khi thiếu eval; phiên bản/độ sâu engine có thể khác live |
 
 Các nhận định “ít thao tác”, “thêm kênh nghe”, “dùng chung công việc” mô tả thiết kế/hành vi có trong code. Không chuyển chúng thành số liệu tăng năng suất, độ chính xác hoặc chất lượng học tập khi chưa có phép đo đối chứng.
 
@@ -42,16 +44,19 @@ Các nhận định “ít thao tác”, “thêm kênh nghe”, “dùng chung 
 |---|---|
 | `reports/voice-v1/direct-moves/`: audio người thật nguyên câu | 25/25 ca, gồm ca âm tính; 18 ca có nước người chơi và bot đáp, không phải 25 ca đều đi quân |
 | Phạm vi bộ audio | Một người nói, đã dùng tinh chỉnh; không phải holdout hay độ chính xác cho mọi giọng |
-| Cập nhật UI gọn hiện tại | 19/19 focused, 341/341 frontend; build/lint/stylelint/format đạt |
+| Mốc UI gọn trước tích hợp review | 19/19 focused, 341/341 frontend; build/lint/stylelint/format đạt |
 | Browser UI gọn | PvP có tài khoản 164 assertion, 44 mẫu từ hai bàn; bot hai màu, chín mẫu; không JS exception |
-| Patch replay | Khớp 40 đường dẫn với hai patch; voice patch giữ nguyên sau đổi phần tỷ lệ |
+| Thanh dọc review hiện tại | 38/38 focused, 360/360 frontend, 45 vector python-chess; build/lint/stylelint/format đạt |
+| Browser review | 4 ván, 22 snapshot gồm 18 đối chiếu WDL thật; tua/flip/reload/nhánh cùng ply/kết quả chính thức đạt; PGN server không đổi |
+| Patch replay hiện tại | Khớp 54 đường dẫn với hai patch; voice patch giữ nguyên |
 
 ## 6. Cách dựng và thử lại
 
 ```powershell
 .\scripts\dev.ps1 bootstrap
 .\scripts\dev.ps1 start
-.\scriptsoice.ps1 live
+node scripts/prepare-analysis-engine.mjs
+.\scripts\voice.ps1 live
 node scripts/voice-recorded-e2e.mjs --direct --files --bot
 ```
 
@@ -63,19 +68,19 @@ Chưa kiểm tra rộng theo vùng miền, nhiều người nói hoặc nhiễu 
 
 ## 8. Hướng phát triển và điểm cần đối chiếu
 
-Thanh dọc Stockfish khi xem lại có thể dùng để biểu diễn ưu thế cho nước đang chọn. Nó hiện dùng logistic của cp/mate, còn panel này dùng W+D/2. Nếu tích hợp cần chọn cùng nguồn/thước đo, xử lý đổi hướng và bước replay; không gán kết quả cuối ván cho mọi vị trí quá khứ. Chưa có triển khai mới trên analysis page trong thay đổi này.
+Thanh dọc review đã được tích hợp, dùng chung hàm điểm kỳ vọng với panel live. Đầu vào review là WDL engine hiện tại hoặc quy đổi cp-only được ghi nhãn; không khôi phục rating/clock tương lai hay giả làm human model. Có thể tiếp tục nghiên cứu giao diện mobile một cột, study/relay và hiệu chỉnh theo cộng đồng local. Những hướng này chưa được suy ra là hoàn tất từ bài test 4 ván.
 
 ## 9. Tệp nguồn quan trọng ở đúng revision
 
-- [`services/voice/app/main.py`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/services/voice/app/main.py)
-- [`services/voice/app/recognizer.py`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/services/voice/app/recognizer.py)
-- [`services/voice/app/recordings.py`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/services/voice/app/recordings.py)
-- [`scripts/voice.ps1`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/scripts/voice.ps1)
-- [`scripts/voice-recorded-e2e.mjs`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/scripts/voice-recorded-e2e.mjs)
-- [`patches/lila-vietnamese-voice.patch`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/patches/lila-vietnamese-voice.patch)
-- [`patches/lila-win-probability.patch`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/patches/lila-win-probability.patch)
-- [`reports/voice-v1/direct-moves/README.md`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/reports/voice-v1/direct-moves/README.md)
-- [`reports/acceptance/compact-advantage/validation.json`](https://github.com/trantrien1/Lichess-workspace/blob/162bd1c1ae8ad6a2780698f18e5f8d8e61f29d4a/reports/acceptance/compact-advantage/validation.json)
+- [`services/voice/app/main.py`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/services/voice/app/main.py)
+- [`services/voice/app/recognizer.py`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/services/voice/app/recognizer.py)
+- [`services/voice/app/recordings.py`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/services/voice/app/recordings.py)
+- [`scripts/voice.ps1`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/scripts/voice.ps1)
+- [`scripts/voice-recorded-e2e.mjs`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/scripts/voice-recorded-e2e.mjs)
+- [`patches/lila-vietnamese-voice.patch`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/patches/lila-vietnamese-voice.patch)
+- [`patches/lila-win-probability.patch`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/patches/lila-win-probability.patch)
+- [`reports/voice-v1/direct-moves/README.md`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/reports/voice-v1/direct-moves/README.md)
+- [`reports/acceptance/compact-advantage/validation.json`](https://github.com/trantrien1/Lichess-workspace/blob/58cc3607da3886d20bc4e141d3023e8fed971334/reports/acceptance/compact-advantage/validation.json)
 
 ## 10. Dùng tài liệu này khi viết báo cáo
 
@@ -91,3 +96,5 @@ README này được tổng hợp với sự hỗ trợ của Codex. Tài liệu
 Nguồn đối chiếu thanh analysis: [renderGauge](https://github.com/lichess-org/lila/blob/4eea97abce686a1cc6b07abe54cce9e10c223227/ui/lib/src/ceval/view/main.ts), [biến đổi cp/mate](https://github.com/lichess-org/lila/blob/4eea97abce686a1cc6b07abe54cce9e10c223227/ui/lib/src/ceval/winningChances.ts).
 
 Nguồn đối chiếu voice input sẵn có: [danh sách ngôn ngữ](https://github.com/lichess-org/lila/blob/4eea97abce686a1cc6b07abe54cce9e10c223227/ui/voice/src/languages.ts), [grammar và lexicon](https://github.com/lichess-org/lila/blob/4eea97abce686a1cc6b07abe54cce9e10c223227/ui/voice/README.md).
+
+- [Tích hợp thanh dọc, kiểm thử và cách chạy](../../reports/acceptance/replay-advantage/README.md)
