@@ -16,6 +16,8 @@ Tiến độ và bằng chứng nằm trong [mốc engine](openspec/changes/live
 
 **Giao diện gọn theo yêu cầu mới:** [bỏ hai dòng chú thích, giữ giải thích trong tooltip](reports/acceptance/compact-advantage/README.md).
 
+**Xem lại ván đấu:** [thanh dọc hiển thị ưu thế Trắng/Đen theo nước đang chọn](reports/acceptance/replay-advantage/README.md), dùng chung hàm `W+D/2` với panel live. Ưu tiên WDL engine; điểm cp cũ dùng quy đổi Stockfish 15.1 có nhãn trong tooltip. Chuẩn bị model engine client mặc định bằng `node scripts/prepare-analysis-engine.mjs` sau bootstrap; chỉ tải 1,17 MB và kiểm checksum.
+
 **Xem ưu thế trên bàn chơi với máy hoặc người:** cả hai bên dùng dữ liệu thế cờ từ máy chủ; máy chủ kiểm tra cờ bật tính năng và biến thể của ván. [Báo cáo mở quyền trên bàn người chơi](reports/acceptance/player-win-probability/README.md).
 
 **Chơi cờ bằng giọng nói tiếng Việt (thử nghiệm, Vosk + PhoWhisper, không LLM):**
@@ -42,7 +44,7 @@ so với 76/95 của Vosk ở lượt đầu; median/p95 93/1.399 ms trong pipel
 
 ## Chạy trên máy này
 
-Cần Docker Desktop chạy Linux containers, Git và PowerShell. Máy kiểm thử cấp khoảng 14 GiB RAM cho Docker; lần build đầu tải nhiều dependency của Lichess. `uv` cần cho ASR local và kiểm thử Python; Node cần cho kiểm thử trình duyệt ở máy host.
+Cần Docker Desktop chạy Linux containers, Git và PowerShell. Máy kiểm thử cấp khoảng 14 GiB RAM cho Docker; lần build đầu tải nhiều dependency của Lichess. `uv` cần cho ASR local và kiểm thử Python; Node ở máy host dùng cho chuẩn bị model engine phân tích và kiểm thử trình duyệt.
 
 ```powershell
 # Lần đầu: lấy đúng source, áp patch, dựng UI/backend và database.
@@ -117,7 +119,7 @@ Lệnh `browser` mặc định tạo hai người chơi ẩn danh và một ngư
 
 Đợt nghiệm thu cuối ngày 05/11/2026 đã qua **56 test Python, 264 test frontend, full build UI, định dạng và lint**. Backend Scala không đổi trong đợt rà soát này; build tích hợp trước đã qua, dùng cache test, còn mốc engine ban đầu đã chạy 603 test Scala. Browser có tài khoản đo p95 **554 ms** trên 20 lượt đi đầu; ván ẩn danh **561 ms**. Reconnect mạng, hoàn tác, tua lại, worker lỗi/phục hồi, chiếu hết, hòa, bỏ cuộc, hết giờ và hủy ván đều đã được thử. Worker riêng đo p95 **279 ms** trên 21 thế cờ; 100 yêu cầu trùng không tạo thêm lượt tính engine. Probe bốn ván/100 yêu cầu đo 587,1 ms cho vị trí cuối với hai worker, so với 1.061,2 ms với một worker; đây là một đợt tải có giới hạn, không phải benchmark capacity dài hạn. Xem [báo cáo nghiệm thu](reports/acceptance/bao-cao-nghiem-thu.md).
 
-Để xem bằng tay, mở bàn chơi của một ván cờ tiêu chuẩn và tải lại trang. Cả hai người chơi và người xem đều có panel cạnh danh sách nước đi. Không cần tab người xem riêng. Trang phân tích của ván đã kết thúc chưa được tích hợp ở giai đoạn này.
+Để xem bằng tay, mở bàn chơi của một ván cờ tiêu chuẩn và tải lại trang. Cả hai người chơi và người xem đều có panel cạnh danh sách nước đi. Không cần tab người xem riêng. Khi xem lại ván đã kết thúc, bật engine trên trang phân tích để xem ưu thế ngay trên thanh dọc; tua và đổi chiều bàn giữ đúng node/màu. Mobile một cột giữ hành vi ẩn thanh dọc của Lichess.
 
 ## Mô hình người chơi và tái lập
 

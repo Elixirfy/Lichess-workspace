@@ -400,17 +400,15 @@ index 0000000..7129b87
 +}
 diff --git a/ui/round/src/winProbability.ts b/ui/round/src/winProbability.ts
 new file mode 100644
-index 0000000..068e0c2
+index 0000000..e14c79e
 --- /dev/null
 +++ b/ui/round/src/winProbability.ts
-@@ -0,0 +1,178 @@
+@@ -0,0 +1,158 @@
++import { validWdl, type Wdl } from 'lib/ceval/wdl';
++
 +import type { RoundData } from './interfaces';
 +
-+export interface Wdl {
-+  white: number;
-+  draw: number;
-+  black: number;
-+}
++export { expectedScorePercentages, validWdl, type Wdl } from 'lib/ceval/wdl';
 +
 +export interface Prediction {
 +  game_id: string;
@@ -439,24 +437,6 @@ index 0000000..068e0c2
 +    .map(s => s.san)
 +    .filter(Boolean)
 +    .join(' ')}|${d.game.status.id}|${d.game.winner ?? ''}`;
-+
-+export function validWdl(p?: Wdl): p is Wdl {
-+  if (!p) return false;
-+  const values = [p.white, p.draw, p.black];
-+  return (
-+    values.every(x => Number.isFinite(x) && x >= 0 && x <= 1) &&
-+    Math.abs(values.reduce((a, b) => a + b, 0) - 1) < 0.00001
-+  );
-+}
-+
-+// Expected points: win = 1, draw = 0.5, loss = 0. Keep raw WDL intact.
-+// Complementary tenths keep the two advantage percentages at exactly 100.0%.
-+export function expectedScorePercentages(p: Wdl): [number, number] | undefined {
-+  if (!validWdl(p)) return undefined;
-+  const total = p.white + p.draw + p.black;
-+  const white = Math.round(((p.white + p.draw / 2) / total) * 1000);
-+  return [white / 10, (1000 - white) / 10];
-+}
 +
 +export default class WinProbability {
 +  data?: Prediction;
@@ -947,5 +927,758 @@ index 0000000..01b80d5
 +    assert.equal(view.dataset.source, undefined);
 +    assert.equal(view.dataset.metric, undefined);
 +    assert.equal(view.getAttribute('title'), null);
++  }
++});
+diff --git a/ui/@types/lichess/index.d.ts b/ui/@types/lichess/index.d.ts
+index 6c43554..7007047 100644
+--- a/ui/@types/lichess/index.d.ts
++++ b/ui/@types/lichess/index.d.ts
+@@ -254,6 +254,8 @@ interface Paginator<A> {
+ interface EvalScore {
+   cp?: number;
+   mate?: number;
++  // Normalized White / draw / Black, independent of the side to move.
++  wdl?: { white: number; draw: number; black: number };
+ }
+ 
+ interface CashStatic {
+diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
+index 4f219ad..3a5cfd7 100644
+--- a/ui/analyse/css/_layout.scss
++++ b/ui/analyse/css/_layout.scss
+@@ -20,6 +20,10 @@ $analyse-gauge-gap: 4px;
+ 
+   &.gauge-on {
+     ---analyse-gauge-col: calc(#{$block-gap} + #{$analyse-gauge-gap} * 2);
++
++    &:has(> .eval-gauge.expected-score) {
++      ---analyse-gauge-col: calc(3.2rem + #{$analyse-gauge-gap} * 2);
++    }
+   }
+ 
+   &__side {
+diff --git a/ui/analyse/src/advantage.ts b/ui/analyse/src/advantage.ts
+new file mode 100644
+index 0000000..6374f57
+--- /dev/null
++++ b/ui/analyse/src/advantage.ts
+@@ -0,0 +1,26 @@
++import type { GaugeOptions } from 'lib/ceval';
++
++import type AnalyseCtrl from './ctrl';
++
++// Only the original full mainline endpoint inherits the recorded game result.
++// A variation or an earlier node must keep its own position evaluation.
++export function reviewGaugeOptions(ctrl: AnalyseCtrl): GaugeOptions | undefined {
++  if (ctrl.data.game.variant.key !== 'standard') return undefined;
++  const parts = ctrl.data.treeParts;
++  const originalPath = parts.map(part => part.id ?? '').join('');
++  const final = parts[parts.length - 1];
++  const official =
++    !ctrl.synthetic &&
++    !ctrl.study &&
++    ctrl.data.game.status.id >= 30 &&
++    ctrl.path === originalPath &&
++    ctrl.node.ply === ctrl.data.game.turns &&
++    ctrl.node.fen === final?.fen;
++  const winner = ctrl.data.game.winner;
++  return {
++    expectedScore: true,
++    result: official
++      ? { white: Number(winner === 'white'), draw: Number(!winner), black: Number(winner === 'black') }
++      : undefined,
++  };
++}
+diff --git a/ui/analyse/src/view/main.ts b/ui/analyse/src/view/main.ts
+index 0f54c7d..4d59485 100644
+--- a/ui/analyse/src/view/main.ts
++++ b/ui/analyse/src/view/main.ts
+@@ -9,6 +9,7 @@ import { licon } from 'lib/licon';
+ import { type VNode, onInsert, hl } from 'lib/view';
+ import { watchers } from 'lib/view/watchers';
+ 
++import { reviewGaugeOptions } from '@/advantage';
+ import crazyView from '@/crazy/crazyView';
+ import type AnalyseCtrl from '@/ctrl';
+ import forecastView from '@/forecast/forecastView';
+@@ -44,7 +45,7 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
+   return renderMain(
+     ctx,
+     renderBoard(ctx),
+-    ctx.gaugeOn && cevalView.renderGauge(ctrl),
++    ctx.gaugeOn && cevalView.renderGauge(ctrl, reviewGaugeOptions(ctrl)),
+     crazyView(ctrl, ctrl.topColor(), 'top'),
+     renderTools(ctx),
+     crazyView(ctrl, ctrl.bottomColor(), 'bottom'),
+diff --git a/ui/analyse/tests/advantage.test.ts b/ui/analyse/tests/advantage.test.ts
+new file mode 100644
+index 0000000..c04a4e5
+--- /dev/null
++++ b/ui/analyse/tests/advantage.test.ts
+@@ -0,0 +1,58 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { reviewGaugeOptions } from '../src/advantage';
++import type AnalyseCtrl from '../src/ctrl';
++
++function review(overrides: Record<string, unknown> = {}): AnalyseCtrl {
++  return {
++    synthetic: false,
++    study: undefined,
++    path: 'aabb',
++    node: { ply: 2, fen: 'final' },
++    data: {
++      game: { status: { id: 31 }, winner: 'white', turns: 2, variant: { key: 'standard' } },
++      treeParts: [
++        { id: '', ply: 0, fen: 'initial' },
++        { id: 'aa', ply: 1, fen: 'first' },
++        { id: 'bb', ply: 2, fen: 'final' },
++      ],
++    },
++    ...overrides,
++  } as unknown as AnalyseCtrl;
++}
++
++test('only the original endpoint receives the recorded game result', () => {
++  assert.deepEqual(reviewGaugeOptions(review()), {
++    expectedScore: true,
++    result: { white: 1, draw: 0, black: 0 },
++  });
++  for (const overrides of [
++    { path: 'aa', node: { ply: 1, fen: 'first' } },
++    { path: 'aacc', node: { ply: 2, fen: 'final' } },
++    { node: { ply: 2, fen: 'other' } },
++    { synthetic: true },
++    { study: {} },
++  ])
++    assert.equal(reviewGaugeOptions(review(overrides))!.result, undefined);
++});
++
++test('official draws, black wins, aborts and active games are distinct', () => {
++  for (const [id, winner, expected] of [
++    [34, undefined, { white: 0, draw: 1, black: 0 }],
++    [30, 'black', { white: 0, draw: 0, black: 1 }],
++    [25, undefined, undefined],
++    [20, undefined, undefined],
++  ] as const) {
++    const ctrl = review();
++    ctrl.data.game.status.id = id;
++    ctrl.data.game.winner = winner;
++    assert.deepEqual(reviewGaugeOptions(ctrl)!.result, expected);
++  }
++});
++
++test('nonstandard variants retain the original gauge', () => {
++  const ctrl = review();
++  ctrl.data.game.variant.key = 'chess960';
++  assert.equal(reviewGaugeOptions(ctrl), undefined);
++});
+diff --git a/ui/lib/css/ceval/_eval-gauge.scss b/ui/lib/css/ceval/_eval-gauge.scss
+index d14de47..2b4ea65 100644
+--- a/ui/lib/css/ceval/_eval-gauge.scss
++++ b/ui/lib/css/ceval/_eval-gauge.scss
+@@ -30,6 +30,41 @@
+     transform: rotateX(180deg);
+   }
+ 
++  &.expected-score {
++    width: 3.2rem;
++
++    > span {
++      position: absolute;
++      left: 0;
++      right: 0;
++      z-index: 1;
++      display: flex;
++      flex-direction: column;
++      align-items: center;
++      padding: 0.3rem 0;
++      font-size: 0.65rem;
++      font-weight: bold;
++      line-height: 1.3;
++      pointer-events: none;
++    }
++
++    .eval-gauge__white {
++      bottom: 0;
++      background: #f2f2f2;
++      color: #252525;
++    }
++
++    .eval-gauge__black {
++      top: 0;
++      background: #252525;
++      color: #f2f2f2;
++    }
++
++    &.reverse > span {
++      transform: rotateX(180deg);
++    }
++  }
++
+   &::after {
+     @extend %box-radius;
+ 
+diff --git a/ui/lib/src/ceval/protocol.ts b/ui/lib/src/ceval/protocol.ts
+index e5f050a..578be19 100644
+--- a/ui/lib/src/ceval/protocol.ts
++++ b/ui/lib/src/ceval/protocol.ts
+@@ -4,6 +4,7 @@ import type { LocalEval } from '@/tree/types';
+ 
+ import { defined } from '../index';
+ import type { Work, EngineInfo } from './types';
++import { uciWdl } from './wdl';
+ 
+ export class Protocol {
+   public engineName?: string;
+@@ -12,6 +13,7 @@ export class Protocol {
+   private currentEval?: LocalEval;
+   private gameId?: string;
+   private expectedPvs = 1;
++  private supportsWdl = false;
+   private nextWork?: Work;
+   private send: ((cmd: string) => void) | undefined;
+   private options: Map<string, string | number> = new Map<string, string>();
+@@ -23,6 +25,7 @@ export class Protocol {
+ 
+   connected(send: (cmd: string) => void): void {
+     this.send = send;
++    this.supportsWdl = false;
+ 
+     // Get engine name, version and options.
+     this.options = new Map([
+@@ -53,10 +56,13 @@ export class Protocol {
+ 
+   received(command: string): void {
+     const parts = command.trim().split(/\s+/g);
+-    if (parts[0] === 'uciok') {
++    if (parts[0] === 'option' && parts[1] === 'name' && parts[2] === 'UCI_ShowWDL' && parts[4] === 'check') {
++      this.supportsWdl = true;
++    } else if (parts[0] === 'uciok') {
+       // Analyse without contempt.
+       this.setOption('UCI_AnalyseMode', 'true');
+       this.setOption('Analysis Contempt', 'Off');
++      if (this.supportsWdl) this.setOption('UCI_ShowWDL', 'true');
+ 
+       // Affects notation only. Life would be easier if everyone would always
+       // unconditionally use this mode.
+@@ -92,6 +98,7 @@ export class Protocol {
+       let evalType;
+       let isMate = false;
+       let povEv;
++      let rawWdl: number[] | undefined;
+       let moves: string[] = [];
+       for (let i = 1; i < parts.length; i++) {
+         switch (parts[i]) {
+@@ -116,6 +123,9 @@ export class Protocol {
+             moves = parts.slice(++i);
+             i = parts.length;
+             break;
++          case 'wdl':
++            rawWdl = [Number(parts[++i]), Number(parts[++i]), Number(parts[++i])];
++            break;
+         }
+       }
+ 
+@@ -129,6 +139,7 @@ export class Protocol {
+ 
+       const pivot = this.work.threatMode ? 0 : 1;
+       const ev = this.work.ply % 2 === pivot ? -povEv : povEv;
++      const wdl = rawWdl && uciWdl(rawWdl, this.work.ply % 2 !== pivot);
+ 
+       // For now, ignore most upperbound/lowerbound messages.
+       // However non-primary pvs may only have an upperbound.
+@@ -139,6 +150,7 @@ export class Protocol {
+         cp: isMate ? undefined : ev,
+         mate: isMate ? ev : undefined,
+         depth,
++        wdl,
+       };
+ 
+       if (multiPv === 1) {
+@@ -153,6 +165,7 @@ export class Protocol {
+             mate: isMate ? ev : undefined,
+             pvs: [pvData],
+             engineId: this.info.id,
++            wdl,
+           };
+         }
+       } else if (this.currentEval) {
+diff --git a/ui/lib/src/ceval/types.ts b/ui/lib/src/ceval/types.ts
+index a571135..9fa37ac 100644
+--- a/ui/lib/src/ceval/types.ts
++++ b/ui/lib/src/ceval/types.ts
+@@ -6,8 +6,13 @@ import type { MaybeVNode } from '@/view';
+ 
+ import type { Prop } from '../index';
+ import type { CevalCtrl } from './ctrl';
++import type { Wdl } from './wdl';
+ 
+ export type WinningChances = number;
++export interface GaugeOptions {
++  expectedScore: boolean;
++  result?: Wdl;
++}
+ export type SearchBy = { movetime: number } | { depth: number } | { nodes: number };
+ export type Search = { by: SearchBy; multiPv: number; indeterminate?: boolean };
+ export type NodeEfficiencyVsFishnet = Partial<Record<'chess' | 'variant', number>>;
+diff --git a/ui/lib/src/ceval/view/main.ts b/ui/lib/src/ceval/view/main.ts
+index d2607f5..2ec237f 100644
+--- a/ui/lib/src/ceval/view/main.ts
++++ b/ui/lib/src/ceval/view/main.ts
+@@ -31,8 +31,9 @@ import { cmnToggle } from '@/view/cmn-toggle';
+ import stepwiseScroll from '@/view/stepwiseScroll';
+ 
+ import type { CevalCtrl } from '../ctrl';
+-import { type CevalHandler, type NodeEvals, CevalState } from '../types';
++import { type CevalHandler, type NodeEvals, type GaugeOptions, CevalState } from '../types';
+ import { renderEval } from '../util';
++import { evalWdl, expectedScorePercentages } from '../wdl';
+ import { povChances } from '../winningChances';
+ import { renderCevalSettings } from './settings';
+ 
+@@ -148,13 +149,70 @@ export const getBestEval = (ctrl: CevalHandler): EvalScore | undefined => {
+ let gaugeLast = 0;
+ let gaugeTicks: VNode[];
+ 
+-export function renderGauge(ctrl: CevalHandler): VNode | undefined {
++export function renderGauge(ctrl: CevalHandler, options?: GaugeOptions): VNode | undefined {
+   if (ctrl.ongoing || !ctrl.showEvalGauge()) return undefined;
+   gaugeTicks ??= Array.from({ length: 7 }, (_, i) =>
+     hl('tick', { class: { zero: i === 3 }, attrs: { style: `height: ${(i + 1) * 12.5}%` } }),
+   );
+   const outcome = ctrl.getNode().outcome();
+   const bestEv = outcome ? undefined : getBestEval(ctrl);
++  if (options?.expectedScore) {
++    const evaluation = options.result
++      ? { probabilities: options.result, source: 'official' }
++      : outcome
++        ? {
++            probabilities: {
++              white: Number(outcome.winner === 'white'),
++              draw: Number(!outcome.winner),
++              black: Number(outcome.winner === 'black'),
++            },
++            source: 'position-result',
++          }
++        : bestEv
++          ? evalWdl(bestEv, ctrl.getNode().ply)
++          : undefined;
++    const values = evaluation && expectedScorePercentages(evaluation.probabilities);
++    const source = values ? evaluation.source : undefined;
++    const description =
++      source === 'official'
++        ? 'Kết quả chính thức.'
++        : source === 'position-result'
++          ? 'Kết quả của vị trí đang chọn.'
++          : source === 'engine-wdl'
++            ? 'WDL từ engine phân tích.'
++            : 'Quy đổi đánh giá sang WDL theo mô hình Stockfish 15.1.';
++    const title = values
++      ? `${source === 'official' || source === 'position-result' ? 'Điểm' : 'Ưu thế'} Trắng ${values[0].toFixed(1)}% · Đen ${values[1].toFixed(1)}%. ${description} 50% = cân bằng · Hòa tính nửa điểm.`
++      : 'Chưa có đánh giá cho vị trí đang chọn. Bật engine để phân tích.';
++    return div(
++      '.eval-gauge.expected-score',
++      {
++        class: { empty: !values, reverse: ctrl.getOrientation() === 'black' },
++        attrs: {
++          style: `--eval-percent: ${values?.[1] ?? 50}%`,
++          title,
++          role: 'img',
++          'aria-label': title,
++          'data-metric': values
++            ? source === 'official' || source === 'position-result'
++              ? 'result'
++              : 'expected-score'
++            : false,
++          'data-source': source ?? false,
++        },
++      },
++      [
++        gaugeTicks,
++        values &&
++          ['white', 'black'].map((color, i) =>
++            span(`.eval-gauge__${color}`, [
++              span(i ? 'Đen' : 'Trắng'),
++              span('.eval-gauge__value', `${values[i].toFixed(1)}%`),
++            ]),
++          ),
++      ],
++    );
++  }
+   let ev;
+   if (outcome) ev = outcome.winner === 'white' ? 1 : outcome.winner === 'black' ? -1 : 0;
+   else if (bestEv) {
+diff --git a/ui/lib/src/ceval/wdl.ts b/ui/lib/src/ceval/wdl.ts
+new file mode 100644
+index 0000000..1b280b0
+--- /dev/null
++++ b/ui/lib/src/ceval/wdl.ts
+@@ -0,0 +1,67 @@
++export interface Wdl {
++  white: number;
++  draw: number;
++  black: number;
++}
++
++export function validWdl(p?: Wdl): p is Wdl {
++  if (!p) return false;
++  const values = [p.white, p.draw, p.black];
++  return (
++    values.every(x => Number.isFinite(x) && x >= 0 && x <= 1) &&
++    Math.abs(values.reduce((a, b) => a + b, 0) - 1) < 0.00001
++  );
++}
++
++// Expected points: win = 1, draw = 0.5, loss = 0. Complementary tenths total 100.0%.
++export function expectedScorePercentages(p: Wdl): [number, number] | undefined {
++  if (!validWdl(p)) return undefined;
++  const total = p.white + p.draw + p.black;
++  const white = Math.round(((p.white + p.draw / 2) / total) * 1000);
++  return [white / 10, (1000 - white) / 10];
++}
++
++export function uciWdl(values: number[], whitePov: boolean): Wdl | undefined {
++  if (
++    values.length !== 3 ||
++    !values.every(x => Number.isInteger(x) && x >= 0 && x <= 1000) ||
++    values.reduce((a, b) => a + b, 0) !== 1000
++  )
++    return undefined;
++  return {
++    white: values[whitePov ? 0 : 2] / 1000,
++    draw: values[1] / 1000,
++    black: values[whitePov ? 2 : 0] / 1000,
++  };
++}
++
++// Legacy cp-only evaluations: the pinned Stockfish 15.1 WDL model, not engine-emitted WDL.
++// https://github.com/official-stockfish/Stockfish/blob/sf_15.1/src/uci.cpp
++// Also independently checked against python-chess Cp.wdl(model="sf15.1", ply=...).
++function sf151Wins(cp: number, ply: number): number {
++  const m = Math.min(240, Math.max(ply, 0)) / 64;
++  const a = ((-0.58270499 * m + 2.68512549) * m + 15.24638015) * m + 344.49745382;
++  const b = ((-2.65734562 * m + 15.96509799) * m - 20.69040836) * m + 73.61029937;
++  const x = Math.min(4000, Math.max((cp * 361) / 100, -4000));
++  return Math.floor(0.5 + 1000 / (1 + Math.exp((a - x) / b)));
++}
++
++export function evalWdl(
++  score: EvalScore,
++  ply: number,
++): { probabilities: Wdl; source: 'engine-wdl' | 'score-wdl' } | undefined {
++  if (score.wdl !== undefined)
++    return validWdl(score.wdl) ? { probabilities: score.wdl, source: 'engine-wdl' } : undefined;
++  if (!Number.isInteger(ply) || ply < 0) return undefined;
++  let probabilities: Wdl;
++  if (score.mate !== undefined) {
++    if (!Number.isFinite(score.mate) || !Number.isInteger(score.mate) || !score.mate) return undefined;
++    probabilities = { white: Number(score.mate > 0), draw: 0, black: Number(score.mate < 0) };
++  } else {
++    if (!Number.isFinite(score.cp)) return undefined;
++    const white = sf151Wins(score.cp!, ply);
++    const black = sf151Wins(-score.cp!, ply);
++    probabilities = { white: white / 1000, draw: (1000 - white - black) / 1000, black: black / 1000 };
++  }
++  return { probabilities, source: 'score-wdl' };
++}
+diff --git a/ui/lib/tests/advantageGauge.test.ts b/ui/lib/tests/advantageGauge.test.ts
+new file mode 100644
+index 0000000..ff357e1
+--- /dev/null
++++ b/ui/lib/tests/advantageGauge.test.ts
+@@ -0,0 +1,104 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import { init, attributesModule, classModule, type VNode } from 'snabbdom';
++
++import type { CevalHandler } from '../src/ceval/types';
++import { renderGauge } from '../src/ceval/view/main';
++
++type Wdl = { white: number; draw: number; black: number };
++type Options = { expectedScore: boolean; result?: Wdl };
++type Node = {
++  ply: number;
++  ceval?: EvalScore;
++  eval?: EvalScore;
++  outcome?: () => { winner?: Color } | undefined;
++};
++
++function gauge(node: Node, options: Options = { expectedScore: true }, color: Color = 'white') {
++  const ctrl = {
++    ongoing: false,
++    showEvalGauge: () => true,
++    showEvaluation: () => true,
++    getOrientation: () => color,
++    getNode: () => ({ outcome: () => undefined, ...node }),
++  } as unknown as CevalHandler;
++  return init([attributesModule, classModule])(
++    document.createElement('div'),
++    renderGauge(ctrl, options) as VNode,
++  ).elm as HTMLElement;
++}
++
++const values = (view: HTMLElement) =>
++  ['white', 'black'].map(
++    color => view.querySelector(`.eval-gauge__${color} .eval-gauge__value`)?.textContent,
++  );
++
++test('review gauge uses the same half-draw projection as the live panel', () => {
++  const wdl = Object.freeze({ white: 0, draw: 0.876, black: 0.124 });
++  const view = gauge({ ply: 12, ceval: Object.assign({ cp: -59 }, { wdl }) });
++  assert.deepEqual(values(view), ['43.8%', '56.2%']);
++  assert.equal(view.getAttribute('style'), '--eval-percent: 56.2%');
++  assert.equal(view.dataset.metric, 'expected-score');
++  assert.equal(view.dataset.source, 'engine-wdl');
++  assert.match(view.getAttribute('aria-label')!, /Trắng 43.8%.*Đen 56.2%/);
++  assert.match(view.title, /Hòa tính nửa điểm/);
++  assert.deepEqual(wdl, { white: 0, draw: 0.876, black: 0.124 });
++});
++
++test('reversing the board preserves color values and reverses the gauge', () => {
++  const node = { ply: 7, ceval: Object.assign({ cp: 100 }, { wdl: { white: 0.8, draw: 0.1, black: 0.1 } }) };
++  const white = gauge(node);
++  const black = gauge(node, { expectedScore: true }, 'black');
++  assert.deepEqual(values(white), ['85.0%', '15.0%']);
++  assert.deepEqual(values(black), values(white));
++  assert.equal(white.classList.contains('reverse'), false);
++  assert.equal(black.classList.contains('reverse'), true);
++});
++
++test('a node without evaluation clears the preceding gauge and its percentages', () => {
++  gauge({ ply: 8, ceval: Object.assign({ cp: 900 }, { wdl: { white: 1, draw: 0, black: 0 } }) });
++  const view = gauge({ ply: 2 });
++  assert.deepEqual(values(view), [undefined, undefined]);
++  assert.equal(view.getAttribute('style'), '--eval-percent: 50%');
++  assert.equal(view.classList.contains('empty'), true);
++  assert.equal(view.dataset.source, undefined);
++  assert.match(view.title, /Chưa có đánh giá/);
++});
++
++test('live all-draw WDL is equal expected points, not a conditional win division', () => {
++  const view = gauge({ ply: 50, ceval: Object.assign({ cp: 0 }, { wdl: { white: 0, draw: 1, black: 0 } }) });
++  assert.deepEqual(values(view), ['50.0%', '50.0%']);
++  assert.doesNotMatch(view.textContent, /NaN|Infinity/);
++});
++
++test('official win and draw results override cached evaluations at the selected final node', () => {
++  for (const [result, expected] of [
++    [{ white: 1, draw: 0, black: 0 }, ['100.0%', '0.0%']],
++    [{ white: 0, draw: 0, black: 1 }, ['0.0%', '100.0%']],
++    [{ white: 0, draw: 1, black: 0 }, ['50.0%', '50.0%']],
++  ] as const) {
++    const view = gauge({ ply: 20, ceval: { cp: -250 } }, { expectedScore: true, result });
++    assert.deepEqual(values(view), expected);
++    assert.equal(view.dataset.source, 'official');
++    assert.equal(view.dataset.metric, 'result');
++    assert.match(view.title, /Kết quả chính thức/);
++  }
++});
++
++test('proven position outcomes work without an engine evaluation', () => {
++  assert.deepEqual(values(gauge({ ply: 4, outcome: () => ({ winner: 'black' }) })), ['0.0%', '100.0%']);
++  assert.deepEqual(values(gauge({ ply: 6, outcome: () => ({}) })), ['50.0%', '50.0%']);
++});
++
++test('legacy cp-only evaluations are identified as a WDL model conversion', () => {
++  const view = gauge({ ply: 30, eval: { cp: 0 } });
++  assert.deepEqual(values(view), ['50.0%', '50.0%']);
++  assert.equal(view.dataset.source, 'score-wdl');
++  assert.match(view.title, /Stockfish 15.1/);
++});
++
++test('other gauge callers keep the existing display without the review percentages', () => {
++  const view = gauge({ ply: 12, ceval: { cp: 120 } }, { expectedScore: false });
++  assert.deepEqual(values(view), [undefined, undefined]);
++  assert.equal(view.dataset.metric, undefined);
++});
+diff --git a/ui/lib/tests/cevalWdlProtocol.test.ts b/ui/lib/tests/cevalWdlProtocol.test.ts
+new file mode 100644
+index 0000000..a8525cb
+--- /dev/null
++++ b/ui/lib/tests/cevalWdlProtocol.test.ts
+@@ -0,0 +1,67 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { Protocol } from '../src/ceval/protocol';
++import type { Work, EngineInfo } from '../src/ceval/types';
++import type { LocalEval } from '../src/tree/types';
++
++function engine(ply: number, wdlOption = true, threatMode = false) {
++  const sent: string[] = [];
++  const emitted: LocalEval[] = [];
++  const protocol = new Protocol({ id: 'fixture', name: 'Stockfish', tech: 'NNUE' } as EngineInfo);
++  protocol.connected(command => sent.push(command));
++  if (wdlOption) protocol.received('option name UCI_ShowWDL type check default false');
++  protocol.received('uciok');
++  protocol.compute({
++    variant: 'chess',
++    ply,
++    path: 'test',
++    threatMode,
++    multiPv: 1,
++    threads: 1,
++    initialFen: 'startpos',
++    currentFen: 'fixture',
++    moves: [],
++    search: { depth: 1 },
++    emit: (ev: LocalEval | undefined) => {
++      if (ev) emitted.push(ev);
++    },
++  } as Work);
++  return { protocol, sent, emitted };
++}
++
++test('only engines advertising WDL are asked to emit it', () => {
++  assert.ok(engine(0).sent.includes('setoption name UCI_ShowWDL value true'));
++  assert.ok(!engine(0, false).sent.some(command => command.includes('UCI_ShowWDL')));
++});
++
++test('UCI WDL is normalized to White at both sides to move and in threat mode', () => {
++  for (const [ply, threat, expected] of [
++    [0, false, { white: 0.1, draw: 0.8, black: 0.1 }],
++    [1, false, { white: 0.03, draw: 0.77, black: 0.2 }],
++    [1, true, { white: 0.2, draw: 0.77, black: 0.03 }],
++  ] as const) {
++    const { protocol, emitted } = engine(ply, true, threat);
++    protocol.received(
++      `info depth 1 nodes 10 time 1 score cp 20 wdl ${ply ? '200 770 30' : '100 800 100'} pv e2e4`,
++    );
++    assert.equal(emitted.length, 1);
++    assert.deepEqual((emitted[0] as LocalEval & { wdl?: unknown }).wdl, expected);
++  }
++});
++
++test('invalid and missing WDL never reuse the previous search WDL', () => {
++  for (const input of ['', 'wdl 100 800 101', 'wdl -1 1000 1', 'wdl nope 800 200']) {
++    const { protocol, emitted } = engine(0);
++    protocol.received(`info depth 1 nodes 10 time 1 score cp 20 ${input} pv e2e4`);
++    assert.equal(emitted.length, 1);
++    assert.equal((emitted[0] as LocalEval & { wdl?: unknown }).wdl, undefined);
++  }
++});
++
++test('a stopped search cannot deliver WDL for the newly selected position', () => {
++  const { protocol, emitted } = engine(0);
++  protocol.compute(undefined);
++  protocol.received('info depth 1 nodes 10 time 1 score cp 20 wdl 900 100 0 pv e2e4');
++  assert.deepEqual(emitted, []);
++});
+diff --git a/ui/lib/tests/fixtures/sf151-wdl.json b/ui/lib/tests/fixtures/sf151-wdl.json
+new file mode 100644
+index 0000000..77f38eb
+--- /dev/null
++++ b/ui/lib/tests/fixtures/sf151-wdl.json
+@@ -0,0 +1,47 @@
++[
++  { "cp": -1000, "ply": 0, "wdl": [0, 0, 1000] },
++  { "cp": -1000, "ply": 12, "wdl": [0, 0, 1000] },
++  { "cp": -1000, "ply": 30, "wdl": [0, 0, 1000] },
++  { "cp": -1000, "ply": 80, "wdl": [0, 0, 1000] },
++  { "cp": -1000, "ply": 200, "wdl": [0, 0, 1000] },
++  { "cp": -300, "ply": 0, "wdl": [0, 0, 1000] },
++  { "cp": -300, "ply": 12, "wdl": [0, 0, 1000] },
++  { "cp": -300, "ply": 30, "wdl": [0, 0, 1000] },
++  { "cp": -300, "ply": 80, "wdl": [0, 0, 1000] },
++  { "cp": -300, "ply": 200, "wdl": [0, 0, 1000] },
++  { "cp": -100, "ply": 0, "wdl": [0, 444, 556] },
++  { "cp": -100, "ply": 12, "wdl": [0, 452, 548] },
++  { "cp": -100, "ply": 30, "wdl": [0, 467, 533] },
++  { "cp": -100, "ply": 80, "wdl": [0, 521, 479] },
++  { "cp": -100, "ply": 200, "wdl": [0, 616, 384] },
++  { "cp": -59, "ply": 0, "wdl": [1, 856, 143] },
++  { "cp": -59, "ply": 12, "wdl": [0, 871, 129] },
++  { "cp": -59, "ply": 30, "wdl": [0, 888, 112] },
++  { "cp": -59, "ply": 80, "wdl": [0, 907, 93] },
++  { "cp": -59, "ply": 200, "wdl": [1, 903, 96] },
++  { "cp": 0, "ply": 0, "wdl": [9, 982, 9] },
++  { "cp": 0, "ply": 12, "wdl": [7, 986, 7] },
++  { "cp": 0, "ply": 30, "wdl": [5, 990, 5] },
++  { "cp": 0, "ply": 80, "wdl": [4, 992, 4] },
++  { "cp": 0, "ply": 200, "wdl": [8, 984, 8] },
++  { "cp": 59, "ply": 0, "wdl": [143, 856, 1] },
++  { "cp": 59, "ply": 12, "wdl": [129, 871, 0] },
++  { "cp": 59, "ply": 30, "wdl": [112, 888, 0] },
++  { "cp": 59, "ply": 80, "wdl": [93, 907, 0] },
++  { "cp": 59, "ply": 200, "wdl": [96, 903, 1] },
++  { "cp": 100, "ply": 0, "wdl": [556, 444, 0] },
++  { "cp": 100, "ply": 12, "wdl": [548, 452, 0] },
++  { "cp": 100, "ply": 30, "wdl": [533, 467, 0] },
++  { "cp": 100, "ply": 80, "wdl": [479, 521, 0] },
++  { "cp": 100, "ply": 200, "wdl": [384, 616, 0] },
++  { "cp": 300, "ply": 0, "wdl": [1000, 0, 0] },
++  { "cp": 300, "ply": 12, "wdl": [1000, 0, 0] },
++  { "cp": 300, "ply": 30, "wdl": [1000, 0, 0] },
++  { "cp": 300, "ply": 80, "wdl": [1000, 0, 0] },
++  { "cp": 300, "ply": 200, "wdl": [1000, 0, 0] },
++  { "cp": 1000, "ply": 0, "wdl": [1000, 0, 0] },
++  { "cp": 1000, "ply": 12, "wdl": [1000, 0, 0] },
++  { "cp": 1000, "ply": 30, "wdl": [1000, 0, 0] },
++  { "cp": 1000, "ply": 80, "wdl": [1000, 0, 0] },
++  { "cp": 1000, "ply": 200, "wdl": [1000, 0, 0] }
++]
+diff --git a/ui/lib/tests/wdl.test.ts b/ui/lib/tests/wdl.test.ts
+new file mode 100644
+index 0000000..280b06a
+--- /dev/null
++++ b/ui/lib/tests/wdl.test.ts
+@@ -0,0 +1,57 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { evalWdl, expectedScorePercentages, uciWdl } from '../src/ceval/wdl';
++import reference from './fixtures/sf151-wdl.json' with { type: 'json' };
++
++test('legacy score conversion matches independent python-chess Stockfish 15.1 vectors', () => {
++  for (const { cp, ply, wdl } of reference) {
++    const result = evalWdl({ cp }, ply)!;
++    assert.equal(result.source, 'score-wdl');
++    assert.deepEqual(
++      [result.probabilities.white, result.probabilities.draw, result.probabilities.black].map(v =>
++        Math.round(v * 1000),
++      ),
++      wdl,
++      `cp=${cp}, ply=${ply}`,
++    );
++  }
++});
++
++test('native WDL is preferred over cp and never rewritten', () => {
++  const wdl = Object.freeze({ white: 0, draw: 0.876, black: 0.124 });
++  const result = evalWdl({ cp: 500, wdl }, 12)!;
++  assert.equal(result.source, 'engine-wdl');
++  assert.equal(result.probabilities, wdl);
++  assert.deepEqual(expectedScorePercentages(result.probabilities), [43.8, 56.2]);
++});
++
++test('empty, invalid and nonfinite scores cannot create an advantage', () => {
++  for (const score of [
++    {},
++    { cp: NaN },
++    { cp: Infinity },
++    { mate: 0 },
++    { mate: Infinity },
++    { mate: 1.1 },
++    { cp: 1, wdl: { white: 2, draw: 0, black: 0 } },
++  ])
++    assert.equal(evalWdl(score, 12), undefined);
++  assert.equal(evalWdl({ cp: 0 }, -1), undefined);
++  assert.equal(evalWdl({ cp: 0 }, NaN), undefined);
++  assert.equal(uciWdl([1, 998, 1], true)?.draw, 0.998);
++  for (const raw of [[1, 998, 2], [-1, 1000, 1], [NaN, 0, 1000], [0.5, 999, 0.5], []])
++    assert.equal(uciWdl(raw, true), undefined);
++});
++
++test('mate scores retain their White perspective and old cp models are symmetric', () => {
++  assert.deepEqual(expectedScorePercentages(evalWdl({ mate: 3 }, 8)!.probabilities), [100, 0]);
++  assert.deepEqual(expectedScorePercentages(evalWdl({ mate: -3 }, 8)!.probabilities), [0, 100]);
++  for (const cp of [0, 1, 59, 100, 300, 4000]) {
++    const positive = evalWdl({ cp }, 30)!.probabilities;
++    const negative = evalWdl({ cp: -cp }, 30)!.probabilities;
++    assert.equal(positive.white, negative.black);
++    assert.equal(positive.draw, negative.draw);
++    assert.equal(positive.black, negative.white);
 +  }
 +});

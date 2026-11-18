@@ -124,6 +124,13 @@ produce slightly different scores on another machine. No parameter was fitted us
 
 ## Serving behavior and limits
 
+- Standard game review also displays White/Black expected points on the vertical
+  analysis gauge using the shared W+D/2 projection. Review uses the selected
+  node's native analysis-engine WDL, or an identified Stockfish 15.1 conversion
+  for cp-only historical scores. It does not reconstruct human ratings/clocks
+  or claim to reproduce this human pilot. Different engines/depths can give
+  different WDL despite sharing the display formula. These review projections
+  are not new calibration or evaluation results for the human model.
 - Standard blitz/rapid only; both ratings 600–3000; ply 4–140; initial time 30–1800 seconds;
   increment at most 60 seconds; both current clocks must be known.
 - Ratings and clocks come from authoritative Lichess game state. Anonymous players get no
