@@ -35,6 +35,7 @@ class AnalyseMove(Contract):
     positionRevision: str = Field(pattern=r"^[a-f0-9]{64}$")
     learnerColor: Color
     snapshot: Snapshot
+    proactive: bool = False
 
 
 class QuestionJob(Contract):

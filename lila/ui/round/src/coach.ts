@@ -1,6 +1,8 @@
 import { randomId } from 'lib/algo';
 import * as xhr from 'lib/xhr';
 
+import CoachPractice, { type PracticePosition } from './coachPractice';
+
 export type QuestionKind = 'hint' | 'explain' | 'threat';
 export interface CoachCard {
   id: string;
@@ -14,6 +16,7 @@ export interface CoachCard {
   text: string;
   highlights: string[];
   moves: { san: string; uci: string }[];
+  practice?: PracticePosition;
 }
 export interface CoachSummary {
   state: 'pending' | 'ready' | 'partial' | 'failed';
@@ -35,6 +38,7 @@ export interface CoachSnapshot {
   ply: number;
   status: string;
   hintLevel: number;
+  openingAdvice?: string | null;
   cursor: number;
   capabilities: Record<QuestionKind, boolean>;
   cards: CoachCard[];
@@ -96,6 +100,7 @@ export default class CoachCtrl {
   private lastEvent = 0;
   private backoff = 1000;
   private generation = 0;
+  private practice?: CoachPractice;
 
   constructor(
     readonly gameId: string,
@@ -112,6 +117,7 @@ export default class CoachCtrl {
 
   stop = (): void => {
     this.stopped = true;
+    this.practice = undefined;
     this.generation++;
     this.stream?.close();
     clearTimeout(this.reconnect);
@@ -123,6 +129,40 @@ export default class CoachCtrl {
     const p = this.position();
     return !!s && s.ply === p.ply && s.status === p.status;
   }
+
+  canPractice(card: CoachCard): boolean {
+    const snapshot = this.snapshot;
+    const position = this.position();
+    const parity = snapshot?.learnerColor === 'white' ? 1 : 0;
+    const learnerPly = position.ply % 2 === parity ? position.ply : position.ply - 1;
+    const version = card.practice?.version;
+    return (
+      (version === 2 || version === 3) &&
+      snapshot?.phase === 'active' &&
+      position.status === 'started' &&
+      position.live &&
+      position.viewedPly === position.ply &&
+      learnerPly === card.ply &&
+      snapshot.cards.some(saved => saved.id === card.id && saved.positionRevision === card.positionRevision)
+    );
+  }
+
+  startPractice(card: CoachCard): void {
+    if (!card.practice || !this.canPractice(card) || !this.matchesPosition()) return;
+    this.practice = new CoachPractice(card.id, card.practice, this.redraw);
+    this.redraw();
+  }
+
+  activePractice(): CoachPractice | undefined {
+    const card = this.snapshot?.cards.find(candidate => candidate.id === this.practice?.cardId);
+    if (!card || !this.canPractice(card)) this.practice = undefined;
+    return this.practice;
+  }
+
+  closePractice = (): void => {
+    this.practice = undefined;
+    this.redraw();
+  };
 
   get pending(): boolean {
     const s = this.snapshot;

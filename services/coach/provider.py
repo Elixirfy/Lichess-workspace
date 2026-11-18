@@ -1,4 +1,4 @@
-"""Small OpenAI-compatible chat-completions adapter; no SDK or cloud default."""
+"""Small OpenAI-compatible chat-completions adapter."""
 
 import json
 import math
@@ -6,7 +6,11 @@ import os
 import time
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from urllib.parse import urlsplit
+
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+OPENAI_BASE_URL = "https://api.openai.com/v1"
 
 
 @dataclass(frozen=True)
@@ -36,23 +40,32 @@ class ChatProvider:
         self.opener = urllib.request.build_opener(NoRedirect)
 
     def complete(self, context: dict, *, repair: bool, deadline: float) -> Completion:
-        system = ("Return JSON schemaVersion=1 with units. Select focus first, optionally turn. "
-                  "Copy claimType, values and one complete text from the supplied statements. "
-                  "Never add chess claims, moves, evaluation or free prose.")
+        system = ("Return one JSON object with schemaVersion=2 and textIndex, the zero-based "
+                  "index of the most instructive entry in focus.texts. "
+                  "Prefer concrete consequences and specific encouragement for a beginner. "
+                  "If focus.teachingPatterns is present you may add followUp, a short Vietnamese question "
+                  "formed by choosing one option in each parenthesis of one pattern. "
+                  "Copy the rest of the pattern as written, including any move. "
+                  "Omit followUp if there is no pattern. Do not return prose outside JSON.")
         if repair:
-            system += " Previous response failed verification. Return only exact supplied claims and wording."
-        body = json.dumps({"model": self.model, "messages": [
+            system += " Previous response failed verification. Prefer textIndex 0 and only use a valid teaching pattern."
+        groq = urlsplit(self.url).hostname == "api.groq.com"
+        token_field = "max_completion_tokens" if groq else "max_tokens"
+        body = {"model": self.model, "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": json.dumps(context, ensure_ascii=False)},
-        ], "temperature": 0, "max_tokens": self.max_tokens,
-           "response_format": {"type": "json_object"}}, ensure_ascii=False).encode()
-        headers = {"Content-Type": "application/json"}
+        ], "temperature": 0, token_field: self.max_tokens,
+           "response_format": {"type": "json_object"}}
+        if groq and self.model.startswith("openai/gpt-oss-"):
+            body["reasoning_effort"] = "low"
+        headers = {"Content-Type": "application/json", "Accept": "application/json",
+                   "User-Agent": "LichessLocalCoach/1.0"}
         if self.auth:
             headers["Authorization"] = "Bearer " + self.auth
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise TimeoutError("budget")
-        request = urllib.request.Request(self.url, body, headers)
+        request = urllib.request.Request(self.url, json.dumps(body, ensure_ascii=False).encode(), headers)
         with self.opener.open(request, timeout=remaining) as response:
             data = bytearray()
             # Bound bytes AND wall clock, including a peer trickling bytes.
@@ -81,13 +94,24 @@ class ChatProvider:
         return Completion(content, counts)
 
 
-def from_env():
-    mode = os.environ.get("COACH_LLM_PROVIDER", "off")
+def from_env(dotenv: Path | None = None):
+    path = Path(__file__).with_name(".env") if dotenv is None else dotenv
+    config = {}
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            key, _, value = line.strip().partition("=")
+            if key.strip().startswith("COACH_LLM_"):
+                config[key.strip()] = value.strip().strip("\"'")
+    config.update(os.environ)
+    auth = config.get("COACH_LLM_API_KEY", "").strip() or config.get("COACH_LLM_AUTH", "").strip()
+    mode = config.get("COACH_LLM_PROVIDER", "openai-compatible" if auth else "off")
     if mode == "off":
         return None
     if mode != "openai-compatible":
         raise ValueError("COACH_LLM_PROVIDER must be off or openai-compatible")
-    return ChatProvider(os.environ["COACH_LLM_BASE_URL"], os.environ["COACH_LLM_MODEL"],
-                        os.environ.get("COACH_LLM_AUTH", ""),
-                        float(os.environ.get("COACH_LLM_BUDGET_SECONDS", "4")),
-                        int(os.environ.get("COACH_LLM_MAX_TOKENS", "600")))
+    base_url = config.get("COACH_LLM_BASE_URL") or (GROQ_BASE_URL if auth.startswith("gsk_") else OPENAI_BASE_URL)
+    default_model = "openai/gpt-oss-20b" if urlsplit(base_url).hostname == "api.groq.com" else "gpt-4.1-mini"
+    return ChatProvider(base_url,
+                        config.get("COACH_LLM_MODEL", default_model), auth,
+                        float(config.get("COACH_LLM_BUDGET_SECONDS", "4")),
+                        int(config.get("COACH_LLM_MAX_TOKENS", "600")))

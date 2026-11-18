@@ -105,6 +105,24 @@ final class AiCoach(env: Env) extends LilaController(env):
         .map: tasks =>
           val p = Snapshots.position(game, game.ply.value)
           val historical = tasks.filter(_.kind == "analyseMove")
+          val learnerPlies = Snapshots.learnerPlies(s, game)
+          val proactive = s.config.support == "proactive"
+          val playable = s.phase == "active" && Snapshots.playable(s, game)
+          val visible = s.cards.filter(PublicCard.visible(_, p.revision, game.status.name, s.phase))
+          // Older workers analysed quiet moves but did not publish them in proactive lessons.
+          val previousObservation = learnerPlies.lastOption
+            .filter(_ => proactive)
+            .flatMap: ply =>
+              historical
+                .find(task =>
+                  task.ply == ply && task.state == "succeeded" && task.published &&
+                    !visible.exists(card => (card \ "id").asOpt[String].contains(task.id))
+                )
+                .filter(task =>
+                  task.revision == (if ply == p.ply then p.revision
+                                    else Snapshots.position(game, ply).revision)
+                )
+                .flatMap(task => task.result.map(PublicCard.verify(task, _)))
           Ok(
             Json.obj(
               "sessionId" -> s.id,
@@ -117,13 +135,16 @@ final class AiCoach(env: Env) extends LilaController(env):
               "ply" -> p.ply,
               "status" -> game.status.name,
               "hintLevel" -> (if s.hintRevision == p.revision then s.hintLevel else 0),
+              "openingAdvice" -> Option.when(proactive && playable && learnerPlies.isEmpty)(
+                "Hãy thử tranh chấp trung tâm bằng một nước mở đường cho tượng hoặc đưa mã ra."
+              ),
               "capabilities" -> Json.obj(
-                "hint" -> (s.phase == "active" && Snapshots.playable(s, game)),
-                "explain" -> (Set("active", "finished")(s.phase) && Snapshots.learnerPlies(s, game).nonEmpty),
-                "threat" -> (s.phase == "active" && game.ply.value > 0 && Snapshots.playable(s, game))
+                "hint" -> playable,
+                "explain" -> (Set("active", "finished")(s.phase) && learnerPlies.nonEmpty),
+                "threat" -> (playable && game.ply.value > 0)
               ),
               "cursor" -> s.cursor,
-              "cards" -> s.cards.filter(PublicCard.visible(_, p.revision, game.status.name, s.phase)),
+              "cards" -> (visible ++ previousObservation),
               "summary" -> s.summary.filter(x =>
                 Set("finished", "abandoned")(s.phase) &&
                   x.positionRevision == p.revision && x.status == game.status.name

@@ -1,29 +1,25 @@
-"""Bounded narration: model selects verified statements, never supplies new prose.
-
-The catalog is built from a replayed position. Claim IDs alone prove nothing:
-values AND the complete Vietnamese statement must match a catalog entry.
-"""
+"""Verified chess statements with optional position-specific teaching questions."""
 
 import json
+import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
-import chess
 from pydantic import Field
 
 from chess_analysis.facts import rule_facts
 from chess_analysis.history import History
 from .contracts import Contract
-from .review import observation
+from .review import observation, move_card
 
-VERSION = "coach-claims-v2"
-PIECES = {"pawn": "tốt", "knight": "mã", "bishop": "tượng", "rook": "xe", "queen": "hậu", "king": "vua"}
+VERSION = "coach-claims-v5"
 
 
 class Unit(Contract):
     factId: str = Field(min_length=1, max_length=40)
-    claimType: Literal["lastMove", "check", "mate", "stalemate", "attack", "noDirectAttack"]
+    claimType: Literal["lastMove", "check", "mate", "stalemate",
+                       "tacticalLoss", "materialGain", "mateThreat", "captureThreat", "noNewThreat"]
     values: dict = Field(max_length=16)
     text: str = Field(min_length=1, max_length=700)
 
@@ -31,6 +27,16 @@ class Unit(Contract):
 class Draft(Contract):
     schemaVersion: Literal[1]
     units: list[Unit] = Field(min_length=1, max_length=1)
+    followUp: str | None = Field(default=None, min_length=10, max_length=140)
+
+
+class Selection(Contract):
+    schemaVersion: Literal[2]
+    textIndex: int = Field(ge=0)
+    followUp: str | None = Field(default=None, min_length=10, max_length=140)
+
+
+DRAFT_SCHEMA = Selection.model_json_schema()
 
 
 @dataclass(frozen=True)
@@ -38,45 +44,59 @@ class Statement:
     claim_type: str
     values: dict
     texts: tuple[str, ...]
+    teaching_patterns: tuple[str, ...] = ()
 
 
-def catalog(history: History, kind: str, card: dict) -> dict[str, Statement]:
-    """Rule observations only; no eval/forced wins. Attack includes pinned attackers."""
-    board = history.board
+TEACHING_PATTERNS = {
+    "openBishop": ("Bạn (muốn|có thể) dùng đường chéo này để (kiểm soát|gây sức ép lên) ô nào?",),
+    "centralControl": ("Bạn (muốn|có thể) dùng các ô trung tâm này để (hỗ trợ|phát triển) quân nào?",),
+    "legalReplyCapture": ("Bạn (sẽ|có thể) tính tiếp (nước bắt lại|cuộc đổi quân) như thế nào?",),
+    "mateThreat": ("Bạn (sẽ|có thể) ngăn (nước chiếu hết này|mối đe dọa này) bằng cách nào?",),
+    "captureThreat": ("Bạn (sẽ|có thể) (bảo vệ|di chuyển) quân này bằng cách nào?",),
+    "materialGain": ("Bạn (sẽ|có thể) tìm (cơ hội bắt quân|quân không được bảo vệ) như thế nào?",),
+    "check": ("Bạn (sẽ|có thể) (thoát chiếu|chặn nước chiếu) bằng cách nào?",),
+    "castling": ("Bạn (sẽ|có thể) đưa xe vào cuộc bằng cách nào?",),
+    "newAttack": ("Bạn (sẽ|có thể) đoán (cách phòng thủ|nước đáp) của đối thủ như thế nào?",),
+}
+
+
+def catalog(history: History, kind: str, card: dict, checked: dict | None = None) -> dict[str, Statement]:
+    """Expose only evidence already checked by the board and the worker."""
     facts = rule_facts(history)
-    if kind == "explain":
+    if kind in ("explain", "analyseMove"):
         move = facts["lastMove"]
         if move is None:
             raise ValueError("missing move")
         claim_type = "mate" if facts["checkmate"] else "stalemate" if facts["stalemate"] else "lastMove"
-        checked = observation(history)
-        if card != {key: checked[key] for key in ('text', 'highlights')} | {'moves': []}:
+        checked = observation(history) if checked is None else checked
+        if card != move_card(history, checked):
             raise ValueError("unverified move observation")
+        if checked["kind"] in ("tacticalLoss", "materialGain"):
+            claim_type = checked["kind"]
         values = {"move": move, "check": facts["check"], "mate": facts["checkmate"], "stalemate": facts["stalemate"],
                   "observation": {key: checked[key] for key in ('kind', 'evidence')}}
     elif kind == "threat":
-        if board.is_check():
-            claim_type, values = "check", {"color": facts["turn"], "square": chess.square_name(board.king(board.turn))}
-        elif card["highlights"]:
-            square = card["highlights"][0]
-            target = chess.parse_square(square)
-            if not board.is_attacked_by(not board.turn, target):
-                raise ValueError("unverified attack")
-            piece = board.piece_at(target)
-            claim_type, values = "attack", {
-                "square": square, "role": chess.piece_name(piece.piece_type), "color": facts["turn"],
-                "attackers": sorted(chess.square_name(s) for s in board.attackers(not board.turn, target)),
-            }
-        else:
-            if any(p.color == board.turn and p.piece_type != chess.KING and board.is_attacked_by(not board.turn, s)
-                   for s, p in board.piece_map().items()):
-                raise ValueError("unverified absence of attacks")
-            claim_type, values = "noDirectAttack", {"color": facts["turn"]}
+        if checked is None or card != move_card(history, checked):
+            raise ValueError("unverified threat observation")
+        claim_type, values = checked["kind"], checked["evidence"]
     else:
         raise ValueError("narration unavailable for this kind")
-    result = {"focus": Statement(claim_type, values, (card["text"],))}
-    # One message, one sentence: never append a second turn announcement.
-    return result
+    pattern_key = checked["kind"]
+    alternatives = checked.get("alternativeTexts", ())
+    patterns = TEACHING_PATTERNS.get(pattern_key, ())
+    return {"focus": Statement(claim_type, values, (card["text"], *alternatives), patterns)}
+
+
+def valid_teaching_question(text: str, statement: Statement) -> bool:
+    for pattern in statement.teaching_patterns:
+        parts = re.split(r"\(([^()]+)\)", pattern)
+        literal_or_choice = (
+            "(" + "|".join(map(re.escape, part.split("|"))) + ")" if i % 2 else re.escape(part)
+            for i, part in enumerate(parts)
+        )
+        if re.fullmatch("".join(literal_or_choice), text):
+            return True
+    return False
 
 
 def verify(raw: str, statements: dict[str, Statement], *, kind: str, hint_level: int = 0) -> str:
@@ -90,31 +110,49 @@ def verify(raw: str, statements: dict[str, Statement], *, kind: str, hint_level:
                 raise ValueError("duplicate key")
             result[key] = value
         return result
-    draft = Draft.model_validate(json.loads(raw, object_pairs_hook=unique))
-    if draft.units[0].factId != "focus" or len({u.factId for u in draft.units}) != len(draft.units):
-        raise ValueError("missing focus or duplicate claim")
-    for unit in draft.units:
-        expected = statements.get(unit.factId)
-        if (expected is None or unit.claimType != expected.claim_type
+    data = json.loads(raw, object_pairs_hook=unique)
+    expected = statements["focus"]
+    if isinstance(data, dict) and data.get("schemaVersion") == 2:
+        draft = Selection.model_validate(data)
+        if draft.textIndex >= len(expected.texts):
+            raise ValueError("unsupported text index")
+        text = expected.texts[draft.textIndex]
+    else:
+        draft = Draft.model_validate(data)
+        unit = draft.units[0]
+        if (unit.factId != "focus" or unit.claimType != expected.claim_type
                 or json.dumps(unit.values, sort_keys=True, ensure_ascii=False) != json.dumps(expected.values, sort_keys=True, ensure_ascii=False)
                 or unit.text not in expected.texts):
             raise ValueError("unsupported claim or statement")
-    text = " ".join(unit.text for unit in draft.units)
+        text = unit.text
+    if draft.followUp is not None:
+        if not valid_teaching_question(draft.followUp, statements["focus"]):
+            raise ValueError("unsupported teaching question")
+        text += " " + draft.followUp
     if len(text) > 800:
         raise ValueError("text limit")
     return text
 
 
-def narrate(provider, history: History, kind: str, card: dict) -> tuple[dict, dict]:
+def narrate(provider, history: History, kind: str, card: dict, checked: dict | None = None) -> tuple[dict, dict | None]:
     started = time.monotonic()
     deadline = started + provider.budget_seconds
-    statements = catalog(history, kind, card)
+    statements = catalog(history, kind, card, checked)
+    focus = statements["focus"]
+    # A newly attacked piece gives the learner a concrete decision to think through.
+    # Tactical warnings already have a direct explanation or a separate retry.
+    if kind != "analyseMove" or not focus.values.get("observation", {}).get("kind") == "newAttack":
+        focus = replace(focus, teaching_patterns=())
+        statements["focus"] = focus
+    if kind == "analyseMove" and not focus.teaching_patterns and len(focus.texts) == 1:
+        return card, None
     # Only chess facts and approved wording. No request/session/game/user IDs,
     # cookies, internal auth, full jobs or untrusted drafts in the prompt.
     context = {"version": VERSION, "kind": kind, "statements": {
-        key: {"claimType": value.claim_type, "values": value.values, "texts": list(value.texts)}
+        key: {"claimType": value.claim_type, "values": value.values, "texts": list(value.texts),
+              **({"teachingPatterns": value.teaching_patterns} if value.teaching_patterns else {})}
         for key, value in statements.items()
-    }, "schema": Draft.model_json_schema()}
+    }, "schema": DRAFT_SCHEMA}
     metrics = {"version": VERSION, "provider": provider.name, "model": provider.model,
                "attempts": 0, "promptTokens": 0, "completionTokens": 0,
                "usageKnown": True, "fallback": True, "reason": "budget"}

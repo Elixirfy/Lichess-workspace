@@ -4,6 +4,7 @@ Score POV and cp-loss logic adapted from commentary/core.py at 02a6d45.
 """
 
 from dataclasses import dataclass
+from collections.abc import Iterable
 from typing import Any
 
 import chess
@@ -12,11 +13,29 @@ import chess.engine
 from .facts import color_name
 from .history import History
 
+PRACTICE_PLIES = 7
 
-def replay_pv(board: chess.Board, moves: list[chess.Move]) -> list[dict[str, str]]:
+
+def completed_lines(infos: Iterable[dict[str, Any]], width: int) -> list[dict[str, Any]]:
+    """Pick the latest depth with an exact score for each requested line."""
+    depths: dict[int, dict[int, dict[str, Any]]] = {}
+    for info in infos:
+        if "depth" not in info or "score" not in info or not info.get("pv"):
+            continue
+        if info.get("lowerbound") or info.get("upperbound"):
+            continue
+        depths.setdefault(info["depth"], {})[info.get("multipv", 1)] = info
+    for depth in sorted(depths, reverse=True):
+        lines = depths[depth]
+        if len(lines) == width and len({line["pv"][0] for line in lines.values()}) == width:
+            return [lines[i] for i in range(1, width + 1)]
+    return []
+
+
+def replay_pv(board: chess.Board, moves: list[chess.Move], max_plies: int = 6) -> list[dict[str, str]]:
     current = board.copy(stack=True)
     result = []
-    for move in moves[:6]:
+    for move in moves[:max_plies]:
         if current.is_game_over(claim_draw=False) or current.is_fifty_moves():
             break
         if move not in current.legal_moves:
@@ -26,7 +45,7 @@ def replay_pv(board: chess.Board, moves: list[chess.Move]) -> list[dict[str, str
     return result
 
 
-def engine_score(info: dict[str, Any], board: chess.Board, pov: chess.Color) -> dict:
+def engine_score(info: dict[str, Any], board: chess.Board, pov: chess.Color, *, max_plies: int = 6) -> dict:
     score = info["score"].pov(pov)
     return {
         "cp": score.score(),
@@ -35,7 +54,7 @@ def engine_score(info: dict[str, Any], board: chess.Board, pov: chess.Color) -> 
         "depth": info.get("depth"),
         "nodes": info.get("nodes"),
         "bound": bool(info.get("lowerbound") or info.get("upperbound")),
-        "pv": replay_pv(board, info.get("pv", [])),
+        "pv": replay_pv(board, info.get("pv", []), max_plies),
     }
 
 
@@ -109,12 +128,32 @@ class Stockfish:
             )
             scores.append(engine_score(info, board, learner))
         before, after = scores
+        candidates = []
+        rough_loss = (before["cp"] or 0) - (after["cp"] or 0)
+        mate_changed = (before["mate"] or 0) > 0 >= (after["mate"] or 0) or (
+            (after["mate"] or 0) < 0 <= (before["mate"] or 0)
+        )
+        if not history.board.is_game_over() and not history.board.is_fifty_moves() and (rough_loss >= 100 or mate_changed):
+            # Recheck only possible teaching moments. Search within the worker,
+            # using a small fixed budget and comparable scores from both sides.
+            deeper = chess.engine.Limit(time=0.35)
+            width = min(3, history.before.legal_moves.count())
+            with self.engine.analysis(history.before, deeper, multipv=width, game=object()) as analysis:
+                lines = completed_lines(analysis, width)
+            with self.engine.analysis(history.board, deeper, multipv=1, game=object()) as analysis:
+                replies = completed_lines(analysis, 1)
+            if lines and replies:
+                candidates = [
+                    engine_score(line, history.before, learner, max_plies=PRACTICE_PLIES) for line in lines
+                ]
+                before, after = candidates[0], engine_score(replies[0], history.board, learner)
         return {
             "source": dict(self.engine.id),
             "limit": {"seconds": self.config.time_seconds, "threads": 1, "hashMb": self.config.hash_mb},
             "before": before,
             "after": after,
             "cpLoss": cp_loss(before, after),
+            **({"verifiedCandidates": candidates} if candidates else {}),
         }
 
     def position(self, board: chess.Board, learner: chess.Color) -> dict:

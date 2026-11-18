@@ -28,7 +28,8 @@ object Snapshots:
         "status" -> (if ply == game.ply.value then game.status.name else "started"),
         "winner" -> (if ply == game.ply.value then game.winnerColor.map(_.name) else None)
       )
-    ) ++ (if kind == "analyseMove" then Json.obj() else Json.obj("hintLevel" -> level))
+    ) ++ (if kind == "analyseMove" then Json.obj("proactive" -> (s.config.support == "proactive"))
+          else Json.obj("hintLevel" -> level))
 
   def learnerPlies(s: Lesson, game: Game): List[Int] =
     (1 to game.ply.value).filter(p => (p % 2 == 1) == (s.learnerColor == "white")).toList
@@ -37,7 +38,8 @@ object Snapshots:
     game.playable && game.turnColor.name == s.learnerColor && !game.position.end
 
   def taskId(session: String, kind: String, revision: String, level: Int = 0): String =
-    Identity.digest(s"$session:$kind:$revision:$level")
+    val version = if kind == "explain" then s":${PublicCard.practiceVersion}" else ""
+    Identity.digest(s"$session:$kind:$revision:$level$version")
 
 object QuestionRules:
   /** Reservation and hint increment are committed in the same session CAS. */

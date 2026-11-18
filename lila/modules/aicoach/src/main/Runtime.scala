@@ -305,8 +305,6 @@ final class Runtime(
       if s.completed.contains(task.id) then s
       else
         val candidate = task.result.map(PublicCard.verify(task, _))
-        // The coach now shows one observation for each learner move, replacing
-        // the message in the UI instead of accumulating a feed of cards.
         val selected = task.kind != "analyseMove" || s.config.support == "proactive"
         val card = candidate.filter(_ => selected)
         s.copy(

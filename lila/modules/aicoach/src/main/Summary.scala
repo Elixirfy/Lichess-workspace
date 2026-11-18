@@ -51,30 +51,59 @@ object Summary:
       val facts = result \ "facts"
       val move = facts \ "lastMove"
       def present(field: String) = (move \ field).toOption.exists(_ != JsNull)
-      val rank = if (facts \ "checkmate").asOpt[Boolean].contains(true) then 5
-      else if present("promotion") then 4
-      else if present("castling") then 3
-      else if present("capture") then 2
-      else if (facts \ "check").asOpt[Boolean].contains(true) then 1
-      else 0
-      (rank, task.ply, PublicCard.verify(task, result))
-    val selected = ranked.sortBy((rank, ply, _) => (-rank, -ply)).take(3).sortBy(_._2)
-    val advice = Option.when(good.nonEmpty)(
-      "Trước mỗi nước, hãy kiểm tra các nước chiếu, bắt quân và sự an toàn của vua."
+      val legacyRank = if (facts \ "checkmate").asOpt[Boolean].contains(true) then 6
+      else if present("promotion") then 5
+      else if present("castling") then 4
+      else if present("capture") then 3
+      else if (facts \ "check").asOpt[Boolean].contains(true) then 2
+      else 1
+      val insight = result \ "coachInsight"
+      val rank = (insight \ "importance").asOpt[Int].getOrElse(legacyRank)
+      (rank, task.ply, PublicCard.verify(task, result), (insight \ "lesson").asOpt[String])
+    val selected = ranked.filter(_._1 > 0).sortBy((rank, ply, _, _) => (-rank, -ply)).take(3)
+    val advice = selected
+      .flatMap(_._4)
+      .headOption
+      .flatMap:
+        case "reply" =>
+          Some("Trước khi bắt quân, hãy tính nước đáp mạnh nhất của đối thủ và xem ai lời sau khi đổi.")
+        case "king" => Some("Trước mỗi nước, hãy thử tính nước chiếu nguy hiểm nhất mà đối thủ có thể đáp.")
+        case "missed" =>
+          Some("Khi có cơ hội tấn công vua, hãy tính các nước chiếu trước rồi mới chọn nước đi.")
+        case "compare" =>
+          Some("Chọn hai nước ứng viên và tính một nước đáp mạnh cho mỗi lựa chọn trước khi quyết định.")
+        case "loosePiece" =>
+          Some("Trước khi đi, hãy xem quân nào của đối thủ có thể bị bắt mà không có nước bắt lại ngay.")
+        case "mate" =>
+          Some(
+            "Khi tìm nước chiếu hết, hãy kiểm tra ô vua có thể chạy, cách chặn chiếu và cách bắt quân chiếu."
+          )
+        case "stalemate" =>
+          Some("Thử nhìn từ phía đối thủ trước nước kết thúc và kiểm tra xem họ còn nước đi hợp lệ nào.")
+        case "promotion" =>
+          Some("Trước khi phong cấp, hãy kiểm tra nước chiếu, nước bắt quân và nguy cơ hòa hết nước đi.")
+        case _ => None
+    val practice = advice.orElse(
+      Option.when(
+        selected.nonEmpty && good.forall(_.result.exists(r => (r \ "coachInsight").toOption.isEmpty))
+      )(
+        "Trước mỗi nước, hãy kiểm tra các nước chiếu, bắt quân và sự an toàn của vua."
+      )
     )
     val message = if expected.isEmpty then "Bạn chưa có nước đi nào để tổng kết."
     else if state == "pending" then "Coach đang hoàn tất phân tích các nước của bạn."
     else if good.isEmpty then "Chưa đủ dữ liệu đã kiểm để tổng kết các nước của bạn."
     else if state == "partial" then "Tổng kết còn thiếu dữ liệu; đây là các nhận xét đã xác nhận."
-    else "Đây là các nhận xét đã xác nhận từ những nước của bạn."
+    else if selected.isEmpty then "Chưa thấy bước ngoặt rõ ràng trong các nước đã phân tích."
+    else "Đây là những bước ngoặt đáng xem lại trong ván."
     val next = LessonSummary(
       state,
       revision,
       game.status.name,
       reason,
       coverage,
-      selected.map(_._3),
-      advice,
+      selected.sortBy(_._2).map(_._3),
+      practice,
       message,
       started,
       deadline,

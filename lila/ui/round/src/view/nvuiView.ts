@@ -86,7 +86,7 @@ export function renderNvui(ctx: RoundNvuiContext): VNode {
             ctrl.isPlaying() && inputForm(ctx),
           ],
       gameInfo(ctx),
-      renderCoach(ctrl.coach),
+      renderCoach(ctrl.coach, true),
       ...renderAdvancedSettings(moveStyle, pageStyle, pieceStyle, prefixStyle, positionStyle, boardStyle, {
         redraw: ctrl.redraw,
       }),
@@ -95,7 +95,7 @@ export function renderNvui(ctx: RoundNvuiContext): VNode {
   } else
     return hl('div.nvui', nvuiHook, [
       gameInfo(ctx),
-      renderCoach(ctrl.coach),
+      renderCoach(ctrl.coach, true),
       ctrl.isPlaying() && inputForm(ctx),
       pageStyle.get() === 'actions-board'
         ? [renderActions(ctx), renderBoard(ctx)]
