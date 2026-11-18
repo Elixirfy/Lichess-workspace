@@ -1,5 +1,11 @@
 # Lichess WDL Lab
 
+## Tài liệu nhánh để viết báo cáo
+
+**Nhánh `codex/live-win-probability`:** Mốc nền tảng của dịch vụ Stockfish WDL và mô hình kết quả người chơi. Nhánh này hiển thị ba lớp Trắng thắng / Hòa / Đen thắng cho người xem; không có các cập nhật hai tỷ lệ, mở quyền người chơi và giọng nói mới trên nhánh voice.
+
+Đọc [README chuyên đề của nhánh](docs/branch-report/README.md): bài toán, chức năng, kiến trúc, **ưu điểm so với tính năng Lichess có sẵn**, bằng chứng kiểm thử, cách chạy, giới hạn và hướng phát triển. Mỗi tài liệu ghim revision riêng; không lấy kết quả của branch khác làm kết quả cho nhánh này.
+
 Fork Lichess tự host, bổ sung một thanh xác suất **Trắng thắng / Hòa / Đen thắng** cho người xem ván cờ tiêu chuẩn. Thanh ưu tiên mô hình người chơi có xét thế cờ, rating và đồng hồ; khi thiếu dữ liệu hoặc ngoài phạm vi, dùng WDL của engine. Nhãn ngắn bên dưới cho biết nguồn; không hiển thị hai bộ tỷ lệ hoặc tên/độ sâu engine.
 
 Tiến độ và bằng chứng nằm trong [mốc engine](openspec/changes/live-win-probability/tasks.md) và [mốc mô hình người chơi](openspec/changes/human-win-probability/tasks.md). Phạm vi, kết quả và giới hạn mô hình được ghi trong [model card](reports/human-v1/model-card.md).
