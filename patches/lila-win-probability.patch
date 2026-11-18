@@ -170,10 +170,10 @@ index 5dc2642..53304bd 100644
  @import 'now-playing';
 diff --git a/ui/round/css/_win-probability.scss b/ui/round/css/_win-probability.scss
 new file mode 100644
-index 0000000..f35af8e
+index 0000000..bb01c5c
 --- /dev/null
 +++ b/ui/round/css/_win-probability.scss
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,40 @@
 +.win-probability {
 +  order: -1;
 +  padding: 0.65rem 0.8rem;
@@ -187,8 +187,7 @@ index 0000000..f35af8e
 +    gap: 0.4rem;
 +  }
 +
-+  &__source,
-+  &__explanation {
++  &__source {
 +    color: $c-font-dim;
 +    font-size: 0.75rem;
 +    margin-top: 0.3rem;
@@ -308,10 +307,10 @@ index fb78301..e294792 100644
        initMessage(ctrl) ||
 diff --git a/ui/round/src/view/winProbability.ts b/ui/round/src/view/winProbability.ts
 new file mode 100644
-index 0000000..02abb6e
+index 0000000..7129b87
 --- /dev/null
 +++ b/ui/round/src/view/winProbability.ts
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,87 @@
 +import { hl, type LooseVNode } from 'lib/view/snabbdom';
 +
 +import type RoundController from '../ctrl';
@@ -364,6 +363,10 @@ index 0000000..02abb6e
 +        'data-source': result ? source : false,
 +        'data-metric': result ? (source === 'official' ? 'result' : 'expected-score') : false,
 +        'data-model': values && human ? (human.model_id ?? false) : false,
++        title:
++          values && source !== 'official'
++            ? `${label}. 50% = cân bằng · Hòa tính nửa điểm. ${description}`
++            : false,
 +      },
 +    },
 +    [
@@ -389,9 +392,8 @@ index 0000000..02abb6e
 +            { attrs: { role: 'status' } },
 +            officialDraw ? 'Ván đấu kết thúc hòa.' : p ? 'Chưa có đánh giá ưu thế cho vị trí này.' : status,
 +          ),
-+      result ? hl('div.win-probability__source', { attrs: { title: description } }, label) : undefined,
-+      values && source !== 'official'
-+        ? hl('div.win-probability__explanation', '50% = cân bằng · Hòa tính nửa điểm')
++      result && source === 'official'
++        ? hl('div.win-probability__source', { attrs: { title: description } }, label)
 +        : undefined,
 +    ],
 +  );
@@ -775,10 +777,10 @@ index 0000000..b7031ea
 +});
 diff --git a/ui/round/tests/winProbabilityView.test.ts b/ui/round/tests/winProbabilityView.test.ts
 new file mode 100644
-index 0000000..e1529c3
+index 0000000..01b80d5
 --- /dev/null
 +++ b/ui/round/tests/winProbabilityView.test.ts
-@@ -0,0 +1,163 @@
+@@ -0,0 +1,168 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +import { init, attributesModule, type VNode } from 'snabbdom';
@@ -807,15 +809,15 @@ index 0000000..e1529c3
 +  assert.equal(view.textContent.match(/\d+\.\d%/g)?.length, 2);
 +  assert.equal(view.dataset.source, 'human');
 +  assert.equal(view.dataset.metric, 'expected-score');
-+  assert.match(view.textContent, /Ưu thế người chơi · thử nghiệm/);
++  assert.match(view.getAttribute('title')!, /Ưu thế người chơi · thử nghiệm/);
 +  assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 65.0%.*Đen 35.0%/);
 +  assert.equal(view.querySelector('.win-probability__white')!.getAttribute('style'), 'width:65%');
 +  assert.equal(view.querySelector('.win-probability__black')!.getAttribute('style'), 'width:35%');
 +  assert.equal(view.querySelector('.win-probability__draw'), null);
-+  assert.match(
-+    view.querySelector('.win-probability__explanation')!.textContent,
-+    /50% = cân bằng.*Hòa tính nửa điểm/,
-+  );
++  assert.equal(view.querySelector('.win-probability__source'), null);
++  assert.equal(view.querySelector('.win-probability__explanation'), null);
++  assert.equal(view.textContent, 'Trắng 65.0%Đen 35.0%');
++  assert.match(view.getAttribute('title')!, /50% = cân bằng.*Hòa tính nửa điểm/);
 +  assert.match(view.getAttribute('aria-label')!, /Ưu thế Trắng\/Đen.*điểm kỳ vọng/);
 +  assert.deepEqual(prediction.human.probabilities, { white: 0.6, draw: 0.1, black: 0.3 });
 +  assert.doesNotMatch(view.textContent, /Theo engine|Stockfish|d17/);
@@ -825,9 +827,12 @@ index 0000000..e1529c3
 +  for (const reason of ['missing_context', 'outside_scope', 'model_unavailable']) {
 +    const view = panel({ ...prediction, human: { status: 'unavailable', reason } });
 +    assert.equal(view.dataset.source, 'engine');
-+    assert.match(view.textContent, /Ưu thế theo engine/);
++    assert.match(view.getAttribute('title')!, /Ưu thế theo engine/);
 +    assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 50.0%.*Đen 50.0%/);
-+    assert.match(view.querySelector('.win-probability__source')!.getAttribute('title')!, /engine/);
++    assert.equal(view.querySelector('.win-probability__source'), null);
++    assert.equal(view.querySelector('.win-probability__explanation'), null);
++    assert.equal(view.textContent, 'Trắng 50.0%Đen 50.0%');
++    assert.match(view.getAttribute('title')!, /engine.*cấp độ bot/);
 +    assert.equal(view.textContent.match(/\d+\.\d%/g)?.length, 2);
 +    assert.equal(view.querySelector('.win-probability__draw'), null);
 +  }
@@ -880,7 +885,8 @@ index 0000000..e1529c3
 +    });
 +    assert.equal(view.dataset.metric, 'expected-score');
 +    assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 50.0%.*Đen 50.0%/);
-+    assert.match(view.querySelector('.win-probability__explanation')!.textContent, /Hòa tính nửa điểm/);
++    assert.match(view.getAttribute('title')!, /Hòa tính nửa điểm/);
++    assert.equal(view.querySelector('.win-probability__explanation'), null);
 +    assert.doesNotMatch(view.textContent, /NaN|Infinity|kết thúc hòa/);
 +  }
 +});
@@ -912,7 +918,7 @@ index 0000000..e1529c3
 +  const view = panel({ ...prediction, human: undefined, probabilities });
 +  assert.equal(view.querySelector('.win-probability__values')!.textContent, 'Trắng 43.8%Đen 56.2%');
 +  assert.equal(view.dataset.metric, 'expected-score');
-+  assert.match(view.textContent, /Ưu thế/);
++  assert.match(view.getAttribute('title')!, /Ưu thế/);
 +  assert.doesNotMatch(view.textContent, /không tính hòa|có bên thắng|100.0%/);
 +});
 +
@@ -940,5 +946,6 @@ index 0000000..e1529c3
 +    assert.equal(view.querySelector('.win-probability__explanation'), null);
 +    assert.equal(view.dataset.source, undefined);
 +    assert.equal(view.dataset.metric, undefined);
++    assert.equal(view.getAttribute('title'), null);
 +  }
 +});

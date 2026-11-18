@@ -173,9 +173,10 @@ try {
       check((await panel.innerText()).match(/\d+\.\d%/g)?.length === 2,
         `Ply ${ply}: exactly two advantage percentages match the ${source} estimate`);
       check(await panel.locator('.win-probability__draw').count() === 0 &&
-        (await panel.locator('.win-probability__source').innerText()).includes('Ưu thế') &&
-        (await panel.locator('.win-probability__explanation').innerText()).includes('Hòa tính nửa điểm'),
-        `Ply ${ply}: the expected-score meaning and draw treatment are visible`);
+        await panel.locator('.win-probability__source, .win-probability__explanation').count() === 0 &&
+        (await panel.getAttribute('title')).includes('Ưu thế') &&
+        (await panel.getAttribute('title')).includes('Hòa tính nửa điểm'),
+        `Ply ${ply}: only the two percentages are visible and their meaning is available in a tooltip`);
       if (humanPlayers && ply >= 4) {
         check(prediction.human?.status === 'ready', `Ply ${ply}: server ratings/clocks produce a human prediction`);
         report.model_id = prediction.human.model_id;

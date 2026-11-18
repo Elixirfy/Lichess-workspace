@@ -1,12 +1,14 @@
 # Lichess WDL Lab
 
-Fork Lichess tự host, hiển thị thanh **Ưu thế Trắng / Đen** ngay trên bàn của cả hai người chơi và người xem ván cờ tiêu chuẩn, gồm chơi với máy và người–người. Thanh dùng **điểm kỳ vọng**: `Trắng = W + D/2`, `Đen = B + D/2`, tổng **100%**. **50% là cân bằng**; hòa được tính nửa điểm mỗi bên. Đây là chỉ số ưu thế theo mô hình, không phải xác suất thắng thực tế của riêng người chơi. Raw WDL ba lớp được giữ nguyên. Khi đủ ngữ cảnh, ưu tiên mô hình người chơi thử nghiệm; nếu thiếu, dùng engine. Nguồn và cách tính điểm hòa được ghi ngay dưới thanh. Ván đã kết thúc hiện kết quả chính thức.
+Fork Lichess tự host, hiển thị thanh **Ưu thế Trắng / Đen** ngay trên bàn của cả hai người chơi và người xem ván cờ tiêu chuẩn, gồm chơi với máy và người–người. Thanh dùng **điểm kỳ vọng**: `Trắng = W + D/2`, `Đen = B + D/2`, tổng **100%**. **50% là cân bằng**; hòa được tính nửa điểm mỗi bên. Đây là chỉ số ưu thế theo mô hình, không phải xác suất thắng thực tế của riêng người chơi. Raw WDL ba lớp được giữ nguyên. Khi đủ ngữ cảnh, ưu tiên mô hình người chơi thử nghiệm; nếu thiếu, dùng engine. Trên bàn chỉ hiện thanh và hai tỷ lệ; rê chuột vào panel để xem nguồn và cách tính trong tooltip. Ván đã kết thúc hiện kết quả chính thức.
 
 Tiến độ và bằng chứng nằm trong [mốc engine](openspec/changes/live-win-probability/tasks.md) và [mốc mô hình người chơi](openspec/changes/human-win-probability/tasks.md). Phạm vi, kết quả và giới hạn mô hình được ghi trong [model card](reports/human-v1/model-card.md).
 
 **Báo cáo nghiệm thu cuối bằng tiếng Việt:** [bao-cao-nghiem-thu.md](reports/acceptance/bao-cao-nghiem-thu.md), kèm log, JSON và ảnh được lưu trong `reports/acceptance/evidence/`.
 
 **Cách hiển thị hiện tại:** [ưu thế theo điểm kỳ vọng](reports/acceptance/expected-score-advantage/README.md). Cách chuẩn hóa bỏ hòa trước đây được giữ làm [lịch sử](reports/acceptance/two-way-probability/README.md).
+
+**Giao diện gọn theo yêu cầu mới:** [bỏ hai dòng chú thích, giữ giải thích trong tooltip](reports/acceptance/compact-advantage/README.md).
 
 **Xem ưu thế trên bàn chơi với máy hoặc người:** cả hai bên dùng dữ liệu thế cờ từ máy chủ; máy chủ kiểm tra cờ bật tính năng và biến thể của ván. [Báo cáo mở quyền trên bàn người chơi](reports/acceptance/player-win-probability/README.md).
 

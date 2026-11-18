@@ -70,8 +70,8 @@ async function probability(page, context, result, ply, phase) {
   const panel = page.locator('.win-probability');
   assert.equal(await panel.locator('.win-probability__bar > span').count(), 2);
   assert.equal(await panel.locator('.win-probability__draw').count(), 0);
-  assert.match(await panel.locator('.win-probability__source').innerText(), /Ưu thế/);
-  assert.match(await panel.locator('.win-probability__explanation').innerText(), /50% = cân bằng.*Hòa tính nửa điểm/);
+  assert.equal(await panel.locator('.win-probability__source, .win-probability__explanation').count(), 0);
+  assert.match(await panel.getAttribute('title'), /Ưu thế.*50% = cân bằng.*Hòa tính nửa điểm/);
   Object.assign(sample, { revision: prediction.revision, rawWdl: p,
     displayed: await panel.locator('.win-probability__values').innerText(), source: 'engine', passed: true });
 }
