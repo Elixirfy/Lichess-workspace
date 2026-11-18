@@ -18,6 +18,8 @@
     "node": "24.20.0",
     "pnpm": "12.9.0",
     "stockfish": "15.1-4 (Debian bookworm)",
+    "ai_broker_image": "ghcr.io/lichess-org/lila-fishnet@sha256:4d646c29f5246405411aa1bfaf884b136dd1677fdcd06ccab8c88a17f9f9ec5b",
+    "ai_worker_image": "niklasf/fishnet:2.12.0@sha256:0902ee2e0c595b836af5301664ec904a51702e39f87c3b889199aff380358b1d",
     "python_dependencies": "services/prediction/uv.lock"
   }
 }

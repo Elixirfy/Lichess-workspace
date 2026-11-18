@@ -1,0 +1,88 @@
+{
+  "date": "2026-11-18",
+  "metric": "expected-score",
+  "formula": {
+    "white": "(W + D/2) / (W+D+B)",
+    "black": "(B + D/2) / (W+D+B)"
+  },
+  "frontend_tests": 341,
+  "frontend_suites": 34,
+  "focused_tests": 19,
+  "red_failures": 10,
+  "skipped": 0,
+  "production_build": true,
+  "lint": true,
+  "stylelint": true,
+  "format": true,
+  "browsers": {
+    "anonymous": {
+      "assertions": 188,
+      "player_samples": 44,
+      "exceptions": 0,
+      "bundle": "round.ZESERAB3.js",
+      "game": "x6PN6VXl"
+    },
+    "registered": {
+      "assertions": 164,
+      "player_samples": 44,
+      "exceptions": 0,
+      "bundle": "round.ZESERAB3.js",
+      "game": "Qcz6qOoq"
+    }
+  },
+  "human_player_samples": 88,
+  "ai_games": 2,
+  "ai_player_samples": 9,
+  "nonstandard_variant_blocked": true,
+  "audio": {
+    "total": 1,
+    "passed": 1,
+    "wrongMoves": 0,
+    "unexpectedQuestions": 0,
+    "botReplies": 1,
+    "confirmationAudioPlayed": 0
+  },
+  "source_patch": {
+    "upstream": "4eea97abce686a1cc6b07abe54cce9e10c223227",
+    "wdl_files": 13,
+    "voice_files": 28,
+    "changed_wdl_paths": [
+      "ui/round/css/_win-probability.scss",
+      "ui/round/src/view/winProbability.ts",
+      "ui/round/src/winProbability.ts",
+      "ui/round/tests/winProbability.test.ts",
+      "ui/round/tests/winProbabilityView.test.ts"
+    ],
+    "combined_paths": 40,
+    "replay_matches_working_source": true,
+    "reverse_checks": true,
+    "whitespace_check": true,
+    "real_index_unchanged": true,
+    "voice_patch_unchanged": true,
+    "previous_wdl_patch_sha256": "f1056db945d020559088aadd3f241327c8bc63c16b992e0358d9363d64351745",
+    "wdl_patch_sha256": "0723675b4b8096a52291759f68d96187c6547aae224f6324483cee7ccf997b00",
+    "voice_patch_sha256": "92bda6c2ea1be33b41391e375a1e30afd89509e64a65fa263286c147d6b1b88c",
+    "sources_sha256": {
+      "ui/round/css/_win-probability.scss": "fa1a856cfa55367336a26e4b8cdaa19de0b048a394f8b9f548f593fd2b31364e",
+      "ui/round/src/view/winProbability.ts": "9fd19b559ae45b2a29542ead9154841c199ef2c4f43c722ea01e542ede61e192",
+      "ui/round/src/winProbability.ts": "26a51ff7ad74b078efd20625a9c7cd72ccedb58e992cb722e06a2d39cceb90d2",
+      "ui/round/tests/winProbability.test.ts": "ddbd6a1de8432f00fb4348487c65c3f7a7bf57b044e12dfb1ecc0aea3d242074",
+      "ui/round/tests/winProbabilityView.test.ts": "1c3f878f4f5c72600d8a1ba7b7524fba6912da57f005986609c4494cc1739e01"
+    },
+    "model_sha256": "0822611ce98edcc7c3721483c430bce78c0df94c0ea5dc641e3fe09a69455fd0"
+  },
+  "raw_wdl_unchanged": true,
+  "model_unchanged": true,
+  "prediction_service_unchanged": true,
+  "scala_source_unchanged": true,
+  "scala_tests_rerun": false,
+  "python_tests_rerun": false,
+  "manifest_sha256": "00926242c713288be47b241843a48a411ce08c5ea4b899ac096daad35e7bb413",
+  "model_sha256": "0822611ce98edcc7c3721483c430bce78c0df94c0ea5dc641e3fe09a69455fd0",
+  "visual": "Desktop/mobile checked after the normal reconnect notice animation; isolated read-only browser. Old user game has finished, verified official result via API and normal analysis-page navigation. No moves on the user game.",
+  "limitations": [
+    "Expected score is a display metric, not locally calibrated personal win probability.",
+    "Engine ignores bot level; human pilot scope and evaluation limits still apply.",
+    "One reused human utterance; not a new ASR benchmark, holdout or physical microphone check. Personal WAVs not published."
+  ]
+}

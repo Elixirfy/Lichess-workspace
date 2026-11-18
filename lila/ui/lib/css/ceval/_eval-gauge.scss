@@ -30,6 +30,41 @@
     transform: rotateX(180deg);
   }
 
+  &.expected-score {
+    width: 3.2rem;
+
+    > span {
+      position: absolute;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.3rem 0;
+      font-size: 0.65rem;
+      font-weight: bold;
+      line-height: 1.3;
+      pointer-events: none;
+    }
+
+    .eval-gauge__white {
+      bottom: 0;
+      background: #f2f2f2;
+      color: #252525;
+    }
+
+    .eval-gauge__black {
+      top: 0;
+      background: #252525;
+      color: #f2f2f2;
+    }
+
+    &.reverse > span {
+      transform: rotateX(180deg);
+    }
+  }
+
   &::after {
     @extend %box-radius;
 

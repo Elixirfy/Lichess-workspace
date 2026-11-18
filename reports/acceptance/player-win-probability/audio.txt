@@ -1,0 +1,6 @@
+Validated 13 human utterances, checksums and WAV headers.
+FAIL setup: TimeoutError: page.waitForURL: Timeout 30000ms exceeded.
+=========================== logs ===========================
+waiting for navigation until "load"
+============================================================
+Report: E:\codex\Lichess\artifacts\voice-recorded-e2e\2026-11-18T13-53-50.762Z

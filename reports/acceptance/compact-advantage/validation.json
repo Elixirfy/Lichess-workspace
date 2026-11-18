@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-18",
+  "behavior": "Only bar and two White/Black percentages visible; live source and expected-score explanation in title tooltip; official result captions retained.",
+  "red_failures": 4,
+  "focused_tests": 19,
+  "frontend_tests": 341,
+  "frontend_skipped": 0,
+  "build": true,
+  "lint": true,
+  "stylelint": true,
+  "format": true,
+  "browser_assertions": 164,
+  "participant_samples": 44,
+  "browser_exceptions": 0,
+  "ai_games": 2,
+  "ai_samples": 9,
+  "bundle": "round.CMETBTNQ.js",
+  "patch": {
+    "upstream": "4eea97abce686a1cc6b07abe54cce9e10c223227",
+    "wdl_files": 13,
+    "voice_files": 28,
+    "changed_wdl_paths": [
+      "ui/round/css/_win-probability.scss",
+      "ui/round/src/view/winProbability.ts",
+      "ui/round/src/winProbability.ts",
+      "ui/round/tests/winProbability.test.ts",
+      "ui/round/tests/winProbabilityView.test.ts"
+    ],
+    "combined_paths": 40,
+    "replay_matches_working_source": true,
+    "reverse_checks": true,
+    "whitespace_check": true,
+    "real_index_unchanged": true,
+    "voice_patch_unchanged": true,
+    "previous_wdl_patch_sha256": "0723675b4b8096a52291759f68d96187c6547aae224f6324483cee7ccf997b00",
+    "wdl_patch_sha256": "d88b78363e775919ca348d811503fa56ff09eba90a313daaebe4b3f9a1e1fc10",
+    "voice_patch_sha256": "92bda6c2ea1be33b41391e375a1e30afd89509e64a65fa263286c147d6b1b88c",
+    "sources_sha256": {
+      "ui/round/css/_win-probability.scss": "3cfe89cb641c7aeb2239e8de1c4d4dd35795f3cb90713fe92ef345881ff88345",
+      "ui/round/src/view/winProbability.ts": "630842a5e43d7e88f5115f3396a477f9690d294871a5a86713ca5d8ae0fb4153",
+      "ui/round/src/winProbability.ts": "26a51ff7ad74b078efd20625a9c7cd72ccedb58e992cb722e06a2d39cceb90d2",
+      "ui/round/tests/winProbability.test.ts": "ddbd6a1de8432f00fb4348487c65c3f7a7bf57b044e12dfb1ecc0aea3d242074",
+      "ui/round/tests/winProbabilityView.test.ts": "6cd7127db0b6e02e33776d071561df617b2702260dce5994e3627dd896a77d42"
+    },
+    "model_sha256": "0822611ce98edcc7c3721483c430bce78c0df94c0ea5dc641e3fe09a69455fd0"
+  },
+  "formula_unchanged": true,
+  "backend_unchanged": true,
+  "voice_patch_unchanged": true,
+  "audio_rerun": false,
+  "scala_rerun": false,
+  "notes": "Only UI presentation changed. Prior audio and backend results remain historical. Final patch replay ran outside the sandbox after Git LFS process creation was denied; real index preserved."
+}

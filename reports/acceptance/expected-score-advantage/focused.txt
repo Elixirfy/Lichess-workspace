@@ -1,0 +1,29 @@
+ Container lichess-wdl-ui-run-d1cabe3a48e0 Creating 
+ Container lichess-wdl-ui-run-d1cabe3a48e0 Created 
+✔ expected-score percentages sum to 100.0% and preserve the raw WDL (2.969562ms)
+✔ draw-heavy, balanced and winning reference positions have intuitive expected scores (0.316147ms)
+✔ reject invalid and nonfinite probabilities (0.122708ms)
+✔ invalid human probabilities are hidden while the valid engine result remains usable (15.945127ms)
+✔ late response cannot replace a different move at the same ply (16.311403ms)
+✔ a new move immediately clears the previous estimate (2.624914ms)
+✔ official result takes precedence even when engine reply arrives later (1.830635ms)
+✔ aborted games have no invented result or engine request (0.573545ms)
+✔ service failure shows unavailable without retaining numbers (1.601057ms)
+✔ disconnect clears estimates and a reload resumes the same position (2.490106ms)
+✔ one bar shows expected-score advantage from the preferred human estimate (19.582716ms)
+✔ missing or unsupported human context falls back to one clearly identified engine estimate (4.181154ms)
+✔ an official draw shows the result without an estimated advantage bar (0.77397ms)
+✔ official winners retain their color and override the human estimate (1.835261ms)
+✔ a live all-draw estimate has equal expected points for both colors (2.907455ms)
+✔ two displayed values and segment widths sum to 100.0% without swapping White and Black (5.540071ms)
+✔ the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL (1.088231ms)
+✔ advantage distinguishes clear and near-winning positions while remaining an estimate (1.493606ms)
+✔ replay and unavailable positions never retain either source of probabilities (1.146247ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10160.953842

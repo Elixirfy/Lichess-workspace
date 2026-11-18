@@ -172,7 +172,7 @@ export default class RoundController implements MoveRootCtrl {
     pubsub.on('zen', toggleZenMode);
 
     if (!this.opts.noab && this.isPlaying()) ab.init(this);
-    if (d.winProbability && d.player.spectator && d.game.variant.key === 'standard') {
+    if (d.winProbability && d.game.variant.key === 'standard') {
       this.winProbability = new WinProbability(() => this.data, redraw);
       pubsub.on('socket.close', this.winProbability.disconnected);
       pubsub.on('socket.open', () => {

@@ -1,0 +1,6 @@
+ Container lichess-wdl-ui-run-fc0b4b43bdc1 Creating 
+ Container lichess-wdl-ui-run-fc0b4b43bdc1 Created 
+Checking formatting...
+
+All matched files use the correct format.
+Finished in 56ms on 1 files using 16 threads.

@@ -1,0 +1,4 @@
+ Container lichess-wdl-ui-run-d53a9100a21b Creating 
+ Container lichess-wdl-ui-run-d53a9100a21b Created 
+Found 0 warnings and 0 errors.
+Finished in 40.7s on 3 files with 164 rules using 16 threads.

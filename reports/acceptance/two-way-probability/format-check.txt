@@ -1,0 +1,6 @@
+ Container lichess-wdl-ui-run-e93923e4ba82 Creating 
+ Container lichess-wdl-ui-run-e93923e4ba82 Created 
+Checking formatting...
+
+All matched files use the correct format.
+Finished in 44ms on 5 files using 16 threads.

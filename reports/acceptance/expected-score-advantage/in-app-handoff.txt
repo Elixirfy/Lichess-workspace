@@ -1,0 +1,2 @@
+{"url": "http://localhost:8080/assets/voice-advantage-ready-f7ea5eaa6b6edb09a29ec2e7.html", "receipt": "E:\\codex\\Lichess\\artifacts\\voice-advantage-ready-f7ea5eaa6b6edb09a29ec2e7.json", "callback_port": 53239}
+{"helper_stopped": true, "success": false, "temporary_assets_removed": true}

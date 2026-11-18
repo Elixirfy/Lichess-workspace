@@ -1,0 +1,6 @@
+ Container lichess-wdl-ui-run-7d5ee53148bb Creating 
+ Container lichess-wdl-ui-run-7d5ee53148bb Created 
+Checking formatting...
+
+All matched files use the correct format.
+Finished in 106ms on 15 files using 16 threads.

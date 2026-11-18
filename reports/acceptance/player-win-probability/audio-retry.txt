@@ -1,0 +1,4 @@
+Validated 13 human utterances, checksums and WAV headers.
+PASS file_b_short-direct: tốt bi hai từ bê bốn | tốt bi hai bi bốn -> e7e5
+{"total":1,"passed":1,"wrongMoves":0,"unexpectedQuestions":0,"botReplies":1,"confirmationAudioPlayed":0}
+Report: E:\codex\Lichess\artifacts\voice-recorded-e2e\2026-11-18T13-59-08.784Z

@@ -1,0 +1,58 @@
+ Container lichess-wdl-ui-run-153f204db43a Creating 
+ Container lichess-wdl-ui-run-153f204db43a Created 
+✔ only the original endpoint receives the recorded game result (3.982518ms)
+✔ official draws, black wins, aborts and active games are distinct (0.606656ms)
+✔ nonstandard variants retain the original gauge (0.511457ms)
+Error: no indexedDB
+    at <anonymous> (/lila/ui/lib/src/objectStorage.ts:252:75)
+    at new Promise (<anonymous>)
+    at dbConnect (/lila/ui/lib/src/objectStorage.ts:251:10)
+    at objectStorage (/lila/ui/lib/src/objectStorage.ts:60:20)
+    at makeLog (/lila/ui/lib/src/permalog.ts:31:3)
+    at <anonymous> (/lila/ui/lib/src/permalog.ts:9:30)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+✔ review gauge uses the same half-draw projection as the live panel (72.610414ms)
+✔ reversing the board preserves color values and reverses the gauge (15.292395ms)
+✔ a node without evaluation clears the preceding gauge and its percentages (18.529759ms)
+✔ live all-draw WDL is equal expected points, not a conditional win division (5.844423ms)
+✔ official win and draw results override cached evaluations at the selected final node (34.396825ms)
+✔ proven position outcomes work without an engine evaluation (16.420146ms)
+✔ legacy cp-only evaluations are identified as a WDL model conversion (4.945798ms)
+✔ other gauge callers keep the existing display without the review percentages (11.724336ms)
+✔ only engines advertising WDL are asked to emit it (3.223117ms)
+✔ UCI WDL is normalized to White at both sides to move and in threat mode (3.472313ms)
+✔ invalid and missing WDL never reuse the previous search WDL (0.824489ms)
+✔ a stopped search cannot deliver WDL for the newly selected position (0.436808ms)
+✔ legacy score conversion matches independent python-chess Stockfish 15.1 vectors (4.015988ms)
+✔ native WDL is preferred over cp and never rewritten (0.573779ms)
+✔ empty, invalid and nonfinite scores cannot create an advantage (0.599058ms)
+✔ mate scores retain their White perspective and old cp models are symmetric (1.018761ms)
+✔ expected-score percentages sum to 100.0% and preserve the raw WDL (14.890416ms)
+✔ draw-heavy, balanced and winning reference positions have intuitive expected scores (0.780009ms)
+✔ reject invalid and nonfinite probabilities (0.304254ms)
+✔ invalid human probabilities are hidden while the valid engine result remains usable (40.812294ms)
+✔ late response cannot replace a different move at the same ply (21.536576ms)
+✔ a new move immediately clears the previous estimate (19.89745ms)
+✔ official result takes precedence even when engine reply arrives later (10.083579ms)
+✔ aborted games have no invented result or engine request (1.700237ms)
+✔ service failure shows unavailable without retaining numbers (3.541595ms)
+✔ disconnect clears estimates and a reload resumes the same position (6.334362ms)
+✔ one bar shows expected-score advantage from the preferred human estimate (71.926723ms)
+✔ missing or unsupported human context falls back to one clearly identified engine estimate (20.300431ms)
+✔ an official draw shows the result without an estimated advantage bar (3.012389ms)
+✔ official winners retain their color and override the human estimate (12.959966ms)
+✔ a live all-draw estimate has equal expected points for both colors (7.822122ms)
+✔ two displayed values and segment widths sum to 100.0% without swapping White and Black (18.114576ms)
+✔ the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL (4.58693ms)
+✔ advantage distinguishes clear and near-winning positions while remaining an estimate (9.645666ms)
+✔ replay and unavailable positions never retain either source of probabilities (5.326461ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 104747.412033

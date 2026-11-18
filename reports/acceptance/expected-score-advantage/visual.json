@@ -1,0 +1,37 @@
+{
+  "metric": "expected-score",
+  "noAgentMoves": true,
+  "sessions": [
+    {
+      "gameId": "uZslwlbN",
+      "metric": "expected-score",
+      "role": "read-only spectator in an isolated browser",
+      "online": true,
+      "networkNoticeHidden": true,
+      "rawWdl": {
+        "white": 0.004,
+        "draw": 0.978,
+        "black": 0.018
+      },
+      "values": [
+        49.3,
+        50.7
+      ],
+      "text": "Trắng 49.3%\nĐen 50.7%\nƯu thế theo engine\n50% = cân bằng · Hòa tính nửa điểm",
+      "noHorizontalOverflow": true,
+      "screenshotPrefix": "expected-score-visual"
+    }
+  ],
+  "oldGame": {
+    "gameId": "ROwDDu2g",
+    "status": "finished",
+    "source": "official",
+    "probabilities": {
+      "white": 1,
+      "draw": 0,
+      "black": 0
+    },
+    "freshNavigation": "analysis page; not a live-round panel",
+    "noAgentMoves": true
+  }
+}

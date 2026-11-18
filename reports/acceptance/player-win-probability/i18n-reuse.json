@@ -1,0 +1,10 @@
+{
+  "reused_resources": 150,
+  "input_sources_unchanged": true,
+  "generator_unchanged": true,
+  "output_hashes_unchanged": true,
+  "full_tests": true,
+  "stage": true,
+  "session_only": true,
+  "baseline": "artifacts/player-probability-i18n-before.json"
+}

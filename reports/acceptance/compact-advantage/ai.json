@@ -1,0 +1,231 @@
+{
+  "started": "2026-11-18T15:02:47.050Z",
+  "cases": [
+    {
+      "color": "white",
+      "aiLevel": 1,
+      "checks": [
+        {
+          "elapsedMs": 5707,
+          "moves": [
+            "d4",
+            "Nf6"
+          ],
+          "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/FlXWSTki\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"AiWdl0fd3b1781d\"]\n[Black \"lichess AI level 1\"]\n[Result \"*\"]\n[GameId \"FlXWSTki\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"15:03:24\"]\n[WhiteElo \"1500\"]\n[BlackElo \"?\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A45\"]\n[Opening \"Indian Defense\"]\n[Termination \"Unterminated\"]\n\n1. d4 Nf6 *\n\n\n"
+        },
+        {
+          "elapsedMs": 1602,
+          "moves": [
+            "d4",
+            "Nf6",
+            "Nf3",
+            "Nc6"
+          ],
+          "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/FlXWSTki\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"AiWdl0fd3b1781d\"]\n[Black \"lichess AI level 1\"]\n[Result \"*\"]\n[GameId \"FlXWSTki\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"15:03:24\"]\n[WhiteElo \"1500\"]\n[BlackElo \"?\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A46\"]\n[Opening \"Indian Defense: Knights Variation\"]\n[Termination \"Unterminated\"]\n\n1. d4 Nf6 2. Nf3 Nc6 *\n\n\n"
+        }
+      ],
+      "socketMoves": [
+        {
+          "uci": "d2d4",
+          "ply": 1
+        },
+        {
+          "uci": "g8f6",
+          "ply": 2
+        },
+        {
+          "uci": "g1f3",
+          "ply": 3
+        },
+        {
+          "uci": "b8c6",
+          "ply": 4
+        }
+      ],
+      "id": "FlXWSTki",
+      "probabilities": [
+        {
+          "phase": "initial",
+          "expectedPly": 0,
+          "http": 200,
+          "revision": "FlXWSTki||20|",
+          "rawWdl": {
+            "white": 0.041,
+            "draw": 0.957,
+            "black": 0.002
+          },
+          "displayed": "Trắng 52.0%\nĐen 48.0%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "first-bot-reply",
+          "expectedPly": 2,
+          "http": 200,
+          "revision": "FlXWSTki|d4 Nf6|20|",
+          "rawWdl": {
+            "white": 0.052,
+            "draw": 0.947,
+            "black": 0.001
+          },
+          "displayed": "Trắng 52.6%\nĐen 47.4%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "second-bot-reply",
+          "expectedPly": 4,
+          "http": 200,
+          "revision": "FlXWSTki|d4 Nf6 Nf3 Nc6|20|",
+          "rawWdl": {
+            "white": 0.179,
+            "draw": 0.821,
+            "black": 0
+          },
+          "displayed": "Trắng 58.9%\nĐen 41.1%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "reload",
+          "expectedPly": 4,
+          "http": 200,
+          "revision": "FlXWSTki|d4 Nf6 Nf3 Nc6|20|",
+          "rawWdl": {
+            "white": 0.179,
+            "draw": 0.821,
+            "black": 0
+          },
+          "displayed": "Trắng 58.9%\nĐen 41.1%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "reconnect",
+          "expectedPly": 4,
+          "http": 200,
+          "revision": "FlXWSTki|d4 Nf6 Nf3 Nc6|20|",
+          "rawWdl": {
+            "white": 0.179,
+            "draw": 0.821,
+            "black": 0
+          },
+          "displayed": "Trắng 58.9%\nĐen 41.1%",
+          "source": "engine",
+          "passed": true
+        }
+      ],
+      "officialResultPassed": true,
+      "passed": true
+    },
+    {
+      "color": "black",
+      "aiLevel": 1,
+      "checks": [
+        {
+          "elapsedMs": 3730,
+          "moves": [
+            "d3"
+          ],
+          "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/VCOtxCIx\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"lichess AI level 1\"]\n[Black \"AiWdl97038815f4\"]\n[Result \"*\"]\n[GameId \"VCOtxCIx\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"15:03:48\"]\n[WhiteElo \"?\"]\n[BlackElo \"1500\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A00\"]\n[Opening \"Mieses Opening\"]\n[Termination \"Unterminated\"]\n\n1. d3 *\n\n\n"
+        },
+        {
+          "elapsedMs": 5048,
+          "moves": [
+            "d3",
+            "e5",
+            "Nf3"
+          ],
+          "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/VCOtxCIx\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"lichess AI level 1\"]\n[Black \"AiWdl97038815f4\"]\n[Result \"*\"]\n[GameId \"VCOtxCIx\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"15:03:48\"]\n[WhiteElo \"?\"]\n[BlackElo \"1500\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A00\"]\n[Opening \"Mieses Opening: Reversed Rat\"]\n[Termination \"Unterminated\"]\n\n1. d3 e5 2. Nf3 *\n\n\n"
+        }
+      ],
+      "socketMoves": [
+        {
+          "uci": "d2d3",
+          "ply": 1
+        },
+        {
+          "uci": "e7e5",
+          "ply": 2
+        },
+        {
+          "uci": "g1f3",
+          "ply": 3
+        }
+      ],
+      "id": "VCOtxCIx",
+      "probabilities": [
+        {
+          "phase": "initial-bot-move",
+          "expectedPly": 1,
+          "http": 200,
+          "revision": "VCOtxCIx|d3|20|",
+          "rawWdl": {
+            "white": 0.004,
+            "draw": 0.976,
+            "black": 0.02
+          },
+          "displayed": "Trắng 49.2%\nĐen 50.8%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "bot-reply",
+          "expectedPly": 3,
+          "http": 200,
+          "revision": "VCOtxCIx|d3 e5 Nf3|20|",
+          "rawWdl": {
+            "white": 0.01,
+            "draw": 0.983,
+            "black": 0.007
+          },
+          "displayed": "Trắng 50.1%\nĐen 49.9%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "reload",
+          "expectedPly": 3,
+          "http": 200,
+          "revision": "VCOtxCIx|d3 e5 Nf3|20|",
+          "rawWdl": {
+            "white": 0.01,
+            "draw": 0.983,
+            "black": 0.007
+          },
+          "displayed": "Trắng 50.1%\nĐen 49.9%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "reconnect",
+          "expectedPly": 3,
+          "http": 200,
+          "revision": "VCOtxCIx|d3 e5 Nf3|20|",
+          "rawWdl": {
+            "white": 0.01,
+            "draw": 0.983,
+            "black": 0.007
+          },
+          "displayed": "Trắng 50.1%\nĐen 49.9%",
+          "source": "engine",
+          "passed": true
+        }
+      ],
+      "officialResultPassed": true,
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "metric": "expected-score",
+  "probability": true,
+  "signedIn": true,
+  "variantRestriction": {
+    "gameId": "VRzYHh5u",
+    "variant": "chess960",
+    "endpointStatus": 404,
+    "clientFlagsCannotBypass": true,
+    "panelAbsent": true
+  },
+  "finished": "2026-11-18T15:04:13.631Z"
+}

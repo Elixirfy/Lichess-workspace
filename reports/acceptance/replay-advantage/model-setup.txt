@@ -1,0 +1,1 @@
+{"engine":"__sf_19_smallnet","name":"nn-61e7af4bb97d.nnue","bytes":1166381,"sha256":"61e7af4bb97d51eeeb25d322916f86513b5cd3a827ce189c98c6e31946f99e5b","ready":true}

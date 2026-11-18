@@ -1,0 +1,322 @@
+{
+  "base": "http://localhost:8080",
+  "kind": "Human connected-speech PCM -> production ASR -> direct server move -> real AI reply; no confirmation input",
+  "opponent": "lichess AI level 1 (Fishnet)",
+  "recordings": [
+    {
+      "id": "5c2684b913dd46e8a7cbd3fa299efa58",
+      "phrase_id": "file_b_short",
+      "text": "Tốt bê hai tới bê bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:48:38.094506+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 3.2426666666666666,
+      "sha256": "ce26174b21236ac8e80468582540d616844e76e32a60dab1280b5bba12dab440"
+    },
+    {
+      "id": "a51b0739c688428d99862cb5775cd36c",
+      "phrase_id": "file_d_short",
+      "text": "Tốt đê hai tới đê bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:48:46.255221+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 3.072,
+      "sha256": "54f7d31f97c7122e428afbb8b59ba97894e9d5d93b020fcb20f9b7e9398a1567"
+    },
+    {
+      "id": "8dab8bec1eef42418581043805f6b52c",
+      "phrase_id": "file_b_clear",
+      "text": "Tốt từ cột bê hàng hai đến cột bê hàng bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:48:56.729511+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 3.925333333333333,
+      "sha256": "55d86ba5a800cef2de2d8eb18fc4cb5135b01d82e0b762fc3318d5b3a59dcf1b"
+    },
+    {
+      "id": "07508000471046a385b0007152262f7c",
+      "phrase_id": "file_d_clear",
+      "text": "Tốt từ cột đê hàng hai đến cột đê hàng bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:49:02.891725+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 3.6693333333333333,
+      "sha256": "8cbf9f86f3763003d23666db2075b44da505033a27069b9a3f20dcfd1a671283"
+    },
+    {
+      "id": "9caa496492464870b049fa6e68fc16f2",
+      "phrase_id": "file_b_numbered",
+      "text": "Tốt từ cột hai hàng hai đến cột hai hàng bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T08:10:27.888236+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 4.693333333333333,
+      "sha256": "bf786fef78f6b02923f42161943f4db1ce327d060ec2b2ddf6141ad57896db9a"
+    },
+    {
+      "id": "2e4ebfadbc204ee2849dc73a22175213",
+      "phrase_id": "file_d_numbered",
+      "text": "Tốt từ cột bốn hàng hai đến cột bốn hàng bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:49:25.635263+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 3.328,
+      "sha256": "2152e1f13f8f45f82b6623d0f6c2b68a0c5c8b42209994e8b103d6d18d13873e"
+    },
+    {
+      "id": "f91965f091ac42648178d23824b27a75",
+      "phrase_id": "file_b_sound",
+      "text": "Tốt bờ hai tới bờ bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:49:36.103146+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 2.048,
+      "sha256": "0c0b28c4343ea973142ab21440cfc1cab5d09b969f24bc9fee7688091d199808"
+    },
+    {
+      "id": "9d091c669bc648da8b2fb1eadc286696",
+      "phrase_id": "file_d_sound",
+      "text": "Tốt dờ hai tới dờ bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:49:50.693388+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 2.3893333333333335,
+      "sha256": "0807dff352f0bd7ad94f3a6b077b54dcfa501a6d9dcb244527a1dd4986659141"
+    },
+    {
+      "id": "3c0321e7232347fbb2cbfc4e5e349eab",
+      "phrase_id": "file_b_english",
+      "text": "Tốt từ cột bi hàng hai đến cột bi hàng bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:50:02.731289+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 3.498666666666667,
+      "sha256": "c9e4c6bc10e333659b148df0a57c8075a459d893fd2e3e2eb4422cfe02212473"
+    },
+    {
+      "id": "96d1d105abe24af593ea767b7a0ff266",
+      "phrase_id": "file_d_english",
+      "text": "Tốt từ cột đi hàng hai đến cột đi hàng bốn",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T05:50:12.637947+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 2.7306666666666666,
+      "sha256": "17b5205256897fb939e166602f11cc9490f5dd9bf22c385cc433dd81fa5f0503"
+    },
+    {
+      "id": "1ccede1cf63b4fbbaa9b485fe1dadce1",
+      "phrase_id": "confirm",
+      "text": "Xác nhận",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T01:48:08.737695+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 1.1946666666666668,
+      "sha256": "508a153683fe131435e1b79b2448eb6fe2b19cb3012ccfe730ecffebd5ba3e15"
+    },
+    {
+      "id": "8e473e1d3d4240e0b4be6c17ece7c044",
+      "phrase_id": "agree",
+      "text": "Đồng ý",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T01:48:11.782465+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 1.4506666666666668,
+      "sha256": "fe03fc26483134f407df059120a8d54d03777f6b85d91e4abf744f65f495e4af"
+    },
+    {
+      "id": "15e02608a99b48ec9928a0cd06f254ed",
+      "phrase_id": "cancel",
+      "text": "Hủy nước đi",
+      "source": "browser-microphone",
+      "created_at": "2026-11-18T01:48:17.899731+00:00",
+      "sample_rate": 48000,
+      "duration_seconds": 1.536,
+      "sha256": "856809d7c0692e6d1434f730650ced513c583e94ed7890fcb9db26a85a0a82c8"
+    }
+  ],
+  "cases": [
+    {
+      "id": "file_b_short-direct",
+      "command": "Tốt bê hai tới bê bốn",
+      "expectedUci": "b2b4",
+      "setupStatus": 303,
+      "gameId": "uZslwlbN",
+      "before": {
+        "ply": 0,
+        "at": 1795013041408,
+        "question": null,
+        "step": {
+          "ply": 0,
+          "uci": null,
+          "san": null,
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        },
+        "candidates": [],
+        "voiceStatus": ""
+      },
+      "probabilities": [
+        {
+          "phase": "before-audio",
+          "revision": "uZslwlbN||20|",
+          "rawWdl": {
+            "white": 0.041,
+            "draw": 0.957,
+            "black": 0.002
+          },
+          "displayed": "Trắng 52.0%\nĐen 48.0%",
+          "passed": true
+        },
+        {
+          "phase": "after-audio-and-bot",
+          "revision": "uZslwlbN|b4 d5|20|",
+          "rawWdl": {
+            "white": 0.004,
+            "draw": 0.978,
+            "black": 0.018
+          },
+          "displayed": "Trắng 49.3%\nĐen 50.7%",
+          "passed": true
+        }
+      ],
+      "commandAudio": {
+        "recordingId": "5c2684b913dd46e8a7cbd3fa299efa58",
+        "started": 1795013041461,
+        "playbackEnded": 1795013044711,
+        "seconds": 3.2426666666666666,
+        "playedSeconds": 3.2426666666666666,
+        "settled": 1795013045015,
+        "heard": [
+          {
+            "text": "Đang nghe…",
+            "type": "start",
+            "at": 1795013041449
+          },
+          {
+            "text": "",
+            "type": "stop",
+            "at": 1795013044711
+          },
+          {
+            "text": "tốt bi hai từ bê bốn",
+            "type": "full",
+            "at": 1795013044750
+          },
+          {
+            "text": "Đang nhận dạng lại…",
+            "type": "status",
+            "at": 1795013044751
+          },
+          {
+            "text": "tốt bi hai bi bốn",
+            "type": "fallback",
+            "at": 1795013045011
+          }
+        ],
+        "responses": []
+      },
+      "proposal": {
+        "ply": 1,
+        "at": 1795013045023,
+        "question": null,
+        "step": {
+          "ply": 1,
+          "fen": "rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR",
+          "san": "b4",
+          "uci": "b2b4"
+        },
+        "candidates": [],
+        "voiceStatus": "tốt bi hai bi bốn"
+      },
+      "serverWait": {
+        "acknowledged": true,
+        "elapsedMs": 6043,
+        "timeoutMs": 25000
+      },
+      "after": {
+        "ply": 2,
+        "at": 1795013051068,
+        "question": null,
+        "step": {
+          "ply": 2,
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/1P6/8/P1PPPPPP/RNBQKBNR",
+          "san": "d5",
+          "uci": "d7d5"
+        },
+        "candidates": [],
+        "voiceStatus": ""
+      },
+      "serverMoves": [
+        {
+          "at": 1795013045023,
+          "uci": "b2b4",
+          "san": "b4",
+          "fen": "rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR",
+          "ply": 1
+        },
+        {
+          "at": 1795013051014,
+          "uci": "d7d5",
+          "san": "d5",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/1P6/8/P1PPPPPP/RNBQKBNR",
+          "ply": 2,
+          "dests": {
+            "c2": "c3c4",
+            "b4": "b5",
+            "g2": "g3g4",
+            "b1": "a3c3",
+            "g1": "f3h3",
+            "f2": "f3f4",
+            "c1": "b2a3",
+            "e2": "e3e4",
+            "d2": "d3d4",
+            "a2": "a3a4",
+            "h2": "h3h4"
+          }
+        }
+      ],
+      "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/uZslwlbN\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"VoiceAudio08ab2fb20e\"]\n[Black \"lichess AI level 1\"]\n[Result \"*\"]\n[GameId \"uZslwlbN\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"14:43:59\"]\n[WhiteElo \"1500\"]\n[BlackElo \"?\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A00\"]\n[Opening \"Polish Opening, with d5\"]\n[Termination \"Unterminated\"]\n\n1. b4 d5 *\n\n\n",
+      "pgnMoves": [
+        "b4",
+        "d5"
+      ],
+      "botReplyCorrect": true,
+      "passed": true,
+      "wrongConfirmedMove": false,
+      "wrongMove": false
+    }
+  ],
+  "errors": [],
+  "started": "2026-11-18T14:43:56.308Z",
+  "mode": "direct",
+  "probability": true,
+  "metric": "expected-score",
+  "sha256": {
+    "scripts/voice-recorded-e2e.mjs": "607d8e0a69b8e1881979271592f2ce040100102ca93bc11c5833b92f55567edf",
+    "scripts/voice-setup-request.mjs": "3c10ddbf08addd23b3487300439f8669166d3fa354e4b94c35edf8630790f15f",
+    "patches/lila-vietnamese-voice.patch": "92bda6c2ea1be33b41391e375a1e30afd89509e64a65fa263286c147d6b1b88c",
+    "services/voice/app/recognizer.py": "29e372e5b9db72944a21a05eb61b6ad0daad564bf7f3270c9b75036e481ad4d0",
+    "services/voice/app/main.py": "325ad33ffe0832a21c940b79d32badee5cab382ca60866ff838b5b2d14d1c696",
+    "services/voice/model-lock.json": "4be6207881e4fea377e9c3f8a0466fa5963005fcdc50a43a2622fd5f9a1253e9",
+    "services/voice/app/recording_phrases.json": "e0bcb791cf710ee0271bac6e0d2475a3a4056f6b49265e700396aa48a17b2e00",
+    "services/voice/app/file_recording_phrases.json": "b5dab899921d84b96e79ab4d69c3b3c942bc3b29e3654d9d738be8930172ad88",
+    "infra/lila-docker/repos/lila/public/compiled/manifest.json": "00926242c713288be47b241843a48a411ce08c5ea4b899ac096daad35e7bb413"
+  },
+  "runtime": {
+    "node": "v22.14.0",
+    "chromium": "153.0.8010.12"
+  },
+  "signupPage": {
+    "status": 200,
+    "title": "Register • Lichess WDL Lab",
+    "url": "http://localhost:8080/signup"
+  },
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "wrongMoves": 0,
+    "unexpectedQuestions": 0,
+    "botReplies": 1,
+    "confirmationAudioPlayed": 0
+  },
+  "finished": "2026-11-18T14:44:11.521Z"
+}

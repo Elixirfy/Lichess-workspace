@@ -4,6 +4,7 @@ import type { LocalEval } from '@/tree/types';
 
 import { defined } from '../index';
 import type { Work, EngineInfo } from './types';
+import { uciWdl } from './wdl';
 
 export class Protocol {
   public engineName?: string;
@@ -12,6 +13,7 @@ export class Protocol {
   private currentEval?: LocalEval;
   private gameId?: string;
   private expectedPvs = 1;
+  private supportsWdl = false;
   private nextWork?: Work;
   private send: ((cmd: string) => void) | undefined;
   private options: Map<string, string | number> = new Map<string, string>();
@@ -23,6 +25,7 @@ export class Protocol {
 
   connected(send: (cmd: string) => void): void {
     this.send = send;
+    this.supportsWdl = false;
 
     // Get engine name, version and options.
     this.options = new Map([
@@ -53,10 +56,13 @@ export class Protocol {
 
   received(command: string): void {
     const parts = command.trim().split(/\s+/g);
-    if (parts[0] === 'uciok') {
+    if (parts[0] === 'option' && parts[1] === 'name' && parts[2] === 'UCI_ShowWDL' && parts[4] === 'check') {
+      this.supportsWdl = true;
+    } else if (parts[0] === 'uciok') {
       // Analyse without contempt.
       this.setOption('UCI_AnalyseMode', 'true');
       this.setOption('Analysis Contempt', 'Off');
+      if (this.supportsWdl) this.setOption('UCI_ShowWDL', 'true');
 
       // Affects notation only. Life would be easier if everyone would always
       // unconditionally use this mode.
@@ -92,6 +98,7 @@ export class Protocol {
       let evalType;
       let isMate = false;
       let povEv;
+      let rawWdl: number[] | undefined;
       let moves: string[] = [];
       for (let i = 1; i < parts.length; i++) {
         switch (parts[i]) {
@@ -116,6 +123,9 @@ export class Protocol {
             moves = parts.slice(++i);
             i = parts.length;
             break;
+          case 'wdl':
+            rawWdl = [Number(parts[++i]), Number(parts[++i]), Number(parts[++i])];
+            break;
         }
       }
 
@@ -129,6 +139,7 @@ export class Protocol {
 
       const pivot = this.work.threatMode ? 0 : 1;
       const ev = this.work.ply % 2 === pivot ? -povEv : povEv;
+      const wdl = rawWdl && uciWdl(rawWdl, this.work.ply % 2 !== pivot);
 
       // For now, ignore most upperbound/lowerbound messages.
       // However non-primary pvs may only have an upperbound.
@@ -139,6 +150,7 @@ export class Protocol {
         cp: isMate ? undefined : ev,
         mate: isMate ? ev : undefined,
         depth,
+        wdl,
       };
 
       if (multiPv === 1) {
@@ -153,6 +165,7 @@ export class Protocol {
             mate: isMate ? ev : undefined,
             pvs: [pvData],
             engineId: this.info.id,
+            wdl,
           };
         }
       } else if (this.currentEval) {
