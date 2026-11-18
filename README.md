@@ -1,12 +1,14 @@
 # Lichess WDL Lab
 
-Fork Lichess tự host, hiển thị một thanh **Trắng thắng / Đen thắng** cho người xem ván cờ tiêu chuẩn. Hai tỷ lệ cộng lại bằng **100%**, tính với điều kiện ván có bên thắng: `Trắng = W / (W + B)`, `Đen = B / (W + B)`. Phần hòa không xuất hiện trên thanh; dữ liệu WDL gốc vẫn được giữ bên trong. Thanh ưu tiên mô hình người chơi có xét thế cờ, rating và đồng hồ; khi thiếu dữ liệu hoặc ngoài phạm vi, dùng engine. Nhãn bên dưới cho biết nguồn và “không tính hòa”. Ván đã hòa hiện kết quả chính thức; khi `W + B = 0`, giao diện không tự gán tỷ lệ 50/50.
+Fork Lichess tự host, hiển thị một thanh **Trắng thắng / Đen thắng** ngay trên bàn của cả hai người chơi và người xem ván cờ tiêu chuẩn, gồm chơi với máy và người–người. Hai tỷ lệ cộng lại bằng **100%**, tính với điều kiện ván có bên thắng: `Trắng = W / (W + B)`, `Đen = B / (W + B)`. Phần hòa không xuất hiện trên thanh; dữ liệu WDL gốc vẫn được giữ bên trong. Thanh ưu tiên mô hình người chơi có xét thế cờ, rating và đồng hồ; khi thiếu dữ liệu hoặc ngoài phạm vi, dùng engine. Nhãn bên dưới cho biết nguồn và “không tính hòa”. Ván đã hòa hiện kết quả chính thức; khi `W + B = 0`, giao diện không tự gán tỷ lệ 50/50.
 
 Tiến độ và bằng chứng nằm trong [mốc engine](openspec/changes/live-win-probability/tasks.md) và [mốc mô hình người chơi](openspec/changes/human-win-probability/tasks.md). Phạm vi, kết quả và giới hạn mô hình được ghi trong [model card](reports/human-v1/model-card.md).
 
 **Báo cáo nghiệm thu cuối bằng tiếng Việt:** [bao-cao-nghiem-thu.md](reports/acceptance/bao-cao-nghiem-thu.md), kèm log, JSON và ảnh được lưu trong `reports/acceptance/evidence/`.
 
 **Cập nhật giao diện theo phản hồi:** [tỷ lệ Trắng/Đen khi ván có bên thắng](reports/acceptance/two-way-probability/README.md). [Bản ba tỷ lệ trước đây](reports/acceptance/ui-don-gian.md) được giữ làm lịch sử.
+
+**Xem tỷ lệ trên bàn chơi với máy hoặc người:** [phạm vi, kiểm thử và cách chạy](reports/acceptance/player-win-probability/README.md). Máy chủ kiểm tra cờ bật tính năng và biến thể của ván; cả hai bên đều dùng dữ liệu thế cờ từ máy chủ.
 
 **Chơi cờ bằng giọng nói tiếng Việt (thử nghiệm, Vosk + PhoWhisper, không LLM):**
 [Chế độ hiện tại: nước hợp lệ đi ngay, nước sai/chưa rõ có thông báo](reports/voice-v1/direct-moves/README.md).
@@ -79,7 +81,7 @@ flowchart LR
 - Hoàn tác rồi đi nước khác ở cùng số ply không được dùng nhầm kết quả trước đó.
 - Khi tua lại, UI ẩn WDL của thế cờ mới nhất. Khi mất kết nối, UI hiện trạng thái chờ đồng bộ.
 - Kết quả chính thức của ván ghi đè đánh giá engine, kể cả khi worker lỗi. Ván hủy không được gán xác suất thắng/hòa.
-- Tài khoản hoặc cookie của người đang chơi bị từ chối ở endpoint WDL. Worker không nhận FEN từ trình duyệt.
+- Người chơi và người xem đều được đọc xác suất của ván tiêu chuẩn khi tính năng được bật; worker không nhận FEN từ trình duyệt. Kiểm tra truy cập bàn chơi và chặn người dùng sẵn có vẫn được giữ.
 - Mô hình người chơi dùng chung lượt tính engine. Thiếu rating/đồng hồ, sai phạm vi hoặc model lỗi thì không hiện phần trăm người chơi. Ván ẩn danh vẫn có đánh giá engine.
 - Prediction dùng hai worker, mỗi engine một thread và 64 MiB hash, trong container giới hạn 2 CPU/512 MiB. Yêu cầu lỗi thời bị loại kết quả; lượt tìm kiếm đã bắt đầu được kết thúc có giới hạn trước khi tái sử dụng engine để tránh race UCI.
 
@@ -107,7 +109,7 @@ Lệnh `browser` mặc định tạo hai người chơi ẩn danh và một ngư
 
 Đợt nghiệm thu cuối ngày 05/11/2026 đã qua **56 test Python, 264 test frontend, full build UI, định dạng và lint**. Backend Scala không đổi trong đợt rà soát này; build tích hợp trước đã qua, dùng cache test, còn mốc engine ban đầu đã chạy 603 test Scala. Browser có tài khoản đo p95 **554 ms** trên 20 lượt đi đầu; ván ẩn danh **561 ms**. Reconnect mạng, hoàn tác, tua lại, worker lỗi/phục hồi, chiếu hết, hòa, bỏ cuộc, hết giờ và hủy ván đều đã được thử. Worker riêng đo p95 **279 ms** trên 21 thế cờ; 100 yêu cầu trùng không tạo thêm lượt tính engine. Probe bốn ván/100 yêu cầu đo 587,1 ms cho vị trí cuối với hai worker, so với 1.061,2 ms với một worker; đây là một đợt tải có giới hạn, không phải benchmark capacity dài hạn. Xem [báo cáo nghiệm thu](reports/acceptance/bao-cao-nghiem-thu.md).
 
-Để xem bằng tay, mở một ván cờ tiêu chuẩn đang chơi từ phiên trình duyệt thứ ba, độc lập với hai phiên người chơi. Panel nằm cạnh danh sách nước đi. Trang xem ván đang diễn ra có WDL; trang phân tích của ván đã kết thúc chưa được tích hợp ở giai đoạn này.
+Để xem bằng tay, mở bàn chơi của một ván cờ tiêu chuẩn và tải lại trang. Cả hai người chơi và người xem đều có panel cạnh danh sách nước đi. Không cần tab người xem riêng. Trang phân tích của ván đã kết thúc chưa được tích hợp ở giai đoạn này.
 
 ## Mô hình người chơi và tái lập
 
@@ -135,7 +137,7 @@ Các file chính để đọc:
 | Đặc trưng dùng chung và suy luận model JSON | `services/prediction/app/human.py` |
 | Lấy mẫu, huấn luyện, hiệu chỉnh và đánh giá | `services/prediction/training/` |
 | Kết quả và giới hạn mô hình | `reports/human-v1/model-card.md` |
-| Endpoint và kiểm tra người xem | `infra/lila-docker/repos/lila/app/controllers/Round.scala` |
+| Endpoint và quyền truy cập dự đoán | `infra/lila-docker/repos/lila/app/controllers/Round.scala` |
 | Gọi worker, cache HTTP và kết quả chính thức | `infra/lila-docker/repos/lila/app/http/WinProbability.scala` |
 | Đồng bộ UI và loại phản hồi cũ | `infra/lila-docker/repos/lila/ui/round/src/winProbability.ts` |
 | Các tiêu chí nghiệm thu | `openspec/changes/live-win-probability/specs/win-probability/spec.md` |

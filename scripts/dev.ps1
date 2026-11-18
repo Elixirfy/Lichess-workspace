@@ -98,7 +98,7 @@ try {
             Invoke-Checked uv @('run', '--project', 'services/prediction', '--group', 'ml', '--frozen', 'python', '-m', 'pytest', 'services/prediction/tests', '-q')
             Invoke-Checked uv @('run', '--project', 'services/prediction', '--group', 'ml', '--frozen', 'ruff', 'check', 'services/prediction')
             if ($Full) {
-                Compose run --rm --no-deps lila bash ./lila.sh ';scalafmtCheckAll;test'
+                Compose run --rm --no-deps lila bash ./lila.sh ';scalafmtCheckAll;testFull'
                 Compose run --rm --no-deps ui node ui/test --test-concurrency=2
             } else {
                 Compose run --rm --no-deps ui node ui/test round
