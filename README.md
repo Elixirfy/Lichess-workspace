@@ -1,5 +1,11 @@
 # Lichess WDL Lab
 
+## Tài liệu nhánh để viết báo cáo
+
+**Nhánh `codex/vietnamese-voice-input`:** Nhánh có bản triển khai Vosk + PhoWhisper, không cần LLM để hiểu lệnh; câu hợp lệ đi ngay. Nhánh kế thừa prediction và cập nhật panel hai màu cho cả người chơi lẫn người xem. Đây là nhánh đang phục vụ stack Windows local trong phiên làm việc này.
+
+Xem [danh mục sáu branch](docs/branches/README.md). Đọc [README chuyên đề của nhánh](docs/branch-report/README.md): bài toán, chức năng, kiến trúc, **ưu điểm so với tính năng Lichess có sẵn**, bằng chứng kiểm thử, cách chạy, giới hạn và hướng phát triển. Mỗi tài liệu ghim revision riêng; không lấy kết quả của branch khác làm kết quả cho nhánh này.
+
 Fork Lichess tự host, hiển thị thanh **Ưu thế Trắng / Đen** ngay trên bàn của cả hai người chơi và người xem ván cờ tiêu chuẩn, gồm chơi với máy và người–người. Thanh dùng **điểm kỳ vọng**: `Trắng = W + D/2`, `Đen = B + D/2`, tổng **100%**. **50% là cân bằng**; hòa được tính nửa điểm mỗi bên. Đây là chỉ số ưu thế theo mô hình, không phải xác suất thắng thực tế của riêng người chơi. Raw WDL ba lớp được giữ nguyên. Khi đủ ngữ cảnh, ưu tiên mô hình người chơi thử nghiệm; nếu thiếu, dùng engine. Trên bàn chỉ hiện thanh và hai tỷ lệ; rê chuột vào panel để xem nguồn và cách tính trong tooltip. Ván đã kết thúc hiện kết quả chính thức.
 
 Tiến độ và bằng chứng nằm trong [mốc engine](openspec/changes/live-win-probability/tasks.md) và [mốc mô hình người chơi](openspec/changes/human-win-probability/tasks.md). Phạm vi, kết quả và giới hạn mô hình được ghi trong [model card](reports/human-v1/model-card.md).
