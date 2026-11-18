@@ -28,6 +28,40 @@ services:
     depends_on:
       mongodb: {condition: service_healthy}
       redis: {condition: service_started}
+  lila_fishnet:
+    image: ghcr.io/lichess-org/lila-fishnet@sha256:4d646c29f5246405411aa1bfaf884b136dd1677fdcd06ccab8c88a17f9f9ec5b
+    environment:
+      REDIS_HOST: redis
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx384m
+    cpus: 1
+    mem_limit: 768m
+    tmpfs: ["/opt/docker/logs:rw,nosuid,nodev,noexec,size=16m,uid=1001,gid=0,mode=0750"]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, bash, -c, "exec 3<>/dev/tcp/127.0.0.1/9665"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 10
+    depends_on:
+      redis: {condition: service_started}
+  fishnet_play:
+    image: niklasf/fishnet:2.12.0@sha256:0902ee2e0c595b836af5301664ec904a51702e39f87c3b889199aff380358b1d
+    environment:
+      ENDPOINT: http://lila_fishnet:9665/fishnet
+      KEY: fishnetplaydev # Upstream development key, for this internal-only broker.
+      CORES: "1"
+      MAX_BACKOFF: "5"
+      STATS_FILE: /tmp/stats.json
+    cpus: 1
+    mem_limit: 1g
+    read_only: true
+    tmpfs: ["/tmp:rw,nosuid,nodev,exec"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    depends_on:
+      lila_fishnet: {condition: service_healthy}
   lila:
     build:
       context: ./docker
@@ -97,6 +131,24 @@ services:
       timeout: 3s
       retries: 5
     profiles: [prediction]
+  voice_asr:
+    build: ../services/voice
+    environment:
+      VOICE_MODEL_PATH: /models/PhoWhisper-small
+      VOICE_RECORDINGS_DIR: /recordings
+    volumes:
+      - ../.cache/voice/PhoWhisper-small-ct2-f32:/models/PhoWhisper-small:ro
+      - ../artifacts/voice-recordings:/recordings
+    cpus: 4
+    mem_limit: 2g
+    init: true
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      start_period: 90s
+      retries: 5
+    profiles: [voice]
 volumes:
   mongo-data:
   mongo-secondary-data:

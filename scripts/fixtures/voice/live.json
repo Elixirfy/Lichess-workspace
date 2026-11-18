@@ -1,0 +1,10 @@
+{
+  "source": "commands/f2f4.wav",
+  "source_sha256": "df83da672c269e22f042c6327b4c85a34fedf43807c96617a50327f80f9c638a",
+  "license": "CC0; same source word recordings as commands.json",
+  "reference": "ép hai ép bốn",
+  "transformation": "shared 16kHz float32 PCM noise20db (uniform noise, seed 0x12345678, whole-clip RMS) quantized to signed PCM16 with clip * 32767",
+  "parent_pcm_sha256": "2e3e7b2a10fb69bc777519780dd3b1a8d31bfe4f808b1ca115803024c4559aff",
+  "file": "commands/f2f4-noise20db.wav",
+  "sha256": "b324d15ee11f7a1668875b340a43afcd48fdf006a33174d0d0e307c82205c7b8"
+}

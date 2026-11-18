@@ -1,0 +1,12 @@
+[
+  {"id":"file_b_short","text":"Tốt bê hai tới bê bốn","kind":"move","uci":"b2b4"},
+  {"id":"file_d_short","text":"Tốt đê hai tới đê bốn","kind":"move","uci":"d2d4"},
+  {"id":"file_b_clear","text":"Tốt từ cột bê hàng hai đến cột bê hàng bốn","kind":"move","uci":"b2b4"},
+  {"id":"file_d_clear","text":"Tốt từ cột đê hàng hai đến cột đê hàng bốn","kind":"move","uci":"d2d4"},
+  {"id":"file_b_numbered","text":"Tốt từ cột hai hàng hai đến cột hai hàng bốn","kind":"move","uci":"b2b4"},
+  {"id":"file_d_numbered","text":"Tốt từ cột bốn hàng hai đến cột bốn hàng bốn","kind":"move","uci":"d2d4"},
+  {"id":"file_b_sound","text":"Tốt bờ hai tới bờ bốn","kind":"move","uci":"b2b4"},
+  {"id":"file_d_sound","text":"Tốt dờ hai tới dờ bốn","kind":"move","uci":"d2d4"},
+  {"id":"file_b_english","text":"Tốt từ cột bi hàng hai đến cột bi hàng bốn","kind":"move","uci":"b2b4"},
+  {"id":"file_d_english","text":"Tốt từ cột đi hàng hai đến cột đi hàng bốn","kind":"move","uci":"d2d4"}
+]

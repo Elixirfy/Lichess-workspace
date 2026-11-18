@@ -1,0 +1,4032 @@
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 7405404..4e5ede3 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -167,6 +167,7 @@ overrides:
+   undici: ^8.10.2
+ 
+ patchedDependencies:
++  '@lichess-org/vosk-browser@0.0.3': a41070d01206a9328d6b928bb222e6c7b4f9967158b69cb7044d2ea5e95d361d
+   '@toast-ui/editor@3.2.2': 3c9aa5176e0c4e67d96e6cfc8928789dfb22ebcb7db6a5c68f40caf5cc9bbce9
+ 
+ importers:
+@@ -769,7 +770,7 @@ importers:
+     dependencies:
+       '@lichess-org/vosk-browser':
+         specifier: 0.0.3
+-        version: 0.0.3
++        version: 0.0.3(patch_hash=a41070d01206a9328d6b928bb222e6c7b4f9967158b69cb7044d2ea5e95d361d)
+       lib:
+         specifier: workspace:*
+         version: link:../lib
+@@ -1249,6 +1250,7 @@ packages:
+ 
+   '@toast-ui/editor@3.2.2':
+     resolution: {integrity: sha512-ASX7LFjN2ZYQJrwmkUajPs7DRr9FsM1+RQ82CfTO0Y5ZXorBk1VZS4C2Dpxinx9kl55V4F8/A2h2QF4QMDtRbA==}
++    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+ 
+   '@tybys/wasm-util@0.10.4':
+     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
+@@ -2735,7 +2737,7 @@ snapshots:
+ 
+   '@lichess-org/stockfish-web@0.5.0': {}
+ 
+-  '@lichess-org/vosk-browser@0.0.3':
++  '@lichess-org/vosk-browser@0.0.3(patch_hash=a41070d01206a9328d6b928bb222e6c7b4f9967158b69cb7044d2ea5e95d361d)':
+     dependencies:
+       uuid: 11.1.0
+ 
+diff --git a/pnpm-workspace.yaml b/pnpm-workspace.yaml
+index 9284a08..8033386 100644
+--- a/pnpm-workspace.yaml
++++ b/pnpm-workspace.yaml
+@@ -12,6 +12,7 @@ overrides:
+   fast-uri: ^3.1.7
+   undici: ^8.10.2
+ patchedDependencies:
++  '@lichess-org/vosk-browser@0.0.3': ui/voice/patches/vosk-browser.patch
+   '@toast-ui/editor@3.2.2': ui/bits/patches/@toast-ui__editor.patch
+ minimumReleaseAgeExclude:
+   - '@lichess-org/*'
+diff --git a/ui/round/src/ctrl.ts b/ui/round/src/ctrl.ts
+index d8b1b5a..485ba3b 100644
+--- a/ui/round/src/ctrl.ts
++++ b/ui/round/src/ctrl.ts
+@@ -150,6 +150,25 @@ export default class RoundController implements MoveRootCtrl {
+ 
+     if (!document.referrer?.includes('/serviceWorker.')) setTimeout(this.showYourMoveNotification, 500);
+ 
++    let voiceNeedsResync = false;
++    const stopVoiceForDisconnect = () => {
++      if (this.voiceMove?.ctrl.lang() !== 'vi') return;
++      voiceNeedsResync = true;
++      this.voiceMove.update({ fen: this.stepAt(this.ply).fen, canMove: false });
++      this.voiceMove.ctrl.mic.stop();
++      this.redraw();
++    };
++    const resyncVoiceAfterDisconnect = () => {
++      if (!voiceNeedsResync) return;
++      voiceNeedsResync = false;
++      this.socket.reload();
++    };
++    pubsub.on('socket.close', stopVoiceForDisconnect);
++    pubsub.on('socket.open', resyncVoiceAfterDisconnect);
++    // Network loss can precede the socket timeout; invalidate pending ASR immediately.
++    window.addEventListener('offline', stopVoiceForDisconnect);
++    window.addEventListener('online', resyncVoiceAfterDisconnect);
++
+     // at the end:
+     pubsub.on('jump', ply => {
+       this.jump(parseInt(ply));
+@@ -604,6 +623,10 @@ export default class RoundController implements MoveRootCtrl {
+     }
+     this.promotion.cancel();
+     this.chessground.stop();
++    if (this.voiceMove?.ctrl.lang() === 'vi') {
++      this.voiceMove.update({ fen: step.fen, canMove: false });
++      this.voiceMove.ctrl.mic.stop();
++    }
+     if (o.ratingDiff) {
+       d.player.ratingDiff = o.ratingDiff[d.player.color];
+       d.opponent.ratingDiff = o.ratingDiff[d.opponent.color];
+diff --git a/ui/voice/css/_voice.scss b/ui/voice/css/_voice.scss
+index 1db72a6..cb6bf2b 100644
+--- a/ui/voice/css/_voice.scss
++++ b/ui/voice/css/_voice.scss
+@@ -65,6 +65,14 @@
+   flex: 1 1 auto;
+ }
+ 
++#voice-recordings-button {
++  display: flex;
++  align-items: center;
++  padding: 0 8px;
++  white-space: nowrap;
++  font-size: 0.9rem;
++}
++
+ button#microphone-button {
+   margin: 4px;
+   margin-inline-end: 8px;
+diff --git a/ui/voice/grammar/move-vi.json b/ui/voice/grammar/move-vi.json
+index 4084afe..39f49c1 100644
+--- a/ui/voice/grammar/move-vi.json
++++ b/ui/voice/grammar/move-vi.json
+@@ -72,6 +72,18 @@
+         }
+       ]
+     },
++    {
++      "in": "ép",
++      "val": "f",
++      "tags": ["file", "move", "phonetic"],
++      "tok": "!",
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
+     {
+       "in": "g",
+       "tok": "g",
+@@ -274,37 +286,61 @@
+       "in": "nhập thành",
+       "val": "castle",
+       "tags": ["move"],
+-      "tok": "OS"
++      "tok": "ST"
+     },
+     {
+       "in": "nhập thành gần",
+       "val": "O-O",
+       "tags": ["move"],
+-      "tok": "OST"
++      "tok": "STU"
++    },
++    {
++      "in": "nhập thành ngắn",
++      "val": "O-O",
++      "tags": ["move"],
++      "tok": "STV"
++    },
++    {
++      "in": "nhập thành bên vua",
++      "val": "O-O",
++      "tags": ["move"],
++      "tok": "STWK"
+     },
+     {
+       "in": "nhập thành cánh vua",
+       "val": "O-O",
+       "tags": ["move"],
+-      "tok": "OSUK"
++      "tok": "STXK"
+     },
+     {
+       "in": "nhập thành xa",
+       "val": "O-O-O",
+       "tags": ["move"],
+-      "tok": "OSV"
++      "tok": "STY"
++    },
++    {
++      "in": "nhập thành dài",
++      "val": "O-O-O",
++      "tags": ["move"],
++      "tok": "STZ"
++    },
++    {
++      "in": "nhập thành bên hậu",
++      "val": "O-O-O",
++      "tags": ["move"],
++      "tok": "STWQ"
+     },
+     {
+       "in": "nhập thành cánh hậu",
+       "val": "O-O-O",
+       "tags": ["move"],
+-      "tok": "OSUQ"
++      "tok": "STXQ"
+     },
+     {
+       "in": "ăn",
+       "val": "x",
+       "tags": ["move"],
+-      "tok": "!",
++      "tok": "#",
+       "subs": [
+         {
+           "to": "",
+@@ -316,7 +352,7 @@
+       "in": "phong",
+       "val": "=",
+       "tags": ["move"],
+-      "tok": "#",
++      "tok": "$",
+       "subs": [
+         {
+           "to": "",
+@@ -328,7 +364,7 @@
+       "in": "hoãn",
+       "val": "takeback",
+       "tags": ["command"],
+-      "tok": "$",
++      "tok": "%",
+       "subs": [
+         {
+           "to": "",
+@@ -340,7 +376,7 @@
+       "in": "khoan",
+       "val": "takeback",
+       "tags": ["command"],
+-      "tok": "%",
++      "tok": "&",
+       "subs": [
+         {
+           "to": "",
+@@ -352,7 +388,7 @@
+       "in": "hoà",
+       "val": "draw",
+       "tags": ["command", "round"],
+-      "tok": "&",
++      "tok": "(",
+       "subs": [
+         {
+           "to": "",
+@@ -364,19 +400,19 @@
+       "in": "xin hoà",
+       "val": "draw",
+       "tags": ["command", "round"],
+-      "tok": "W&"
++      "tok": "[("
+     },
+     {
+       "in": "chấp nhận",
+       "val": "draw",
+       "tags": ["command", "round"],
+-      "tok": "XY"
++      "tok": "\\]"
+     },
+     {
+       "in": "thua",
+       "val": "resign",
+       "tags": ["command", "round"],
+-      "tok": "(",
++      "tok": ")",
+       "subs": [
+         {
+           "to": "",
+@@ -388,25 +424,25 @@
+       "in": "xin thua",
+       "val": "resign",
+       "tags": ["command", "round"],
+-      "tok": "W("
++      "tok": "[)"
+     },
+     {
+       "in": "chơi lại",
+       "val": "rematch",
+       "tags": ["command", "round"],
+-      "tok": "Z["
++      "tok": "^_"
+     },
+     {
+       "in": "ván nữa",
+       "val": "rematch",
+       "tags": ["command", "round"],
+-      "tok": "\\]"
++      "tok": "`i"
+     },
+     {
+       "in": "xoay",
+       "val": "flip",
+       "tags": ["command"],
+-      "tok": ")",
++      "tok": "*",
+       "subs": [
+         {
+           "to": "",
+@@ -418,25 +454,25 @@
+       "in": "đồng hồ",
+       "val": "clock",
+       "tags": ["command", "round"],
+-      "tok": "^_"
++      "tok": "jk"
+     },
+     {
+       "in": "đối thủ",
+       "val": "who",
+       "tags": ["command", "round"],
+-      "tok": "`i"
++      "tok": "lm"
+     },
+     {
+       "in": "tiếp theo",
+       "val": "next",
+       "tags": ["command", "puzzle"],
+-      "tok": "*j"
++      "tok": "+n"
+     },
+     {
+       "in": "tiếp",
+       "val": "next",
+       "tags": ["command", "puzzle"],
+-      "tok": "*",
++      "tok": "+",
+       "subs": [
+         {
+           "to": "",
+@@ -448,7 +484,7 @@
+       "in": "thích",
+       "val": "upvote",
+       "tags": ["command", "puzzle"],
+-      "tok": "+",
++      "tok": "-",
+       "subs": [
+         {
+           "to": "",
+@@ -460,25 +496,25 @@
+       "in": "không thích",
+       "val": "downvote",
+       "tags": ["command", "puzzle"],
+-      "tok": "0+"
++      "tok": "9-"
+     },
+     {
+       "in": "giải quyết",
+       "val": "solve",
+       "tags": ["command", "puzzle"],
+-      "tok": "kl"
++      "tok": "op"
+     },
+     {
+       "in": "giúp đỡ",
+       "val": "help",
+       "tags": ["command"],
+-      "tok": "mn"
++      "tok": "qr"
+     },
+     {
+       "in": "dừng",
+       "val": "stop",
+       "tags": ["command"],
+-      "tok": "-",
++      "tok": ".",
+       "subs": [
+         {
+           "to": "",
+@@ -490,7 +526,7 @@
+       "in": "đúng",
+       "val": "yes",
+       "tags": ["choice"],
+-      "tok": ".",
++      "tok": "/",
+       "subs": [
+         {
+           "to": "",
+@@ -502,7 +538,7 @@
+       "in": "ok",
+       "val": "yes",
+       "tags": ["choice"],
+-      "tok": "/",
++      "tok": "0",
+       "subs": [
+         {
+           "to": "",
+@@ -514,13 +550,37 @@
+       "in": "xác nhận",
+       "val": "yes",
+       "tags": ["choice"],
+-      "tok": "oY"
++      "tok": "s]"
++    },
++    {
++      "in": "xác nhận nước đi",
++      "val": "yes",
++      "tags": ["choice"],
++      "tok": "s]tu"
++    },
++    {
++      "in": "đồng ý",
++      "val": "yes",
++      "tags": ["choice"],
++      "tok": "jv"
++    },
++    {
++      "in": "đúng rồi",
++      "val": "yes",
++      "tags": ["choice"],
++      "tok": "/w"
++    },
++    {
++      "in": "thực hiện nước đi",
++      "val": "yes",
++      "tags": ["choice"],
++      "tok": "xytu"
+     },
+     {
+       "in": "không",
+       "val": "no",
+       "tags": ["choice"],
+-      "tok": "0",
++      "tok": "9",
+       "subs": [
+         {
+           "to": "",
+@@ -532,7 +592,7 @@
+       "in": "sai",
+       "val": "no",
+       "tags": ["choice"],
+-      "tok": "9",
++      "tok": ":",
+       "subs": [
+         {
+           "to": "",
+@@ -544,7 +604,7 @@
+       "in": "xoá",
+       "val": "no",
+       "tags": ["choice"],
+-      "tok": ":",
++      "tok": ";",
+       "subs": [
+         {
+           "to": "",
+@@ -556,7 +616,7 @@
+       "in": "đóng",
+       "val": "no",
+       "tags": ["choice"],
+-      "tok": ";",
++      "tok": "<",
+       "subs": [
+         {
+           "to": "",
+@@ -568,13 +628,49 @@
+       "in": "huỷ bỏ",
+       "val": "no",
+       "tags": ["choice"],
+-      "tok": "pq"
++      "tok": "z{"
++    },
++    {
++      "in": "hủy bỏ",
++      "val": "no",
++      "tags": ["choice"],
++      "tok": "|{"
++    },
++    {
++      "in": "hủy nước đi",
++      "val": "no",
++      "tags": ["choice"],
++      "tok": "|tu"
++    },
++    {
++      "in": "huỷ nước đi",
++      "val": "no",
++      "tags": ["choice"],
++      "tok": "ztu"
++    },
++    {
++      "in": "bỏ nước này",
++      "val": "no",
++      "tags": ["choice"],
++      "tok": "{t}"
++    },
++    {
++      "in": "không đi",
++      "val": "no",
++      "tags": ["choice"],
++      "tok": "9u"
++    },
++    {
++      "in": "sai rồi",
++      "val": "no",
++      "tags": ["choice"],
++      "tok": ":w"
+     },
+     {
+       "in": "xanh",
+       "val": "green",
+       "tags": ["color", "choice"],
+-      "tok": "<",
++      "tok": "=",
+       "subs": [
+         {
+           "to": "",
+@@ -586,7 +682,7 @@
+       "in": "vàng",
+       "val": "yellow",
+       "tags": ["color", "choice"],
+-      "tok": "=",
++      "tok": ">",
+       "subs": [
+         {
+           "to": "",
+@@ -598,7 +694,7 @@
+       "in": "đỏ",
+       "val": "red",
+       "tags": ["color", "choice"],
+-      "tok": ">",
++      "tok": "?",
+       "subs": [
+         {
+           "to": "",
+@@ -610,7 +706,7 @@
+       "in": "hồng",
+       "val": "pink",
+       "tags": ["color", "choice"],
+-      "tok": "?",
++      "tok": "@",
+       "subs": [
+         {
+           "to": "",
+@@ -622,7 +718,7 @@
+       "in": "tím",
+       "val": "purple",
+       "tags": ["color", "choice"],
+-      "tok": "@",
++      "tok": "A",
+       "subs": [
+         {
+           "to": "",
+@@ -634,7 +730,7 @@
+       "in": "cam",
+       "val": "orange",
+       "tags": ["color", "choice"],
+-      "tok": "A",
++      "tok": "C",
+       "subs": [
+         {
+           "to": "",
+@@ -646,7 +742,7 @@
+       "in": "nâu",
+       "val": "brown",
+       "tags": ["color", "choice"],
+-      "tok": "C",
++      "tok": "D",
+       "subs": [
+         {
+           "to": "",
+@@ -658,7 +754,7 @@
+       "in": "trắng",
+       "val": "white",
+       "tags": ["color", "choice"],
+-      "tok": "D",
++      "tok": "E",
+       "subs": [
+         {
+           "to": "",
+@@ -670,19 +766,19 @@
+       "in": "xanh nước biển",
+       "val": "blue",
+       "tags": ["color", "choice"],
+-      "tok": "<rs"
++      "tok": "=tĀ"
+     },
+     {
+       "in": "chiếu hết",
+       "val": "",
+       "tags": ["move", "ignore"],
+-      "tok": "Et"
++      "tok": "Fā"
+     },
+     {
+       "in": "chiếu",
+       "val": "",
+       "tags": ["move", "ignore"],
+-      "tok": "E",
++      "tok": "F",
+       "subs": [
+         {
+           "to": "",
+@@ -694,13 +790,13 @@
+       "in": "cờ thế",
+       "val": "",
+       "tags": ["ignore"],
+-      "tok": "uv"
++      "tok": "Ăă"
+     },
+     {
+       "in": "và",
+       "val": "",
+       "tags": ["ignore"],
+-      "tok": "F",
++      "tok": "G",
+       "subs": [
+         {
+           "to": "",
+@@ -712,7 +808,7 @@
+       "in": "oh",
+       "val": "",
+       "tags": ["ignore"],
+-      "tok": "G",
++      "tok": "H",
+       "subs": [
+         {
+           "to": "",
+@@ -724,7 +820,7 @@
+       "in": "um",
+       "val": "",
+       "tags": ["ignore"],
+-      "tok": "H",
++      "tok": "I",
+       "subs": [
+         {
+           "to": "",
+@@ -736,7 +832,7 @@
+       "in": "uh",
+       "val": "",
+       "tags": ["ignore"],
+-      "tok": "I",
++      "tok": "J",
+       "subs": [
+         {
+           "to": "",
+@@ -748,7 +844,7 @@
+       "in": "hmm",
+       "val": "",
+       "tags": ["ignore"],
+-      "tok": "J",
++      "tok": "L",
+       "subs": [
+         {
+           "to": "",
+@@ -760,7 +856,7 @@
+       "in": "huh",
+       "val": "",
+       "tags": ["ignore"],
+-      "tok": "L",
++      "tok": "M",
+       "subs": [
+         {
+           "to": "",
+@@ -772,7 +868,7 @@
+       "in": "à",
+       "val": "",
+       "tags": ["ignore"],
+-      "tok": "M",
++      "tok": "O",
+       "subs": [
+         {
+           "to": "",
+@@ -782,7 +878,7 @@
+     },
+     {
+       "in": "nhập",
+-      "tok": "O",
++      "tok": "S",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -793,7 +889,7 @@
+     },
+     {
+       "in": "thành",
+-      "tok": "S",
++      "tok": "T",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -804,7 +900,29 @@
+     },
+     {
+       "in": "gần",
+-      "tok": "T",
++      "tok": "U",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "ngắn",
++      "tok": "V",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "bên",
++      "tok": "W",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -815,7 +933,7 @@
+     },
+     {
+       "in": "cánh",
+-      "tok": "U",
++      "tok": "X",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -826,7 +944,18 @@
+     },
+     {
+       "in": "xa",
+-      "tok": "V",
++      "tok": "Y",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "dài",
++      "tok": "Z",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -837,7 +966,7 @@
+     },
+     {
+       "in": "xin",
+-      "tok": "W",
++      "tok": "[",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -848,7 +977,7 @@
+     },
+     {
+       "in": "chấp",
+-      "tok": "X",
++      "tok": "\\",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -859,7 +988,7 @@
+     },
+     {
+       "in": "nhận",
+-      "tok": "Y",
++      "tok": "]",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -870,7 +999,7 @@
+     },
+     {
+       "in": "chơi",
+-      "tok": "Z",
++      "tok": "^",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -881,7 +1010,7 @@
+     },
+     {
+       "in": "lại",
+-      "tok": "[",
++      "tok": "_",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -892,7 +1021,7 @@
+     },
+     {
+       "in": "ván",
+-      "tok": "\\",
++      "tok": "`",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -903,7 +1032,7 @@
+     },
+     {
+       "in": "nữa",
+-      "tok": "]",
++      "tok": "i",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -914,7 +1043,7 @@
+     },
+     {
+       "in": "đồng",
+-      "tok": "^",
++      "tok": "j",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -925,7 +1054,7 @@
+     },
+     {
+       "in": "hồ",
+-      "tok": "_",
++      "tok": "k",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -936,7 +1065,7 @@
+     },
+     {
+       "in": "đối",
+-      "tok": "`",
++      "tok": "l",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -947,7 +1076,7 @@
+     },
+     {
+       "in": "thủ",
+-      "tok": "i",
++      "tok": "m",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -958,7 +1087,7 @@
+     },
+     {
+       "in": "theo",
+-      "tok": "j",
++      "tok": "n",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -969,7 +1098,7 @@
+     },
+     {
+       "in": "giải",
+-      "tok": "k",
++      "tok": "o",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -980,7 +1109,7 @@
+     },
+     {
+       "in": "quyết",
+-      "tok": "l",
++      "tok": "p",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -991,7 +1120,7 @@
+     },
+     {
+       "in": "giúp",
+-      "tok": "m",
++      "tok": "q",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1002,7 +1131,7 @@
+     },
+     {
+       "in": "đỡ",
+-      "tok": "n",
++      "tok": "r",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1013,7 +1142,73 @@
+     },
+     {
+       "in": "xác",
+-      "tok": "o",
++      "tok": "s",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "nước",
++      "tok": "t",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "đi",
++      "tok": "u",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "ý",
++      "tok": "v",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "rồi",
++      "tok": "w",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "thực",
++      "tok": "x",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "hiện",
++      "tok": "y",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1024,7 +1219,7 @@
+     },
+     {
+       "in": "huỷ",
+-      "tok": "p",
++      "tok": "z",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1035,7 +1230,7 @@
+     },
+     {
+       "in": "bỏ",
+-      "tok": "q",
++      "tok": "{",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1045,8 +1240,19 @@
+       ]
+     },
+     {
+-      "in": "nước",
+-      "tok": "r",
++      "in": "hủy",
++      "tok": "|",
++      "tags": ["part"],
++      "subs": [
++        {
++          "to": "",
++          "cost": 0.5
++        }
++      ]
++    },
++    {
++      "in": "này",
++      "tok": "}",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1057,7 +1263,7 @@
+     },
+     {
+       "in": "biển",
+-      "tok": "s",
++      "tok": "Ā",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1068,7 +1274,7 @@
+     },
+     {
+       "in": "hết",
+-      "tok": "t",
++      "tok": "ā",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1079,7 +1285,7 @@
+     },
+     {
+       "in": "cờ",
+-      "tok": "u",
++      "tok": "Ă",
+       "tags": ["part"],
+       "subs": [
+         {
+@@ -1090,7 +1296,7 @@
+     },
+     {
+       "in": "thế",
+-      "tok": "v",
++      "tok": "ă",
+       "tags": ["part"],
+       "subs": [
+         {
+diff --git a/ui/voice/lexicon/move-vi-lex.json b/ui/voice/lexicon/move-vi-lex.json
+index 4e18726..733bc19 100644
+--- a/ui/voice/lexicon/move-vi-lex.json
++++ b/ui/voice/lexicon/move-vi-lex.json
+@@ -11,6 +11,7 @@
+     { "in": "d", "tok": "d", "tags": ["file", "move"] },
+     { "in": "e", "tok": "e", "tags": ["file", "move"] },
+     { "in": "f", "tok": "f", "tags": ["file", "move"] },
++    { "in": "ép", "val": "f", "tags": ["file", "move", "phonetic"] },
+     { "in": "g", "tok": "g", "tags": ["file", "move"] },
+     { "in": "h", "tok": "h", "tags": ["file", "move"] },
+     { "in": "một", "tok": "1", "tags": ["rank", "move", "choice"] },
+@@ -33,8 +34,12 @@
+ 
+     { "in": "nhập thành", "val": "castle", "tags": ["move"] },
+     { "in": "nhập thành gần", "val": "O-O", "tags": ["move"] },
++    { "in": "nhập thành ngắn", "val": "O-O", "tags": ["move"] },
++    { "in": "nhập thành bên vua", "val": "O-O", "tags": ["move"] },
+     { "in": "nhập thành cánh vua", "val": "O-O", "tags": ["move"] },
+     { "in": "nhập thành xa", "val": "O-O-O", "tags": ["move"] },
++    { "in": "nhập thành dài", "val": "O-O-O", "tags": ["move"] },
++    { "in": "nhập thành bên hậu", "val": "O-O-O", "tags": ["move"] },
+     { "in": "nhập thành cánh hậu", "val": "O-O-O", "tags": ["move"] },
+     { "in": "ăn", "val": "x", "tags": ["move"] },
+     { "in": "phong", "val": "=", "tags": ["move"] },
+@@ -62,11 +67,21 @@
+     { "in": "đúng", "val": "yes", "tags": ["choice"] },
+     { "in": "ok", "val": "yes", "tags": ["choice"] },
+     { "in": "xác nhận", "val": "yes", "tags": ["choice"] },
++    { "in": "xác nhận nước đi", "val": "yes", "tags": ["choice"] },
++    { "in": "đồng ý", "val": "yes", "tags": ["choice"] },
++    { "in": "đúng rồi", "val": "yes", "tags": ["choice"] },
++    { "in": "thực hiện nước đi", "val": "yes", "tags": ["choice"] },
+     { "in": "không", "val": "no", "tags": ["choice"] },
+     { "in": "sai", "val": "no", "tags": ["choice"] },
+     { "in": "xoá", "val": "no", "tags": ["choice"] },
+     { "in": "đóng", "val": "no", "tags": ["choice"] },
+     { "in": "huỷ bỏ", "val": "no", "tags": ["choice"] },
++    { "in": "hủy bỏ", "val": "no", "tags": ["choice"] },
++    { "in": "hủy nước đi", "val": "no", "tags": ["choice"] },
++    { "in": "huỷ nước đi", "val": "no", "tags": ["choice"] },
++    { "in": "bỏ nước này", "val": "no", "tags": ["choice"] },
++    { "in": "không đi", "val": "no", "tags": ["choice"] },
++    { "in": "sai rồi", "val": "no", "tags": ["choice"] },
+ 
+     { "in": "xanh", "val": "green", "tags": ["color", "choice"] },
+     { "in": "vàng", "val": "yellow", "tags": ["color", "choice"] },
+diff --git a/ui/voice/makeGrammar.mts b/ui/voice/makeGrammar.mts
+index 9daf0a3..9f6b140 100644
+--- a/ui/voice/makeGrammar.mts
++++ b/ui/voice/makeGrammar.mts
+@@ -3,7 +3,7 @@ import * as ps from 'node:process';
+ import { Readable } from 'node:stream';
+ import { finished } from 'node:stream/promises';
+ 
+-import { findTransforms } from './src/util';
++import { findTransforms } from './src/transforms.ts';
+ 
+ let builder: Builder;
+ 
+@@ -127,7 +127,7 @@ function writeGrammar(out: string) {
+ }
+ 
+ function getArg(arg: string) {
+-  return ps.argv
++  return [...ps.argv]
+     .reverse()
+     .find(value => value.startsWith(`--${arg}`))
+     ?.slice(3 + arg.length);
+diff --git a/ui/voice/package.json b/ui/voice/package.json
+index 35442ab..cd814cb 100644
+--- a/ui/voice/package.json
++++ b/ui/voice/package.json
+@@ -2,6 +2,7 @@
+   "name": "voice",
+   "version": "1.0.0",
+   "private": true,
++  "type": "module",
+   "dependencies": {
+     "@lichess-org/vosk-browser": "0.0.3",
+     "lib": "workspace:*"
+diff --git a/ui/voice/patches/vosk-browser.patch b/ui/voice/patches/vosk-browser.patch
+new file mode 100644
+index 0000000..165c4d8
+--- /dev/null
++++ b/ui/voice/patches/vosk-browser.patch
+@@ -0,0 +1,14 @@
++diff --git a/dist/vosk.wasm.js b/dist/vosk.wasm.js
++--- a/dist/vosk.wasm.js
+++++ b/dist/vosk.wasm.js
++@@ -214,9 +214,7 @@ var VoskClient = class extends EventTarget {
++     return this.isReady;
++   }
++   terminate() {
++-    this.postMessage({
++-      action: "terminate"
++-    });
+++    this.worker.terminate();
++     this.isReady = false;
++   }
++   setLogLevel(level) {
+diff --git a/ui/voice/src/fallback.ts b/ui/voice/src/fallback.ts
+new file mode 100644
+index 0000000..971bfc8
+--- /dev/null
++++ b/ui/voice/src/fallback.ts
+@@ -0,0 +1,109 @@
++export class UtteranceAudio {
++  private readonly pending: ({ samples?: Float32Array; length: number } | null)[] = [];
++  private chunks: Float32Array[] = [];
++  private queuedSamples = 0;
++  private samples = 0;
++  private overflow = false;
++  constructor(readonly sampleRate: number) {}
++  push(samples: Float32Array): void {
++    // Bound both the worker backlog and the current utterance; never decode a truncated tail.
++    this.queuedSamples += samples.length;
++    this.pending.push({
++      length: samples.length,
++      samples: this.queuedSamples <= this.sampleRate * 12 ? samples.slice() : undefined,
++    });
++  }
++  flush(): void {
++    this.pending.push(null);
++  }
++  acknowledge(final: boolean): Float32Array | undefined {
++    const frame = this.pending.shift();
++    if (frame) {
++      this.queuedSamples -= frame.length;
++      this.samples += frame.length;
++      if (frame.samples && this.samples <= this.sampleRate * 12) this.chunks.push(frame.samples);
++      else this.overflow = true;
++    }
++    if (!final) return undefined;
++    let result: Float32Array | undefined;
++    if (!this.overflow && this.samples) {
++      result = new Float32Array(this.samples);
++      let offset = 0;
++      for (const chunk of this.chunks) {
++        result.set(chunk, offset);
++        offset += chunk.length;
++      }
++    }
++    this.chunks = [];
++    this.samples = 0;
++    this.overflow = false;
++    this.queuedSamples = this.pending.reduce((sum, p) => sum + (p?.length ?? 0), 0);
++    return result;
++  }
++}
++
++export class SpeechFallback {
++  private version = 0;
++  private request?: AbortController;
++  get pending(): boolean {
++    return !!this.request;
++  }
++  cancel(): void {
++    this.version++;
++    this.request?.abort();
++    this.request = undefined;
++  }
++  async run(
++    samples: Float32Array,
++    sampleRate: number,
++    deliver: (text: string) => void,
++    status: (text: string) => void,
++    context: 'general' | 'promotion' | 'coordinates' = 'general',
++    local?: {
++      recognize: (signal: AbortSignal) => Promise<string | undefined>;
++      accept: (text: string) => boolean;
++    },
++  ): Promise<void> {
++    this.cancel();
++    const version = this.version;
++    const request = (this.request = new AbortController());
++    const timeout = setTimeout(() => request.abort(), 8000);
++    status('Đang nhận dạng lại…');
++    try {
++      if (local) {
++        const text = await local.recognize(request.signal).catch(() => undefined);
++        if (version !== this.version || request.signal.aborted) return;
++        if (text && local.accept(text)) return;
++      }
++      if (request.signal.aborted) return;
++      const response = await fetch('/voice-asr/transcribe', {
++        method: 'POST',
++        signal: request.signal,
++        credentials: 'same-origin',
++        headers: {
++          'Content-Type': 'application/octet-stream',
++          'X-Voice-ASR': '1',
++          'X-Sample-Rate': String(sampleRate),
++          'X-Voice-Context': context,
++        },
++        body: samples.slice().buffer,
++      });
++      if (!response.ok) throw new Error(String(response.status));
++      const result = await response.json();
++      if (version !== this.version || request.signal.aborted) return;
++      if (
++        result.speech === true &&
++        typeof result.text === 'string' &&
++        result.text.length &&
++        result.text.length < 512
++      )
++        deliver(result.text);
++      else status('Chưa nghe rõ lời nói. Hãy nói lại.');
++    } catch {
++      if (version === this.version) status('Chưa nhận dạng được. Hãy nói lại hoặc nhập nước bằng chuột.');
++    } finally {
++      clearTimeout(timeout);
++      if (this.request === request) this.request = undefined;
++    }
++  }
++}
+diff --git a/ui/voice/src/grammar.ts b/ui/voice/src/grammar.ts
+new file mode 100644
+index 0000000..f3b4512
+--- /dev/null
++++ b/ui/voice/src/grammar.ts
+@@ -0,0 +1,34 @@
++// Vosk derives its language model from the frequency of phrases in this list.
++export function balanceGrammar(phrases: string[]): string[] {
++  const unique = [...new Set(phrases)];
++  const maxPhrases = 8192;
++  if (unique.length > maxPhrases) return unique;
++  const groups = new Map<string, string[]>();
++  for (const phrase of unique) {
++    const ending = phrase.split(' ').slice(-2).join(' ');
++    const group = groups.get(ending);
++    if (group) group.push(phrase);
++    else groups.set(ending, [phrase]);
++  }
++  if (groups.size < 2) return unique;
++
++  // Notation aliases must not count as evidence that one spoken destination is
++  // more likely than another. Equalize the mass of terminal word pairs, keeping
++  // complete phrases so sentence-end probabilities remain in the right places.
++  const limit = Math.floor(maxPhrases / groups.size);
++  let mass = 1;
++  for (const group of groups.values()) {
++    let a = mass;
++    let b = group.length;
++    while (b) [a, b] = [b, a % b];
++    mass = Math.min((mass / a) * group.length, limit);
++    if (mass === limit) break;
++  }
++  const weighted: string[] = [];
++  for (const group of groups.values()) {
++    const repeat = Math.max(1, Math.round(mass / group.length));
++    if (weighted.length + group.length * repeat > maxPhrases) return unique;
++    for (const phrase of group) for (let i = 0; i < repeat; i++) weighted.push(phrase);
++  }
++  return weighted;
++}
+diff --git a/ui/voice/src/interfaces.ts b/ui/voice/src/interfaces.ts
+index 21c6ef8..3922f5e 100644
+--- a/ui/voice/src/interfaces.ts
++++ b/ui/voice/src/interfaces.ts
+@@ -3,8 +3,8 @@ import type { VNode } from 'snabbdom';
+ import type { Prop, Toggle } from 'lib';
+ import type { Dialog } from 'lib/view';
+ 
+-export type MsgType = 'full' | 'partial' | 'status' | 'error' | 'stop' | 'start';
+-export type Listener = (msgText: string, msgType: MsgType) => void;
++export type MsgType = 'full' | 'fallback' | 'partial' | 'status' | 'error' | 'stop' | 'start';
++export type Listener = (msgText: string, msgType: MsgType) => boolean | void;
+ 
+ export interface Microphone {
+   setLang(language: string): void;
+@@ -17,6 +17,7 @@ export interface Microphone {
+     also?: {
+       recId?: string; // = 'default' if not provided
+       partial?: boolean; // = false
++      fallback?: boolean; // opt in to local Vietnamese secondary ASR
+       listener?: Listener; // = undefined
+       listenerId?: string; // = recId (specify for multiple listeners on same recId)
+     },
+@@ -32,10 +33,12 @@ export interface Microphone {
+   ): void;
+   removeListener(listenerId: string): void;
+   setController(listener: Listener): void; // for status display, indicators, etc
++  setStatus(text: string): void; // display feedback without recognizing it as speech
+   stopPropagation(): void; // interrupt broadcast propagation on current rec (for modal interactions)
+ 
+   start(listen?: boolean): Promise<void>; // listen = true if not provided, if false just initialize
+   stop(): void; // stop listening/downloading/whatever
++  finish(): void; // finish push-to-talk and accept its pending final result
+ 
+   readonly isListening: boolean;
+   readonly isBusy: boolean; // are we downloading, extracting, or loading?
+@@ -71,6 +74,12 @@ export interface VoskModule {
+   initRecognizer: (opts: RecognizerOpts) => AudioNode | undefined;
+   isLoaded: (lang?: string) => boolean;
+   select: (recId: string | false) => void;
++  transcribe: (
++    samples: Float32Array,
++    sampleRate: number,
++    phrases: string[],
++    signal: AbortSignal,
++  ) => Promise<string | undefined>;
+ }
+ 
+ export interface RecognizerOpts {
+@@ -79,6 +88,7 @@ export interface RecognizerOpts {
+   partial: boolean;
+   audioCtx: AudioContext;
+   broadcast: (text: string, msgType: MsgType, forMs: number) => void;
++  audioResult?: (text: string, samples: Float32Array, sampleRate: number) => void;
+ }
+ 
+ export type Sub = {
+diff --git a/ui/voice/src/languages.ts b/ui/voice/src/languages.ts
+index a042cbf..4c1747c 100644
+--- a/ui/voice/src/languages.ts
++++ b/ui/voice/src/languages.ts
+@@ -2,13 +2,13 @@ export const supportedLangs: [string, string][] = [
+   ['en', 'English'],
+   ['fr', 'Français'],
+   ['pl', 'Polski'],
++  ['vi', 'Tiếng Việt (thử nghiệm)'],
+ ];
+ 
+ if (site.debug)
+   supportedLangs.push(
+     ['de', 'Deutsch'],
+     ['tr', 'Türkçe'],
+-    ['vi', 'Tiếng Việt'],
+     ['ru', 'Русский'],
+     ['it', 'Italiano'],
+     ['sv', 'Svenska'],
+diff --git a/ui/voice/src/mic.ts b/ui/voice/src/mic.ts
+index 6fc3912..81fb600 100644
+--- a/ui/voice/src/mic.ts
++++ b/ui/voice/src/mic.ts
+@@ -1,8 +1,10 @@
+ import { objectStorage } from 'lib/objectStorage';
+ import { storedStringProp } from 'lib/storage';
+ 
++import { SpeechFallback } from './fallback';
+ import type { VoskModule, Listener, Microphone, MsgType } from './interfaces';
+ import { Switch, type Selectable } from './switch';
++import { vietnameseShortGrammar } from './vietnamese';
+ 
+ export class Mic implements Microphone {
+   recId = 'default';
+@@ -22,6 +24,7 @@ export class Mic implements Microphone {
+   private busy = false;
+   private interrupt = false;
+   private paused = 0;
++  private readonly fallback = new SpeechFallback();
+ 
+   get lang(): string {
+     return this.language;
+@@ -58,6 +61,14 @@ export class Mic implements Microphone {
+     this.ctrl(...this.ctrlState); // hello
+   }
+ 
++  setStatus(text: string): void {
++    this.ctrlState = [text, 'status'];
++    this.voskStatus = text;
++    this.ctrl(text, 'status');
++    window.clearTimeout(this.broadcastTimeout);
++    this.broadcastTimeout = window.setTimeout(() => this.broadcast(''), 5000);
++  }
++
+   addListener(listener: Listener, also: { recId?: string; listenerId?: string } = {}): void {
+     const recId = also.recId ?? 'default';
+     if (!this.recs.items.has(recId)) throw `No recognizer for '${recId}'`;
+@@ -73,6 +84,7 @@ export class Mic implements Microphone {
+     also: {
+       recId?: string;
+       partial?: boolean;
++      fallback?: boolean;
+       listener?: Listener;
+       listenerId?: string;
+     } = {},
+@@ -82,7 +94,8 @@ export class Mic implements Microphone {
+       return;
+     }
+     const recId = also.recId ?? 'default';
+-    const rec = new RecNode(words.slice(), !!also.partial);
++    this.fallback.cancel();
++    const rec = new RecNode(words.slice(), !!also.partial, !!also.fallback);
+     if (this.vosk?.isLoaded(this.lang)) this.initKaldi(recId, rec);
+     this.recs.add(recId, rec);
+     if (also.listener) this.addListener(also.listener, { recId, listenerId: also.listenerId });
+@@ -98,6 +111,9 @@ export class Mic implements Microphone {
+   async start(listen = true): Promise<void> {
+     try {
+       if (listen && this.isListening && this.recId === this.recs.key) return;
++      this.fallback.cancel();
++      // A new capture session cannot accept the previous session's final worker replies.
++      for (const rec of this.recs.items.values()) rec.close();
+       this.busy = true;
+       await this.initModel();
+       if (!this.busy) throw '';
+@@ -107,15 +123,22 @@ export class Mic implements Microphone {
+       this.micTrack!.enabled = listen;
+       this.busy = false;
+       site.sound.listeners.add(this.soundListener);
+-      this.broadcast(listen ? 'Listening...' : '', 'start');
++      this.broadcast(listen ? (this.lang === 'vi' ? 'Đang nghe…' : 'Listening...') : '', 'start');
+     } catch (e: any) {
+       if (e instanceof DOMException && e.name === 'NotAllowedError') this.stop(['No permission', 'error']);
+       else this.stop([e.toString(), 'error']);
+-      if (e !== '') throw e;
+     }
+   }
+ 
+-  stop(reason: [string, MsgType] = ['', 'stop']): void {
++  finish(): void {
++    this.stop(['', 'stop'], true);
++  }
++
++  stop(reason: [string, MsgType] = ['', 'stop'], finish = false): void {
++    if (!finish) {
++      this.fallback.cancel();
++      for (const rec of this.recs.items.values()) rec.close();
++    }
+     site.sound.listeners.delete(this.soundListener);
+     if (this.micTrack) this.micTrack.enabled = false;
+     this.download?.abort();
+@@ -149,13 +172,52 @@ export class Mic implements Microphone {
+ 
+   private initKaldi(recId: string, rec: RecNode) {
+     if (rec.node) return;
+-    rec.node = this.vosk?.initRecognizer({
++    const current = () => this.recs.items.get(recId) === rec && rec.node === node;
++    const node = this.vosk?.initRecognizer({
+       recId,
+       audioCtx: this.audioCtx!,
+       partial: rec.partial,
+       words: rec.words,
+-      broadcast: this.broadcast.bind(this),
++      broadcast: (text, type, forMs) => {
++        if (current()) this.broadcast(text, type, forMs);
++      },
++      audioResult:
++        rec.fallback && this.lang === 'vi'
++          ? (text, samples, rate) => {
++              if (!current()) return;
++              if (!text && this.fallback.pending) return;
++              this.fallback.cancel();
++              const handled = this.broadcast(text, 'full', 3000);
++              if (!handled && current() && samples.length >= rate / 10) {
++                const retry = vietnameseShortGrammar(text, rec.words);
++                const words = text.split(/\s+/);
++                const context = words.includes('phong')
++                  ? 'promotion'
++                  : words.includes('cột')
++                    ? 'coordinates'
++                    : 'general';
++                void this.fallback.run(
++                  samples,
++                  rate,
++                  heard => {
++                    if (current()) this.broadcast(heard, 'fallback', 5000);
++                  },
++                  status => {
++                    if (current()) this.broadcast(status, 'status');
++                  },
++                  context,
++                  retry.length
++                    ? {
++                        recognize: signal => this.vosk.transcribe(samples, rate, retry, signal),
++                        accept: heard => current() && this.broadcast(heard, 'fallback', 5000),
++                      }
++                    : undefined,
++                );
++              }
++            }
++          : undefined,
+     });
++    rec.node = node;
+   }
+ 
+   private async initModel(): Promise<void> {
+@@ -169,10 +231,14 @@ export class Mic implements Microphone {
+     const downloadAsync = this.downloadModel(`/vosk/${modelUrl.replace(/[\W]/g, '_')}`);
+     const audioAsync = this.initAudio();
+ 
+-    this.vosk ??= await site.asset.loadEsm<VoskModule>('voice.vosk');
+-    await downloadAsync;
++    // Attach rejection handlers to all parallel work immediately (permission may fail first).
++    const [vosk] = await Promise.all([
++      Promise.resolve(this.vosk ?? site.asset.loadEsm<VoskModule>('voice.vosk')),
++      downloadAsync,
++      audioAsync,
++    ]);
++    this.vosk = vosk;
+     await this.vosk.initModel(modelUrl, this.lang);
+-    await audioAsync;
+   }
+ 
+   private async initAudio(): Promise<void> {
+@@ -196,15 +262,20 @@ export class Mic implements Microphone {
+   }
+ 
+   private broadcast(text: string, msgType: MsgType = 'status', forMs = 0) {
+-    this.ctrlState = [text, msgType];
++    const state = (this.ctrlState = [text, msgType]);
+     this.ctrl(text, msgType);
+-    if (msgType === 'status' || msgType === 'full') window.clearTimeout(this.broadcastTimeout);
++    if (msgType === 'status' || msgType === 'full' || msgType === 'fallback')
++      window.clearTimeout(this.broadcastTimeout);
+     this.voskStatus = text;
++    let handled = false;
+     for (const li of this.recs.items.get(this.recId)?.listeners ?? []) {
+-      if (!this.interrupt) li(text, msgType);
++      if (!this.interrupt) handled = li(text, msgType) === true || handled;
+     }
++    handled ||= this.interrupt;
+     this.interrupt = false;
+-    this.broadcastTimeout = forMs > 0 ? window.setTimeout(() => this.broadcast(''), forMs) : undefined;
++    if (this.ctrlState === state)
++      this.broadcastTimeout = forMs > 0 ? window.setTimeout(() => this.broadcast(''), forMs) : undefined;
++    return handled;
+   }
+ 
+   private async downloadModel(emscriptenPath: string): Promise<void> {
+@@ -272,7 +343,7 @@ export class Mic implements Microphone {
+   }
+ 
+   private resume() {
+-    this.paused = Math.min(this.paused - 1, 0);
++    this.paused = Math.max(this.paused - 1, 0);
+     if (this.paused !== 0 || this.micTrack === undefined) return;
+     this.micTrack.enabled = !!this.recs.value;
+   }
+@@ -310,23 +381,32 @@ class RecNode implements Selectable {
+   words: string[];
+   node?: AudioNode;
+   partial: boolean;
++  private source?: AudioNode;
+ 
+-  constructor(words: string[], partial: boolean) {
++  constructor(
++    words: string[],
++    partial: boolean,
++    readonly fallback = false,
++  ) {
+     this.words = words;
+     this.partial = partial;
+   }
+ 
+   select(audio?: Audio): void {
+     if (!audio?.source || !this.node) return;
++    this.source = audio.source;
+     audio.source.connect(this.node);
+     this.node.connect(audio.ctx!.destination);
+   }
+ 
+   deselect(): void {
++    if (this.source && this.node) this.source.disconnect(this.node);
++    this.source = undefined;
+     this.node?.disconnect();
+   }
+ 
+   close(): void {
++    this.deselect();
+     this.node = undefined;
+   }
+ 
+diff --git a/ui/voice/src/move/view.ts b/ui/voice/src/move/view.ts
+index 4ee0965..260d933 100644
+--- a/ui/voice/src/move/view.ts
++++ b/ui/voice/src/move/view.ts
+@@ -8,7 +8,16 @@ export function settingNodes(
+   clarity: Prop<number>,
+   timer: Prop<number>,
+   redraw: () => void,
++  vietnamese = false,
+ ): VNode[] {
++  if (vietnamese)
++    return [
++      colorsSetting(colors, redraw),
++      h(
++        'p',
++        'Có thể nói “tốt trắng e hai e bốn”, “đưa tốt từ e hai đến e bốn”, “mã nhảy lên ép ba” hoặc “nhập thành ngắn”. Cột B đọc “bê”, “bờ” hoặc “bi”; D đọc “đê”, “dê”, “dờ”, “đờ” hoặc “đi”; F đọc “ép”. Có thể đọc rõ “tốt từ cột bê hàng hai đến cột bê hàng bốn”. D đọc kiểu Anh nên nói rõ “cột đi hàng hai”, hoặc đọc đủ cả ô đi và ô đến, để phân biệt với động từ “đi”. Khi tên cột khó nghe, dùng số từ A = một đến H = tám, ví dụ “tốt từ cột hai hàng hai đến cột hai hàng bốn”. Số 4 đọc “bốn” hoặc “tư”. Nước đi rõ ràng và hợp lệ sẽ được đi ngay, không cần xác nhận. Nước sai hoặc chưa rõ sẽ có thông báo; khi có nhiều nước phù hợp, hãy nói rõ ô xuất phát hoặc chọn mũi tên. Giữ Shift để nói nếu bật chế độ nhấn giữ.',
++      ),
++    ];
+   return [colorsSetting(colors, redraw), claritySetting(clarity, redraw), timerSetting(timer, redraw)];
+ }
+ 
+diff --git a/ui/voice/src/move/voice.move.ts b/ui/voice/src/move/voice.move.ts
+index cc74f90..687511f 100644
+--- a/ui/voice/src/move/voice.move.ts
++++ b/ui/voice/src/move/voice.move.ts
+@@ -1,14 +1,14 @@
+ import { charToRole } from 'chessops';
+ 
+-import { myUserId } from 'lib';
+ import { readFen, destsToUcis, square, type Board } from 'lib/game';
+ import type { MoveRootCtrl, MoveUpdate } from 'lib/game/moveRootCtrl';
+ import { type PromotionCtrl, promote } from 'lib/game/promotion';
+ import { licon, type LiconValue } from 'lib/licon';
+-import { storedIntProp, storedBooleanPropWithEffect, storedIntPropWithEffect, once } from 'lib/storage';
++import { storedIntProp, storedBooleanPropWithEffect, storedIntPropWithEffect } from 'lib/storage';
+ import type { QuestionOpts } from 'lib/types';
+ import * as xhr from 'lib/xhr';
+ 
++import { balanceGrammar } from '../grammar';
+ import type { MsgType } from '../interfaces';
+ import {
+   spread,
+@@ -25,6 +25,7 @@ import {
+   type Transform,
+   type SparseMap,
+ } from '../util';
++import { vietnameseMoveCandidates, vietnameseMovePhrases } from '../vietnamese';
+ import { openHelpDialog, openAllPhrasesDialog } from '../view';
+ import type { VoiceMove, VoiceCtrl, Entry, Match } from '../voice';
+ import { coloredArrows, numberedArrows, brushes } from './arrows';
+@@ -59,6 +60,8 @@ export function initModule({
+   let command: Confirm | undefined; // confirm player commands (before sending request)
+   let choices: Map<string, Uci> | undefined; // map choice arrows (yes, blue, red, 1, 2, etc) to moves
+   let choiceTimeout: number | undefined; // timeout for ambiguity choices
++  let positionVersion = 0;
++  let submittedPosition = -1;
+   const clarityPref = storedIntProp('voice.clarity', 1);
+   const colorsPref = storedBooleanPropWithEffect('voice.useColors', true, () => initTimerRec());
+   const timerPref = storedIntPropWithEffect('voice.timer', 3, () => initTimerRec());
+@@ -103,12 +106,14 @@ export function initModule({
+   };
+ 
+   async function initGrammar(): Promise<void> {
+-    const g = await xhr
+-      .jsonSimple(site.asset.url(`compiled/grammar/move-${voice.lang()}.json`))
+-      .catch(() => ({
+-        entries: [],
+-        partials: { numbers: [], commands: [], colors: [] },
+-      }));
++    const language = voice.lang();
++    clearMoveProgress();
++    clearConfirm();
++    const g = await xhr.jsonSimple(site.asset.url(`compiled/grammar/move-${language}.json`)).catch(() => ({
++      entries: [],
++      partials: { numbers: [], commands: [], colors: [] },
++    }));
++    if (language !== voice.lang()) return;
+     byWord.clear();
+     byTok.clear();
+     byVal.clear();
+@@ -126,6 +131,18 @@ export function initModule({
+ 
+   function initDefaultRec() {
+     const excludeTag = root?.vote ? 'round' : 'puzzle'; // reduce unneeded vocabulary
++    if (voice.lang() === 'vi') {
++      // Vosk learns word transitions from phrases. A flat word list loses the
++      // coordinate context that distinguishes short Vietnamese rank names.
++      const phrases = allPhrases(excludeTag)
++        .map(([phrase]) => phrase)
++        .filter(phrase => !phrase.split(' ').includes('f'));
++      voice.mic.initRecognizer(balanceGrammar([...phrases, ...vietnameseMovePhrases(ucis, board), '[unk]']), {
++        listener: listen,
++        fallback: true,
++      });
++      return;
++    }
+     const words = tagWords().filter(x => !byWord.get(x)?.tags?.includes(excludeTag));
+     voice.mic.initRecognizer(words, { listener: listen });
+   }
+@@ -139,23 +156,51 @@ export function initModule({
+   }
+ 
+   function listen(heard: string, msgType: MsgType) {
+-    if (msgType === 'stop' && !voice.pushTalk()) clearMoveProgress();
+-    else if (msgType !== 'full') return;
++    if (msgType === 'stop' && !voice.pushTalk()) {
++      clearMoveProgress();
++      if (voice.lang() === 'vi') {
++        clearConfirm();
++        root.redraw();
++      }
++    }
++    if (msgType !== 'full' && msgType !== 'fallback') return false;
++    // Let secondary ASR recover primary errors before showing a final failure.
++    // Mic discards obsolete results when the capture or position changes.
++    const reject = (message: string) => {
++      if (msgType !== 'fallback') return false;
++      voice.mic.setStatus(message);
++      return true;
++    };
++    if (voice.lang() === 'vi') {
++      heard = heard.normalize('NFC').toLowerCase().trim().replace(/\s+/g, ' ');
++      if (!heard) return !!command || !!choices;
++      const natural = vietnameseMoveCandidates(heard, ucis, board);
++      if (natural !== undefined)
++        return (
++          chooseMoves(natural.map(uci => [uci, { cost: 0 }])) ||
++          reject('Nước đi không hợp lệ ở vị trí hiện tại. Hãy nói lại.')
++        );
++      if (heard.split(' ').some(word => !byWord.has(word)))
++        return reject('Chưa hiểu nước đi. Hãy nói rõ ô đi và ô đến.');
++    }
+     try {
+       (DEBUG.collapse ? console.groupCollapsed : console.info)(`listen '${heard}'`);
+ 
+       const results = [];
+-      for (const handler of listenHandlers) {
++      // Secondary ASR may make a legal move, never execute unrelated controls.
++      const handlers = msgType !== 'fallback' ? listenHandlers : [handleMove];
++      for (const handler of handlers) {
+         results.push(...handler(heard));
+ 
+         if (results.includes('ok')) {
+           if (results.includes('clear')) clearConfirm();
+-          return;
++          return true;
+         }
+       }
+-      if (heard.length <= 3) return; // just ignore
++      if (heard.length <= 3 && voice.lang() !== 'vi') return false;
+ 
+       voice.flash();
++      return voice.lang() === 'vi' ? reject('Chưa hiểu nước đi. Hãy nói rõ ô đi và ô đến.') : false;
+     } finally {
+       if (DEBUG.collapse) console.groupEnd();
+     }
+@@ -180,7 +225,7 @@ export function initModule({
+ 
+   function handleConfirm(heard: string): ListenResult[] {
+     const answer = matchOneTags(heard, ['command', 'choice']);
+-    const confirm = request ?? command;
++    const confirm = voice.lang() === 'vi' ? (command ?? request) : (request ?? command);
+     if (!confirm || !answer) return [];
+     if (['yes', 'no', confirm.key].includes(answer)) {
+       confirm.action(answer !== 'no');
+@@ -197,28 +242,32 @@ export function initModule({
+   }
+ 
+   function handleAmbiguity(heard: string): ListenResult[] {
+-    if (!choices || heard.includes(' ')) return [];
++    if (!choices || (voice.lang() !== 'vi' && heard.includes(' '))) return [];
+ 
+     const chosen = matchOne(
+       heard,
+       [...choices].map(([w, uci]) => [wordVal(w), [uci]]),
+     );
+     if (!chosen) {
++      if (voice.lang() === 'vi') return [];
+       clearMoveProgress();
+       console.info('handleAmbiguity', `no match for '${heard}' among`, choices);
+       return [];
+     }
+     console.info('handleAmbiguity', `matched '${heard}' to '${chosen}' among`, choices);
++    if (voice.lang() === 'vi') {
++      submit(chosen);
++      return ['ok'];
++    }
+     submit(chosen);
+     return ['ok', 'clear'];
+   }
+ 
+   function handleMove(phrase: string): ListenResult[] {
+     if (phrase.trim().length < 3) return [];
+-    if (selection() && chooseMoves(matchMany(phrase, spreadMap(squares)))) return ['ok', 'clear'];
+-    return chooseMoves(matchMany(phrase, [...spreadMap(moves), ...spreadMap(squares)]))
+-      ? ['ok', 'clear']
+-      : [];
++    const handled: ListenResult[] = voice.lang() === 'vi' ? ['ok'] : ['ok', 'clear'];
++    if (selection() && chooseMoves(matchMany(phrase, spreadMap(squares)))) return handled;
++    return chooseMoves(matchMany(phrase, [...spreadMap(moves), ...spreadMap(squares)])) ? handled : [];
+   }
+ 
+   // see the README.md in ui/voice/.build to decrypt these variable names.
+@@ -262,6 +311,8 @@ export function initModule({
+ 
+   function costToMatch(h: string, x: string, partite: boolean) {
+     if (h === x) return 0;
++    // The Vietnamese pilot accepts explicit commands, never dropped coordinates.
++    if (voice.lang() === 'vi') return Infinity;
+     const xforms = findTransforms(h, x)
+       .map(t => t.reduce((acc, t) => acc + transformCost(t, partite), 0))
+       .sort((lhs, rhs) => lhs - rhs);
+@@ -284,6 +335,8 @@ export function initModule({
+ 
+   function chooseMoves(options: [string, Match][]) {
+     if (options.length === 0) return false;
++    // A fresh move or square selection dismisses an unrelated command question.
++    if (voice.lang() === 'vi') command?.action(false);
+     if (options.length === 1 && options[0][0].length === 2) {
+       console.info('chooseMoves', `select '${options[0][0]}'`);
+       submit(options[0][0]);
+@@ -311,6 +364,8 @@ export function initModule({
+     // trim choices to clarity window
+     options = options.filter(([, m]) => m.cost - lowestCost <= clarityThreshold);
+ 
++    if (voice.lang() === 'vi' && options.length === 1) return submit(options[0][0]);
++
+     if (!timer() && options.length === 1 && (options[0][1].cost < 0.3 || root.confirmMoveToggle?.())) {
+       console.info('chooseMoves', `chose '${options[0][0]}' cost=${options[0][1].cost}`);
+       submit(options[0][0], false);
+@@ -348,6 +403,8 @@ export function initModule({
+       colorsPref() ? coloredArrows([...choices], arrowTime) : numberedArrows([...choices], arrowTime),
+     );
+     cg.redrawAll();
++    if (voice.lang() === 'vi')
++      voice.mic.setStatus('Có nhiều nước phù hợp. Hãy nói rõ ô xuất phát hoặc chọn mũi tên.');
+     return true;
+   }
+ 
+@@ -356,11 +413,16 @@ export function initModule({
+       cg = up.cg;
+       for (const [color, brush] of brushes) cg.state.drawable.brushes[`v-${color}`] = brush;
+     }
++    positionVersion++;
++    clearMoveProgress();
++    clearConfirm();
+     board = readFen(up.fen);
+     cg.setShapes([]);
+     ucis = up.canMove && cg.state.movable.dests ? destsToUcis(cg.state.movable.dests) : [];
+     buildMoves();
+     buildSquares();
++    // Replacing the recognizer discards audio captured for the previous position.
++    if (entries.length && voice.lang() === 'vi') initDefaultRec();
+   }
+ 
+   function submit(uci: Uci, preConfirmed = true) {
+@@ -373,11 +435,15 @@ export function initModule({
+       cg.redrawAll();
+       return true;
+     }
++    if (!ucis.includes(uci.slice(0, 4))) return false;
++    if (voice.lang() === 'vi') {
++      if (submittedPosition === positionVersion) return true;
++      submittedPosition = positionVersion;
++    }
+     const role = promo(uci);
+     cg.cancelMove();
+     if (role) promote(cg, dest(uci), role);
+     root.pluginMove(src(uci), dest(uci), role, preConfirmed);
+-    if (once('voice.move', { days: 1 })) xhr.text(`/jslog/feature?n=voiceMove&u=${myUserId()}`);
+     return true;
+   }
+ 
+@@ -513,7 +579,7 @@ export function initModule({
+     choiceTimeout = undefined;
+     choices = undefined;
+     cg.setShapes([]);
+-    selection(false);
++    if (board) selection(false);
+     if (mustRedraw) cg.redrawAll();
+   }
+ 
+@@ -542,10 +608,14 @@ export function initModule({
+   }
+ 
+   function question(): QuestionOpts | false {
++    const active = command;
++    const respond = (yes: boolean) => {
++      if (command === active) active?.action(yes);
++    };
+     const mkOpts = (prompt: string, yesIcon: LiconValue) => ({
+       prompt,
+-      yes: { action: () => command?.action?.(true), key: 'yes', icon: yesIcon },
+-      no: { action: () => command?.action?.(false), key: 'no' },
++      yes: { action: () => respond(true), key: 'yes', icon: yesIcon },
++      no: { action: () => respond(false), key: 'no' },
+     });
+     return command?.key === 'resign'
+       ? mkOpts('Confirm resignation', licon.FlagOutline)
+@@ -568,7 +638,7 @@ export function initModule({
+   }
+ 
+   function prefNodes() {
+-    return settingNodes(colorsPref, clarityPref, timerPref, root.redraw);
++    return settingNodes(colorsPref, clarityPref, timerPref, root.redraw, voice.lang() === 'vi');
+   }
+ 
+   function maxArrows() {
+@@ -576,11 +646,12 @@ export function initModule({
+   }
+ 
+   function timer(): number {
++    if (voice.lang() === 'vi') return 0;
+     return [0, 1.5, 2, 2.5, 3, 5][timerPref()];
+   }
+ 
+   function moveInProgress() {
+-    return selection !== undefined || choices !== undefined;
++    return cg.state.selected !== undefined || choices !== undefined;
+   }
+ 
+   function tokWord(tok: string) {
+@@ -653,13 +724,14 @@ export function initModule({
+     } else return v ? v.in : val;
+   }
+ 
+-  function allPhrases() {
++  function allPhrases(excludeTag?: string) {
+     const res: [string, string][] = [];
+     for (const [xval, uci] of [...moves, ...squares]) {
+       const toVal = typeof uci === 'string' ? uci : '[...]';
+       res.push(...valsWords(xval).map<[string, string]>(p => [p, toVal]));
+     }
+     for (const e of byTags(['command', 'choice'])) {
++      if (excludeTag && e.tags.includes(excludeTag)) continue;
+       res.push(...valsWords(e.val!).map<[string, string]>(p => [p, e.val!]));
+     }
+     return [...new Map(res)]; // vals expansion can create duplicates
+diff --git a/ui/voice/src/transforms.ts b/ui/voice/src/transforms.ts
+new file mode 100644
+index 0000000..3160d9a
+--- /dev/null
++++ b/ui/voice/src/transforms.ts
+@@ -0,0 +1,49 @@
++export type Transform = {
++  from: string; // single token
++  to: string; // zero or more tokens, (empty string for erasure)
++  at: number; // index (unused now, previously for breadcrumbs)
++};
++
++const mode = { del: true, sub: 2 };
++
++export function findTransforms(
++  h: string,
++  x: string,
++  pos = 0, // for recursion
++  line: Transform[] = [], // for recursion
++  lines: Transform[][] = [], // for recursion
++  crumbs: Map<string, number> = new Map<string, number>(), // for (finite) recursion
++): Transform[][] {
++  if (h === x) return [line];
++  if (pos >= x.length && !mode.del) return [];
++  if (crumbs.has(h + pos) && crumbs.get(h + pos)! <= line.length) return [];
++  crumbs.set(h + pos, line.length);
++
++  return validOps(h, x, pos).flatMap(({ hnext, op }) =>
++    findTransforms(
++      hnext,
++      x,
++      pos + (op === 'skip' ? 1 : op.to.length),
++      op === 'skip' ? line : [...line, op],
++      lines,
++      crumbs,
++    ),
++  );
++}
++
++function validOps(h: string, x: string, pos: number) {
++  const validOps: { hnext: string; op: Transform | 'skip' }[] = [];
++  if (h[pos] === x[pos]) validOps.push({ hnext: h, op: 'skip' });
++  const minSlice = !mode.del || validOps.length > 0 ? 1 : 0;
++  let slen = Math.min(mode.sub ?? 0, x.length - pos);
++  while (slen >= minSlice) {
++    const slice = x.slice(pos, pos + slen);
++    if (pos < h.length && !(slen > 0 && h.startsWith(slice, pos)))
++      validOps.push({
++        hnext: h.slice(0, pos) + slice + h.slice(pos + 1),
++        op: { from: h[pos], at: pos, to: slice },
++      });
++    slen--;
++  }
++  return validOps;
++}
+diff --git a/ui/voice/src/util.ts b/ui/voice/src/util.ts
+index dfee9a0..328f896 100644
+--- a/ui/voice/src/util.ts
++++ b/ui/voice/src/util.ts
+@@ -2,49 +2,7 @@ import { charToRole } from 'chessops';
+ 
+ import { squareDist, type Board } from 'lib/game';
+ 
+-const mode = { del: true, sub: 2 };
+-
+-export function findTransforms(
+-  h: string,
+-  x: string,
+-  pos = 0, // for recursion
+-  line: Transform[] = [], // for recursion
+-  lines: Transform[][] = [], // for recursion
+-  crumbs: Map<string, number> = new Map<string, number>(), // for (finite) recursion
+-): Transform[][] {
+-  if (h === x) return [line];
+-  if (pos >= x.length && !mode.del) return [];
+-  if (crumbs.has(h + pos) && crumbs.get(h + pos)! <= line.length) return [];
+-  crumbs.set(h + pos, line.length);
+-
+-  return validOps(h, x, pos).flatMap(({ hnext, op }) =>
+-    findTransforms(
+-      hnext,
+-      x,
+-      pos + (op === 'skip' ? 1 : op.to.length),
+-      op === 'skip' ? line : [...line, op],
+-      lines,
+-      crumbs,
+-    ),
+-  );
+-}
+-
+-function validOps(h: string, x: string, pos: number) {
+-  const validOps: { hnext: string; op: Transform | 'skip' }[] = [];
+-  if (h[pos] === x[pos]) validOps.push({ hnext: h, op: 'skip' });
+-  const minSlice = !mode.del || validOps.length > 0 ? 1 : 0;
+-  let slen = Math.min(mode.sub ?? 0, x.length - pos);
+-  while (slen >= minSlice) {
+-    const slice = x.slice(pos, pos + slen);
+-    if (pos < h.length && !(slen > 0 && h.startsWith(slice, pos)))
+-      validOps.push({
+-        hnext: h.slice(0, pos) + slice + h.slice(pos + 1),
+-        op: { from: h[pos], at: pos, to: slice },
+-      });
+-    slen--;
+-  }
+-  return validOps;
+-}
++export { findTransforms, type Transform } from './transforms';
+ 
+ // optimizations for xval mappings when most keys only map to 1 value.  On V8 using
+ // voice move data, this is 50% faster while using half the memory of Map<string, Set>
+@@ -71,12 +29,6 @@ export function movesTo(s: number, role: string, board: Board): number[] {
+   return dests;
+ }
+ 
+-export type Transform = {
+-  from: string; // single token
+-  to: string; // zero or more tokens, (empty string for erasure)
+-  at: number; // index (unused now, previously for breadcrumbs)
+-};
+-
+ export function as<T>(v: T, f: () => void): () => T {
+   return () => {
+     f();
+diff --git a/ui/voice/src/vietnamese.ts b/ui/voice/src/vietnamese.ts
+new file mode 100644
+index 0000000..ef41bea
+--- /dev/null
++++ b/ui/voice/src/vietnamese.ts
+@@ -0,0 +1,273 @@
++import { square, type Board } from 'lib/game';
++
++const roles: Record<string, string> = {
++  tốt: 'P',
++  mã: 'N',
++  ngựa: 'N',
++  tượng: 'B',
++  tịnh: 'B',
++  xe: 'R',
++  hậu: 'Q',
++  vua: 'K',
++};
++const files: Record<string, string> = {
++  a: 'a',
++  b: 'b',
++  bê: 'b',
++  bờ: 'b',
++  bi: 'b',
++  c: 'c',
++  xê: 'c',
++  d: 'd',
++  dê: 'd',
++  đê: 'd',
++  dờ: 'd',
++  đờ: 'd',
++  đi: 'd',
++  giờ: 'd', // Observed secondary ASR spelling of spoken dờ; scoped below.
++  e: 'e',
++  ê: 'e',
++  f: 'f',
++  ép: 'f',
++  g: 'g',
++  gờ: 'g',
++  giê: 'g',
++  h: 'h',
++  hát: 'h',
++  hờ: 'h',
++};
++const ranks: Record<string, string> = {
++  một: '1',
++  hai: '2',
++  ba: '3',
++  bốn: '4',
++  tư: '4',
++  năm: '5',
++  sáu: '6',
++  bảy: '7',
++  tám: '8',
++};
++
++// Parse a small explicit language, then filter authoritative legal moves. Never
++// discard arbitrary words, guess a rank, or ignore a conflicting piece/color.
++export function vietnameseMoveCandidates(
++  phrase: string,
++  legal: readonly Uci[],
++  board: Board,
++): Uci[] | undefined {
++  const words = phrase
++    .normalize('NFC')
++    .toLowerCase()
++    .replace(/([a-hê])([1-8])/gu, '$1 $2')
++    .trim()
++    .split(/\s+/);
++  let at = 0;
++  const take = (...part: string[]) => {
++    if (!part.every((word, index) => words[at + index] === word)) return false;
++    at += part.length;
++    return true;
++  };
++  const rankAt = (index: number) =>
++    ranks[words[index]] ?? (/^[1-8]$/.test(words[index] ?? '') ? words[index] : undefined);
++  // A rank after "đi" can denote English D in a coordinate. Otherwise the
++  // word keeps its existing move-verb meaning.
++  const takeGo = () => !(words[at] === 'đi' && rankAt(at + (words[at + 1] === 'hàng' ? 2 : 1))) && take('đi');
++  let bareEnglishD = false;
++  let bareSoundD = false;
++  const readSquare = (): Key | undefined => {
++    const start = at;
++    take('ô');
++    const column = take('cột');
++    const fileWord = words[at];
++    let file = files[words[at]];
++    const numericFile = column && !file;
++    if (numericFile) {
++      const number = rankAt(at);
++      if (number) file = String.fromCharCode(96 + Number(number));
++    }
++    if (!file) {
++      at = start;
++      return undefined;
++    }
++    at++;
++    const namedRank = take('hàng');
++    const rank = rankAt(at);
++    if (!rank || (numericFile && !namedRank)) {
++      at = start;
++      return undefined;
++    }
++    at++;
++    if (!column && fileWord === 'đi') bareEnglishD = true;
++    if (!column && fileWord === 'giờ') bareSoundD = true;
++    return (file + rank) as Key;
++  };
++  const readLink = () => {
++    if (take('ăn')) {
++      take('ở') || take('tại');
++      return 'capture';
++    }
++    const moving = takeGo() || take('tiến') || take('nhảy');
++    if (['đến', 'tới', 'sang', 'lên'].some(word => take(word)) || moving) return 'move';
++    return undefined;
++  };
++
++  const verb = take('di', 'chuyển') || take('đưa') || take('cho') || take('đẩy') || takeGo();
++  const namedPiece = take('quân') || take('con');
++  const role = roles[words[at]];
++  if (role) at++;
++  else if (namedPiece) return [];
++  let color: Color | undefined;
++  if (role) {
++    const namedColor = take('màu');
++    if (take('trắng')) color = 'white';
++    else if (take('đen')) color = 'black';
++    else if (namedColor) return [];
++    takeGo();
++  }
++  const fromMarker = take('từ') || take('ở') || take('tại');
++  const firstLink = readLink();
++  if (fromMarker && firstLink) return [];
++  const first = readSquare();
++  if (!first) return undefined;
++  const secondLink = readLink();
++  const second = readSquare();
++  if ((firstLink && (secondLink || second)) || (secondLink && !second) || (fromMarker && !second)) return [];
++
++  let promotion: string | undefined;
++  let promote = take('phong');
++  if (promote) take('cấp');
++  if (take('thành')) promote = true;
++  if (promote) {
++    promotion = roles[words[at++]];
++    if (!promotion || !'QRBN'.includes(promotion)) return [];
++  }
++  if (at !== words.length) return undefined;
++  // "vua đi một" can mean "move one", not d1. Require a labelled column
++  // or a complete source/destination pair before treating this word as D.
++  if (bareEnglishD && !second) return [];
++  // A clock expression is not a coordinate. Require a named chess piece and
++  // two full squares for the unlabelled ASR spelling of dờ.
++  if (bareSoundD && (!role || !second)) return [];
++  // Keep upstream's source-square selection and destination ambiguity behavior.
++  if (!second && !verb && !role && !firstLink && !promotion) return undefined;
++
++  const from = second ? first : undefined;
++  const to = second ?? first;
++  const capture = firstLink === 'capture' || secondLink === 'capture';
++  return legal
++    .filter(uci => {
++      if (uci.length !== 4 || uci.slice(2) !== to || (from && uci.slice(0, 2) !== from)) return false;
++      const piece = board.pieces[square(uci.slice(0, 2))];
++      if (!piece) return false;
++      const actualColor = piece === piece.toUpperCase() ? 'white' : 'black';
++      if ((role && piece.toUpperCase() !== role) || (color && actualColor !== color)) return false;
++      if (promotion && (piece.toUpperCase() !== 'P' || !'18'.includes(to[1]))) return false;
++      if (capture) {
++        const target = board.pieces[square(to)];
++        if (target) {
++          if ((target === target.toUpperCase()) === (actualColor === 'white')) return false;
++        } else if (piece.toUpperCase() !== 'P' || uci.startsWith(uci[2])) return false;
++        // Empty diagonal pawn captures are en passant only because `legal` comes from the board.
++      }
++      return true;
++    })
++    .map(uci => (promotion ? `${uci}${promotion}` : uci));
++}
++
++// Select an acoustic retry, not a text correction. A misplaced từ can trigger
++// another decode but remains invalid in the actual move parser. Labelled,
++// numeric, unknown and negated input never enter this short-command grammar.
++export function vietnameseShortGrammar(heard: string, phrases: readonly string[]): string[] {
++  const words = heard.normalize('NFC').toLowerCase().trim().split(/\s+/);
++  const role = words[0];
++  if (!roles[role] || ![5, 6].includes(words.length)) return [];
++  const end = words.length - 2;
++  if (
++    !files[words[1]] ||
++    !ranks[words[2]] ||
++    !files[words[end]] ||
++    !ranks[words[end + 1]] ||
++    (words.length === 6 && !['từ', 'tới', 'đến'].includes(words[3]))
++  )
++    return [];
++  const short: string[] = [];
++  for (const phrase of phrases) {
++    const match = phrase.match(/^(\S+) từ cột (\S+) hàng (\S+) đến cột (\S+) hàng (\S+)$/u);
++    if (!match || match[1] !== role || !files[match[2]] || !files[match[4]]) continue;
++    const from = `${match[2]} ${match[3]}`;
++    const to = `${match[4]} ${match[5]}`;
++    short.push(`${role} ${from} ${to}`, `${role} ${from} tới ${to}`, `${role} ${from} đến ${to}`);
++  }
++  return short.length ? [...new Set([...short, 'đừng', 'không', '[unk]'])] : [];
++}
++
++// Representative templates keep Vosk context finite. The deterministic parser
++// also accepts the documented synonyms when secondary ASR supplies them.
++export function vietnameseMovePhrases(legal: readonly Uci[], board: Board): string[] {
++  const names: Record<string, string> = { P: 'tốt', N: 'mã', B: 'tượng', R: 'xe', Q: 'hậu', K: 'vua' };
++  const fileNames = ['a', 'bê', 'xê', 'đê', 'e', 'ép', 'gờ', 'hát'];
++  const rankNames = ['một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám'];
++  const saySquare = (key: string) => `${fileNames[key.charCodeAt(0) - 97]} ${rankNames[Number(key[1]) - 1]}`;
++  const sayExplicit = (key: string, numbered = false) =>
++    `cột ${numbered ? rankNames[key.charCodeAt(0) - 97] : fileNames[key.charCodeAt(0) - 97]} hàng ${rankNames[Number(key[1]) - 1]}`;
++  const phrases: string[] = [];
++  for (const uci of legal) {
++    if (uci.length !== 4) continue;
++    const piece = board.pieces[square(uci.slice(0, 2))];
++    if (!piece || !names[piece.toUpperCase()]) continue;
++    const role = names[piece.toUpperCase()];
++    const color = piece === piece.toUpperCase() ? 'trắng' : 'đen';
++    const from = saySquare(uci.slice(0, 2));
++    const to = saySquare(uci.slice(2));
++    phrases.push(
++      `${role} ${color} ${from} ${to}`,
++      `${role} ${from} ${to}`,
++      `quân ${role} ${color} từ ${from} đến ${to}`,
++      `đưa ${role} từ ${from} tới ${to}`,
++      `đi từ ${from} đến ${to}`,
++      `${from} sang ${to}`,
++      `${role} tới ${to}`,
++      `${role} ${color} lên ${to}`,
++      `di chuyển quân ${role} từ ${from} sang ô ${to}`,
++      `${role} ở ${from} đi ${to}`,
++      `${role} từ ${sayExplicit(uci.slice(0, 2))} đến ${sayExplicit(uci.slice(2))}`,
++      `${role} từ ${sayExplicit(uci.slice(0, 2), true)} đến ${sayExplicit(uci.slice(2), true)}`,
++    );
++    if (['b', 'd'].some(file => uci.startsWith(file) || uci[2] === file))
++      for (const [b, d] of [
++        ['bờ', 'đờ'],
++        ['bi', 'đi'],
++        ['bê', 'dê'],
++      ]) {
++        // "dờ" is absent from small-vn-0.4; secondary ASR can still supply it.
++        const alternate = (key: string, labelled = false) => {
++          const file = key.startsWith('b') ? b : key.startsWith('d') ? d : fileNames[key.charCodeAt(0) - 97];
++          const rank = rankNames[Number(key[1]) - 1];
++          return labelled ? `cột ${file} hàng ${rank}` : `${file} ${rank}`;
++        };
++        phrases.push(
++          `${role} ${alternate(uci.slice(0, 2))} ${alternate(uci.slice(2))}`,
++          `${role} từ ${alternate(uci.slice(0, 2), true)} đến ${alternate(uci.slice(2), true)}`,
++        );
++      }
++    if (piece.toUpperCase() === 'P')
++      phrases.push(`đẩy tốt ${color} từ ô ${from} lên ô ${to}`, `tốt ${color} tiến lên ${to}`);
++    if (piece.toUpperCase() === 'N') phrases.push(`mã nhảy lên ô ${to}`);
++    if (
++      (board.pieces[square(uci.slice(2))] && isEnemy(piece, board.pieces[square(uci.slice(2))])) ||
++      (piece.toUpperCase() === 'P' && !uci.startsWith(uci[2]))
++    )
++      phrases.push(`${role} ${color} ${from} ăn ${to}`, `${role} ăn ở ${to}`);
++    if (piece.toUpperCase() === 'P' && '18'.includes(uci[3]))
++      for (const name of ['hậu', 'xe', 'tượng', 'mã'])
++        phrases.push(
++          `${role} ${color} từ ${from} đến ${to} phong ${name}`,
++          `${role} ${color} từ ${from} đến ${to} phong cấp thành ${name}`,
++        );
++  }
++  return [...new Set(phrases)];
++}
++
++function isEnemy(a: string, b: string) {
++  return (a === a.toUpperCase()) !== (b === b.toUpperCase());
++}
+diff --git a/ui/voice/src/view.ts b/ui/voice/src/view.ts
+index 32b40ce..4a72100 100644
+--- a/ui/voice/src/view.ts
++++ b/ui/voice/src/view.ts
+@@ -16,6 +16,15 @@ export function renderVoiceBar(ctrl: VoiceCtrl, redraw: () => void, cls?: string
+       hl('span#voice-status', {
+         hook: onInsert(el => ctrl.mic.setController(voiceBarUpdater(ctrl, el))),
+       }),
++      ctrl.lang() === 'vi' &&
++        ['localhost', '127.0.0.1'].includes(location.hostname) &&
++        hl(
++          'a#voice-recordings-button',
++          {
++            attrs: { href: '/voice-asr/record', title: 'Thu từng câu mẫu để kiểm thử giọng nói' },
++          },
++          'Thu mẫu',
++        ),
+       hl('button#voice-help-button', {
+         attrs: { ...dataIcon(licon.InfoCircle), title: i18n.voiceCommands.voiceHelp },
+         hook: bind('click', () => openHelpDialog(ctrl), undefined, false),
+@@ -32,6 +41,11 @@ export function renderVoiceBar(ctrl: VoiceCtrl, redraw: () => void, cls?: string
+         langSetting(ctrl),
+         ctrl.module()?.prefNodes(redraw),
+         pushTalkSetting(ctrl),
++        ctrl.lang() === 'vi' &&
++          hl(
++            'p.voice-setting',
++            'Nước đi rõ ràng và hợp lệ sẽ được đi ngay, không cần xác nhận. Nước sai hoặc chưa rõ sẽ có thông báo. Có thể giữ Shift để nói. Đoạn khó nghe được nhận dạng bổ sung tại máy chủ local; không lưu âm thanh.',
++          ),
+       ]),
+   ]);
+ }
+diff --git a/ui/voice/src/voice.ts b/ui/voice/src/voice.ts
+index 3f847b8..91b3065 100644
+--- a/ui/voice/src/voice.ts
++++ b/ui/voice/src/voice.ts
+@@ -59,7 +59,7 @@ export function makeVoice(opts: {
+     shiftDown = false;
+     if (!pushTalk()) return;
+     clearTimeout(keyupTimeout);
+-    keyupTimeout = setTimeout(() => mic.stop(), 600);
++    keyupTimeout = setTimeout(() => mic.finish(), 600);
+   });
+ 
+   if (pushTalk()) mic.start(false);
+@@ -83,7 +83,7 @@ export function makeVoice(opts: {
+     if (pushTalk()) {
+       enabled(false);
+       pushTalk(false);
+-    } else enabled(!enabled()) ? mic.start() : mic.stop();
++    } else enabled(!mic.isListening && !mic.isBusy) ? mic.start() : mic.stop();
+     if (opts.tpe === 'move' && once('voice.rtfm')) openHelpDialog(ctrl);
+   }
+ 
+diff --git a/ui/voice/src/voice.vosk.ts b/ui/voice/src/voice.vosk.ts
+index cd36cee..fd60bb9 100644
+--- a/ui/voice/src/voice.vosk.ts
++++ b/ui/voice/src/voice.vosk.ts
+@@ -1,11 +1,11 @@
+ import {
+   type KaldiRecognizer,
+-  type VoskClient,
++  VoskClient,
+   type ServerMessageResult,
+   type ServerMessagePartialResult,
+-  createVoskClient,
+ } from '@lichess-org/vosk-browser';
+ 
++import { UtteranceAudio } from './fallback';
+ import type { RecognizerOpts, VoskModule } from './interfaces';
+ import { type Selectable, Switch } from './switch';
+ 
+@@ -13,25 +13,56 @@ const LOG_LEVEL = -1; // -1 errors only. 0 includes warnings, 3 is just insane
+ 
+ export function initModule(): VoskModule {
+   const recs = new Switch<string, KaldiRec>();
+-  let voskClient: VoskClient;
++  let voskClient: VoskClient | undefined;
+   let lang: string;
++  let modelVersion = 0;
++  const retries = new Set<() => void>();
+ 
+   return {
+     initModel,
+     initRecognizer,
+     isLoaded,
+     select,
++    transcribe,
+   };
+ 
+   async function initModel(url: string, language: string): Promise<void> {
++    const version = ++modelVersion;
++    for (const cancel of retries) cancel();
+     voskClient?.terminate();
++    voskClient = undefined;
+     recs.remove();
+-    voskClient = await createVoskClient({
++    const client = new VoskClient({
+       modelUrl: url,
+       workerUrl: site.asset.url('npm/vosk/vosk.worker.js'),
+       wasmUrl: site.asset.url('npm/vosk/vosk.wasm'),
+       logLevel: LOG_LEVEL,
+     });
++    // The upstream convenience factory listens only for 'load', leaving worker
++    // 'error' messages (for example a corrupt archive) pending indefinitely.
++    let timeout: ReturnType<typeof setTimeout> | undefined;
++    try {
++      await new Promise<void>((resolve, reject) => {
++        timeout = setTimeout(() => reject(new Error('Vosk model load timed out')), 30000);
++        client.on('load', message => {
++          if ('result' in message && message.result) resolve();
++          else reject(new Error('Vosk model could not be loaded'));
++        });
++        client.on('error', message => {
++          reject(new Error(('error' in message && message.error) || 'Invalid Vosk model'));
++        });
++      });
++    } catch (error) {
++      client.terminate();
++      throw error;
++    } finally {
++      clearTimeout(timeout);
++    }
++    if (version !== modelVersion) {
++      client.terminate();
++      return;
++    }
++    voskClient = client;
+     lang = language;
+   }
+ 
+@@ -47,14 +78,23 @@ export function initModule(): VoskModule {
+ 
+     // fun fact - createScriptProcessor was deprecated in 2014
+     const node = opts.audioCtx.createScriptProcessor(bufSize, 1, 1);
++    const audio = opts.audioResult ? new UtteranceAudio(opts.audioCtx.sampleRate) : undefined;
+     if (opts.partial)
+       kaldi.on('partialresult', (msg: ServerMessagePartialResult) => {
++        if (recs.items.get(opts.recId)?.kaldi !== kaldi) return;
+         if (msg.result.partial.length > 0) opts.broadcast(msg.result.partial, 'partial', 0);
+       });
+     else
+-      kaldi.on('result', (msg: ServerMessageResult) => {
+-        if (msg.result.text.length > 0) opts.broadcast(msg.result.text, 'full', 3000);
++      kaldi.on('partialresult', () => {
++        if (recs.items.get(opts.recId)?.kaldi !== kaldi) return;
++        audio?.acknowledge(false);
+       });
++    kaldi.on('result', (msg: ServerMessageResult) => {
++      if (recs.items.get(opts.recId)?.kaldi !== kaldi || opts.partial) return;
++      const samples = audio?.acknowledge(true);
++      if (samples) opts.audioResult?.(msg.result.text, samples, opts.audioCtx.sampleRate);
++      else if (msg.result.text.length > 0) opts.broadcast(msg.result.text, 'full', 3000);
++    });
+ 
+     if (LOG_LEVEL >= -1)
+       console.info(
+@@ -64,7 +104,9 @@ export function initModule(): VoskModule {
+         opts.words,
+       );
+ 
+-    recs.add(opts.recId, new KaldiRec(kaldi, node, opts.partial));
++    // Switch.add closes the selected entry; inactive recognizers also need disposal.
++    if (recs.key !== opts.recId) recs.remove(opts.recId);
++    recs.add(opts.recId, new KaldiRec(kaldi, node, opts.partial, audio));
+     return node;
+   }
+ 
+@@ -72,6 +114,52 @@ export function initModule(): VoskModule {
+     return voskClient !== undefined && (!language || language === lang);
+   }
+ 
++  function transcribe(
++    samples: Float32Array,
++    sampleRate: number,
++    phrases: string[],
++    signal: AbortSignal,
++  ): Promise<string | undefined> {
++    if (!voskClient || signal.aborted || !phrases.length || samples.length > sampleRate * 12)
++      return Promise.resolve(undefined);
++    // A separate recognizer never switches the live audio graph or its listeners.
++    // Vosk's grammar is a word loop, so accept only an entire generated phrase.
++    return new Promise(resolve => {
++      const kaldi = new voskClient!.KaldiRecognizer(sampleRate, JSON.stringify(phrases));
++      const parts: string[] = [];
++      let replies = 0;
++      let finished = false;
++      const cancel = () => finish();
++      const finish = (text?: string) => {
++        if (finished) return;
++        finished = true;
++        clearTimeout(timeout);
++        signal.removeEventListener('abort', cancel);
++        retries.delete(cancel);
++        kaldi.remove();
++        resolve(text);
++      };
++      const timeout = setTimeout(cancel, 2000);
++      signal.addEventListener('abort', cancel, { once: true });
++      retries.add(cancel);
++      const acknowledge = (text = '') => {
++        if (finished) return;
++        if (text) parts.push(text);
++        if (++replies !== 2) return;
++        const full = parts.join(' ').trim();
++        finish(phrases.includes(full) && full.split(' ').length >= 4 ? full : undefined);
++      };
++      kaldi.on('partialresult', () => acknowledge());
++      kaldi.on('result', (msg: ServerMessageResult) => acknowledge(msg.result.text));
++      try {
++        kaldi.acceptWaveformFloat(samples, sampleRate);
++        kaldi.retrieveFinalResult();
++      } catch {
++        finish();
++      }
++    });
++  }
++
+   function select(recId: string | false): void {
+     recs.set(recId);
+   }
+@@ -82,17 +170,26 @@ class KaldiRec implements Selectable {
+   node: ScriptProcessorNode;
+   partial: boolean;
+ 
+-  constructor(kaldi: KaldiRecognizer, node: ScriptProcessorNode, partial: boolean) {
++  constructor(
++    kaldi: KaldiRecognizer,
++    node: ScriptProcessorNode,
++    partial: boolean,
++    private readonly audio?: UtteranceAudio,
++  ) {
+     this.kaldi = kaldi;
+     this.node = node;
+     this.partial = partial;
+   }
+   select() {
+     if (this.node.onaudioprocess) return;
+-    this.node.onaudioprocess = e => this.kaldi.acceptWaveform(e.inputBuffer);
++    this.node.onaudioprocess = e => {
++      this.audio?.push(e.inputBuffer.getChannelData(0));
++      this.kaldi.acceptWaveform(e.inputBuffer);
++    };
+   }
+   deselect() {
+     if (!this.node.onaudioprocess) return;
++    this.audio?.flush();
+     this.kaldi.retrieveFinalResult(); // flush lattice
+     this.node.onaudioprocess = null;
+   }
+diff --git a/ui/voice/tests/fallback.test.ts b/ui/voice/tests/fallback.test.ts
+new file mode 100644
+index 0000000..cc959dc
+--- /dev/null
++++ b/ui/voice/tests/fallback.test.ts
+@@ -0,0 +1,128 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { SpeechFallback, UtteranceAudio } from '../src/fallback';
++
++test('worker acknowledgements keep later audio out of an earlier utterance', () => {
++  const audio = new UtteranceAudio(16000);
++  for (const samples of [
++    [1, 2],
++    [3, 4],
++    [5, 6],
++  ])
++    audio.push(new Float32Array(samples));
++  assert.equal(audio.acknowledge(false), undefined);
++  const first = audio.acknowledge(true);
++  assert.ok(first);
++  assert.deepEqual([...first], [1, 2, 3, 4]);
++  assert.equal(audio.acknowledge(false), undefined);
++  audio.flush();
++  assert.deepEqual([...audio.acknowledge(true)!], [5, 6]);
++});
++
++test('overlong utterances are discarded instead of submitting a truncated command', () => {
++  const audio = new UtteranceAudio(16000);
++  audio.push(new Float32Array(16000 * 13));
++  assert.equal(audio.acknowledge(true), undefined);
++  audio.push(new Float32Array([1, 2, 3]));
++  const next = audio.acknowledge(true);
++  assert.ok(next);
++  assert.deepEqual([...next], [1, 2, 3]);
++});
++
++test('overflow in later queued audio does not corrupt a completed earlier utterance', () => {
++  const audio = new UtteranceAudio(16000);
++  for (const samples of [new Float32Array([1, 2]), new Float32Array(16000 * 13)]) audio.push(samples);
++  const first = audio.acknowledge(true);
++  assert.ok(first);
++  assert.deepEqual([...first], [1, 2]);
++  assert.equal(audio.acknowledge(true), undefined);
++});
++
++test('late fallback cannot deliver after cancellation or a newer utterance', async t => {
++  const responses: ((r: Response) => void)[] = [];
++  t.mock.method(globalThis, 'fetch', () => new Promise<Response>(resolve => responses.push(resolve)));
++  const fallback = new SpeechFallback();
++  const heard: string[] = [];
++  const status: string[] = [];
++  const run = () =>
++    fallback.run(
++      new Float32Array(16000),
++      16000,
++      text => heard.push(text),
++      s => status.push(s),
++    );
++  const old = run();
++  assert.equal(responses.length, 1);
++  fallback.cancel();
++  responses[0](Response.json({ text: 'ép hai ép bốn', speech: true }));
++  await old;
++  assert.deepEqual(heard, []);
++  const a = run();
++  const b = run();
++  responses[2](Response.json({ text: 'mã ép ba', speech: true }));
++  await b;
++  responses[1](Response.json({ text: 'ép hai ép bốn', speech: true }));
++  await a;
++  assert.deepEqual(heard, ['mã ép ba']);
++});
++
++test('non-speech and service failure do not inject a command', async t => {
++  const fallback = new SpeechFallback();
++  const heard: string[] = [];
++  const status: string[] = [];
++  t.mock.method(globalThis, 'fetch', async () => Response.json({ text: '', speech: false }));
++  await fallback.run(
++    new Float32Array(16000),
++    16000,
++    t => heard.push(t),
++    t => status.push(t),
++  );
++  assert.deepEqual(heard, []);
++  assert.ok(status.at(-1)?.length);
++  t.mock.method(globalThis, 'fetch', async () => new Response('', { status: 429 }));
++  await assert.doesNotReject(
++    fallback.run(
++      new Float32Array(16000),
++      16000,
++      t => heard.push(t),
++      t => status.push(t),
++    ),
++  );
++  assert.deepEqual(heard, []);
++});
++
++test('a rejected local decode proceeds to HTTP ASR, cancellation cannot start HTTP or deliver', async t => {
++  const fallback = new SpeechFallback();
++  const heard: string[] = [];
++  let requests = 0;
++  t.mock.method(globalThis, 'fetch', async () => {
++    requests++;
++    return Response.json({ text: 'tốt giờ hai tới giờ bốn', speech: true });
++  });
++  const run = (recognize: (signal: AbortSignal) => Promise<string | undefined>) =>
++    fallback.run(
++      new Float32Array(16000),
++      16000,
++      text => heard.push(text),
++      () => {},
++      'general',
++      { recognize, accept: () => false },
++    );
++  let decode!: (text: string) => void;
++  const old = run(
++    () =>
++      new Promise(resolve => {
++        decode = resolve;
++      }),
++  );
++  assert.equal(requests, 0);
++  fallback.cancel();
++  decode('tốt bi hai bi bốn');
++  await old;
++  assert.equal(requests, 0);
++  assert.deepEqual(heard, []);
++  await run(async () => 'invalid');
++  assert.equal(requests, 1);
++  assert.deepEqual(heard, ['tốt giờ hai tới giờ bốn']);
++});
+diff --git a/ui/voice/tests/grammar.test.ts b/ui/voice/tests/grammar.test.ts
+new file mode 100644
+index 0000000..c49a024
+--- /dev/null
++++ b/ui/voice/tests/grammar.test.ts
+@@ -0,0 +1,35 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { balanceGrammar } from '../src/grammar';
++
++const terminalMass = (phrases: string[], ending: string) =>
++  phrases.filter(phrase => phrase === ending || phrase.endsWith(` ${ending}`)).length;
++
++test('notation variants do not give one spoken destination more prior mass', () => {
++  const input = ['ép hai ép ba', 'g một ép ba', 'mã ép ba', 'ép hai ép bốn', 'ép bốn', '[unk]'];
++  const balanced = balanceGrammar(input);
++  assert.equal(terminalMass(balanced, 'ép ba'), terminalMass(balanced, 'ép bốn'));
++  assert.deepEqual(new Set(balanced), new Set(input), 'Keep every complete phrase and the unknown path');
++});
++
++test('balancing applies to other ranks and ignores duplicated input phrases', () => {
++  const input = ['xe a năm', 'hậu a năm', 'a hai a năm', 'a sáu', '[unk]'];
++  const balanced = balanceGrammar([...input, 'xe a năm']);
++  assert.equal(terminalMass(balanced, 'a năm'), terminalMass(balanced, 'a sáu'));
++  assert.deepEqual(balanced, balanceGrammar(input));
++  assert.deepEqual(new Set(balanced), new Set(input));
++});
++
++test('a large legal vocabulary is preserved without unbounded expansion', () => {
++  for (const input of [
++    Array.from({ length: 9000 }, (_, i) => `piece${i} square${i}`),
++    [43, 47, 53].flatMap((size, group) =>
++      Array.from({ length: size }, (_, i) => `variant${i} shared ending${group}`),
++    ),
++  ]) {
++    const balanced = balanceGrammar(input);
++    assert.ok(balanced.length <= Math.max(input.length, 8192));
++    assert.deepEqual(new Set(balanced), new Set(input));
++  }
++});
+diff --git a/ui/voice/tests/mic.test.ts b/ui/voice/tests/mic.test.ts
+new file mode 100644
+index 0000000..f77d311
+--- /dev/null
++++ b/ui/voice/tests/mic.test.ts
+@@ -0,0 +1,328 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++
++import type { RecognizerOpts } from '../src/interfaces';
++
++// IndexedDB and physical audio devices are the external boundaries in this test.
++mock.module('lib/objectStorage', { namedExports: { objectStorage: async () => ({ count: async () => 1 }) } });
++const { Mic } = await import('../src/mic');
++
++function environment(denied = false, brokenModel = false) {
++  const captures: RecognizerOpts[] = [];
++  const connections = new Set<AudioNode>();
++  let loaded = false;
++  const retries: { samples: Float32Array; rate: number; words: string[]; signal: AbortSignal }[] = [];
++  const track = { enabled: true, getSettings: () => ({ sampleRate: 16000 }) };
++  Object.defineProperty(navigator, 'mediaDevices', {
++    configurable: true,
++    value: {
++      getUserMedia: async () => {
++        if (denied) throw new DOMException('Permission denied', 'NotAllowedError');
++        return { getAudioTracks: () => [track] };
++      },
++    },
++  });
++  Object.assign(globalThis, {
++    AudioContext: class {
++      state = 'running';
++      sampleRate = 16000;
++      destination = {};
++      createMediaStreamSource() {
++        return {
++          connect(node: AudioNode) {
++            connections.add(node);
++          },
++          disconnect(node: AudioNode) {
++            connections.delete(node);
++          },
++        };
++      }
++    },
++  });
++  Object.assign(site, {
++    sound: { listeners: new Set() },
++    asset: {
++      url: (path: string) => path,
++      loadEsm: async () => ({
++        isLoaded: () => loaded,
++        initModel: async () => {
++          if (brokenModel) throw new Error('Invalid model archive');
++          loaded = true;
++        },
++        initRecognizer: (opts: RecognizerOpts) => {
++          captures.push(opts);
++          return { connect() {}, disconnect() {} };
++        },
++        select() {},
++        transcribe: async (samples: Float32Array, rate: number, words: string[], signal: AbortSignal) => {
++          retries.push({ samples, rate, words, signal });
++          return 'tốt bi hai bi bốn';
++        },
++      }),
++    },
++  });
++  const mic = new Mic();
++  mic.setLang('vi');
++  mic.initRecognizer(['e', 'hai', 'bốn']);
++  return { mic, track, captures, connections, retries };
++}
++
++test('unhandled short chess speech retries captured audio with all matching legal role phrases', async t => {
++  const { mic, captures, retries } = environment();
++  let requests = 0;
++  t.mock.method(globalThis, 'fetch', async () => {
++    requests++;
++    return Response.json({ text: 'tốt bê hai từ bê bốn', speech: true });
++  });
++  const heard: string[] = [];
++  mic.initRecognizer(
++    [
++      'tốt từ cột bi hàng hai đến cột bi hàng bốn',
++      'tốt từ cột a hàng hai đến cột a hàng ba',
++      'tốt từ cột hai hàng hai đến cột hai hàng bốn',
++      'mã từ cột bê hàng một đến cột xê hàng ba',
++    ],
++    {
++      fallback: true,
++      listener: (text, type) => {
++        if (type === 'fallback') heard.push(text);
++        return text === 'tốt bi hai bi bốn';
++      },
++    },
++  );
++  await mic.start();
++  const samples = new Float32Array(16000).fill(0.1);
++  captures.at(-1)!.audioResult!('tốt bi hai từ bê bốn', samples, 16000);
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.equal(retries.length, 1, 'The same audio must be decoded again, not repaired as text');
++  assert.deepEqual(retries[0].samples, samples);
++  assert.equal(retries[0].rate, 16000);
++  assert.ok(retries[0].words.includes('tốt bi hai bi bốn'));
++  assert.ok(
++    retries[0].words.includes('tốt a hai tới a ba'),
++    'The retry must include other legal files and destinations',
++  );
++  assert.ok(retries[0].words.includes('[unk]') && retries[0].words.includes('không'));
++  assert.ok(!retries[0].words.some(phrase => phrase.includes('cột') || phrase.startsWith('mã')));
++  assert.deepEqual(heard, ['tốt bi hai bi bốn']);
++  assert.equal(requests, 0, 'An accepted local decode does not need HTTP ASR');
++  mic.stop();
++});
++
++test('negation, controls and incomplete labelled columns never select the short acoustic retry', async t => {
++  const { mic, captures, retries } = environment();
++  t.mock.method(globalThis, 'fetch', async () => Response.json({ text: '', speech: false }));
++  mic.initRecognizer(['tốt từ cột bê hàng hai đến cột bê hàng bốn'], {
++    fallback: true,
++    listener: () => false,
++  });
++  await mic.start();
++  for (const text of [
++    'không tốt bê hai từ bê bốn',
++    'sai nhận',
++    'tốt từ cột hàng hai đến cột hàng bốn',
++    '[unk]',
++  ]) {
++    captures.at(-1)!.audioResult!(text, new Float32Array(16000), 16000);
++    await new Promise(resolve => setTimeout(resolve, 0));
++  }
++  assert.equal(retries.length, 0);
++  mic.stop();
++});
++
++test('a modal listener that consumed speech prevents secondary recognition', async t => {
++  const { mic, captures } = environment();
++  let requests = 0;
++  t.mock.method(globalThis, 'fetch', async () => {
++    requests++;
++    return Response.json({ text: '', speech: false });
++  });
++  mic.initRecognizer(['ép'], { fallback: true, listener: () => mic.stopPropagation() });
++  await mic.start();
++  captures.at(-1)!.audioResult!('ép', new Float32Array(16000), 16000);
++  assert.equal(requests, 0);
++  assert.equal(mic.status, 'ép');
++  mic.stop();
++});
++
++test('replacing a recognizer and stopping mic disconnect old source nodes', async () => {
++  const { mic, connections } = environment();
++  await mic.start();
++  assert.equal(connections.size, 1);
++  mic.initRecognizer(['mã', 'ép', 'ba']);
++  assert.equal(connections.size, 1);
++  mic.stop();
++  assert.equal(connections.size, 0);
++});
++
++test('push-to-talk release accepts its final result, hard stop ignores it', async () => {
++  const { mic, captures } = environment();
++  const heard: string[] = [];
++  mic.initRecognizer(['ép'], {
++    listener: (text, type) => {
++      if (type === 'full') heard.push(text);
++      return true;
++    },
++  });
++  await mic.start();
++  mic.finish();
++  captures.at(-1)!.broadcast('ép', 'full', 0);
++  assert.deepEqual(heard, ['ép']);
++  await mic.start();
++  mic.stop();
++  captures.at(-1)!.broadcast('mã', 'full', 0);
++  assert.deepEqual(heard, ['ép']);
++});
++
++test('an empty final flush cannot replace the pending fallback for a spoken utterance', async t => {
++  const { mic, captures } = environment();
++  const replies: ((r: Response) => void)[] = [];
++  const heard: string[] = [];
++  t.mock.method(globalThis, 'fetch', () => new Promise<Response>(resolve => replies.push(resolve)));
++  mic.initRecognizer(['ép'], {
++    fallback: true,
++    listener: (text, type) => {
++      if (type === 'fallback') heard.push(text);
++      return false;
++    },
++  });
++  await mic.start();
++  const receive = captures.at(-1)!.audioResult!;
++  receive('[unk]', new Float32Array(16000), 16000);
++  receive('', new Float32Array(3200), 16000);
++  assert.equal(replies.length, 1, 'Trailing silence must not cancel the speech request');
++  replies[0](Response.json({ text: 'ép hai ép bốn', speech: true }));
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.deepEqual(heard, ['ép hai ép bốn']);
++  mic.stop();
++});
++
++test('denied microphone permission is displayed without an unhandled rejection', async () => {
++  const { mic } = environment(true);
++  await assert.doesNotReject(mic.start());
++  assert.equal(mic.isListening, false);
++  assert.equal(mic.isBusy, false);
++  assert.equal(mic.status, 'No permission');
++});
++
++test('promotion context applies only to the current utterance with a whole promotion keyword', async t => {
++  const { mic, captures } = environment();
++  const requests: RequestInit[] = [];
++  t.mock.method(globalThis, 'fetch', async (_url: string, init: RequestInit) => {
++    requests.push(init);
++    return Response.json({ text: '', speech: false });
++  });
++  mic.initRecognizer(['phong', 'xác nhận'], { fallback: true, listener: () => false });
++  await mic.start();
++  const receive = captures.at(-1)!.audioResult!;
++  const audio = new Float32Array(16000).fill(0.1);
++  for (const [text, context] of [
++    ['tốt e bảy tới e tám phong tịnh hậu', 'promotion'],
++    ['sai nhận', 'general'],
++    ['đồng di', 'general'],
++    ['phongx', 'general'],
++    ['[unk]', 'general'],
++  ]) {
++    receive(text, audio, 16000);
++    await new Promise(resolve => setTimeout(resolve, 0));
++    const request = requests.at(-1)!;
++    assert.equal(new Headers(request.headers).get('X-Voice-Context'), context, text);
++    assert.deepEqual(new Float32Array(request.body as ArrayBuffer), audio);
++  }
++  assert.equal(requests.length, 5);
++  mic.stop();
++});
++
++test('invalid model is displayed and leaves microphone stopped', async () => {
++  const { mic, track } = environment(false, true);
++  await assert.doesNotReject(mic.start());
++  assert.equal(mic.isBusy, false);
++  assert.equal(track.enabled, false);
++  assert.match(mic.status, /Invalid model archive/);
++});
++
++test('coordinate context is utterance-scoped and promotion keeps priority', async t => {
++  const { mic, captures } = environment();
++  const requests: RequestInit[] = [];
++  t.mock.method(globalThis, 'fetch', async (_url: string, init: RequestInit) => {
++    requests.push(init);
++    return Response.json({ text: '', speech: false });
++  });
++  mic.initRecognizer(['cột', 'phong', 'xác nhận'], { fallback: true, listener: () => false });
++  await mic.start();
++  const receive = captures.at(-1)!.audioResult!;
++  const audio = new Float32Array(16000).fill(0.1);
++  for (const [text, context] of [
++    ['tốt từ cột hai a hai đến cột hai a bốn', 'coordinates'],
++    ['sai nhận', 'general'],
++    ['đồng di', 'general'],
++    ['hủy nước đi', 'general'],
++    ['tốt từ ô hàng hai đến cột hàng bốn', 'coordinates'],
++    ['tốt e bảy tới e tám phong đến cột', 'promotion'],
++    ['cộtx', 'general'],
++  ]) {
++    receive(text, audio, 16000);
++    await new Promise(resolve => setTimeout(resolve, 0));
++    assert.equal(new Headers(requests.at(-1)!.headers).get('X-Voice-Context'), context, text);
++    assert.deepEqual(new Float32Array(requests.at(-1)!.body as ArrayBuffer), audio);
++  }
++  assert.equal(requests.length, 7);
++  mic.stop();
++});
++
++test('overlapping site sounds keep input muted until all sounds finish', async () => {
++  const { mic, track } = environment();
++  await mic.start();
++  const sound = (event: 'start' | 'stop') => site.sound.listeners.forEach(listener => listener(event));
++  sound('start');
++  sound('start');
++  sound('stop');
++  assert.equal(track.enabled, false);
++  sound('stop');
++  assert.equal(track.enabled, true);
++  mic.stop();
++  assert.equal(track.enabled, false);
++});
++
++test('move feedback updates the voice bar without sending text to recognition listeners', async () => {
++  const { mic } = environment();
++  const display: string[] = [];
++  const heard: string[] = [];
++  mic.setController(text => display.push(text));
++  mic.addListener(text => {
++    heard.push(text);
++  });
++  assert.equal(typeof mic.setStatus, 'function');
++  mic.setStatus('Nước đi không hợp lệ. Hãy nói lại.');
++  assert.equal(mic.status, 'Nước đi không hợp lệ. Hãy nói lại.');
++  assert.equal(display.at(-1), mic.status);
++  assert.deepEqual(heard, []);
++});
++
++test('a grammar replacement discards pending fallback before it can deliver a direct move', async t => {
++  const { mic, captures } = environment();
++  let reply!: (r: Response) => void;
++  t.mock.method(
++    globalThis,
++    'fetch',
++    () =>
++      new Promise<Response>(resolve => {
++        reply = resolve;
++      }),
++  );
++  const heard: string[] = [];
++  mic.initRecognizer(['ép'], { fallback: true, listener: () => false });
++  await mic.start();
++  captures.at(-1)!.audioResult!('[unk]', new Float32Array(16000), 16000);
++  mic.initRecognizer(['mã'], {
++    fallback: true,
++    listener: (text, type) => {
++      if (type === 'fallback') heard.push(text);
++      return true;
++    },
++  });
++  reply(Response.json({ text: 'tốt e hai e bốn', speech: true }));
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.deepEqual(heard, []);
++  mic.stop();
++});
+diff --git a/ui/voice/tests/vietnamese.test.ts b/ui/voice/tests/vietnamese.test.ts
+new file mode 100644
+index 0000000..1386f56
+--- /dev/null
++++ b/ui/voice/tests/vietnamese.test.ts
+@@ -0,0 +1,712 @@
++import { Chessground } from '@lichess-org/chessground';
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { mock, test, type TestContext } from 'node:test';
++
++import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
++
++import type { Listener, Microphone, VoiceCtrl } from '../src/interfaces';
++// Persistent logging uses IndexedDB, which jsdom does not implement.
++mock.module('lib/permalog', { namedExports: { log: async () => {} } });
++const { initModule } = await import('../src/move/voice.move');
++
++const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
++const grammar = readFileSync(new URL('../grammar/move-vi.json', import.meta.url), 'utf8');
++
++async function setup(
++  t: TestContext,
++  fen = start,
++  dests: [Key, Key[]][] = [['e2', ['e3', 'e4']]],
++  timer = '0',
++) {
++  for (const method of ['info', 'groupCollapsed', 'groupEnd'] as const)
++    t.mock.method(console, method, () => {});
++  localStorage.clear();
++  localStorage.setItem('voice.timer', timer);
++  localStorage.setItem('voice.move', Date.now().toString());
++  Object.assign(site, { asset: { url: (path: string) => path } });
++  t.mock.method(globalThis, 'fetch', async () => new Response(grammar));
++  const listeners = new Map<string, Listener>();
++  const grammars = new Map<string, string[]>();
++  const notices: string[] = [];
++  // The external audio boundary is replaced; grammar, matching and Chessground are real.
++  const mic = {
++    initRecognizer: (words: string[], opts: { recId?: string; listener?: Listener }) => {
++      grammars.set(opts.recId ?? 'default', words);
++      if (opts.listener) listeners.set(opts.recId ?? 'default', opts.listener);
++    },
++    setRecognizer: () => {},
++    setStatus: (text: string) => notices.push(text),
++    stop: () => listeners.get('default')?.('', 'stop'),
++    isListening: true,
++  } as unknown as Microphone;
++  const cg = Chessground(document.createElement('div'), {
++    fen,
++    turnColor: fen.includes(' w ') ? 'white' : 'black',
++    movable: { free: false, dests: new Map(dests) },
++  });
++  t.after(() => cg.destroy());
++  const sent: [Key, Key, Role | undefined, boolean | undefined][] = [];
++  const root: MoveRootCtrl = {
++    pluginMove: (...args) => sent.push(args),
++    redraw: () => {},
++    flipNow: () => {},
++  };
++  const voice = { mic, lang: () => 'vi', pushTalk: () => true, flash: () => {} } as VoiceCtrl;
++  const move = initModule({ root, voice, initial: { cg, fen, canMove: true } });
++  await move.initGrammar();
++  return {
++    move,
++    cg,
++    sent,
++    voice,
++    grammars,
++    notices,
++    say: (text: string) => listeners.get('default')!(text, 'full'),
++    fallback: (text: string) => listeners.get('default')!(text, 'fallback'),
++  };
++}
++
++test('secondary recognition can move directly but cannot execute unrelated controls', async t => {
++  const { move, sent, fallback, say } = await setup(t, start, [['f2', ['f3', 'f4']]]);
++  fallback('ép hai ép bốn');
++  assert.equal(move.question(), false);
++  assert.deepEqual(sent, [['f2', 'f4', undefined, true]]);
++  fallback('xác nhận');
++  fallback('xin thua');
++  say('xác nhận');
++  assert.equal(sent.length, 1);
++  assert.equal(move.question(), false);
++});
++
++test('cancellation clears ambiguous arrows without submitting a move', async t => {
++  const { move, cg, sent, say } = await setup(t, '7k/8/8/8/8/5N2/8/1N5K w - - 0 1', [
++    ['b1', ['d2']],
++    ['f3', ['d2']],
++  ]);
++  say('mã đê hai');
++  assert.equal(cg.state.drawable.shapes.length, 2);
++  say('hủy nước đi');
++  say('xanh');
++  assert.equal(cg.state.drawable.shapes.length, 0);
++  assert.equal(move.question(), false);
++  assert.deepEqual(sent, []);
++});
++
++test('secondary speech cannot accept resignation or an opponent request', async t => {
++  const { move, sent, fallback, say } = await setup(t);
++  for (const text of ['không xác nhận', 'xác nhận rồi xin thua', 'xin thua']) fallback(text);
++  assert.deepEqual(sent, []);
++  assert.equal(move.question(), false);
++  say('xin thua');
++  fallback('xác nhận');
++  assert.match(String((move.question() || { prompt: '' }).prompt), /resignation/);
++  const answers: boolean[] = [];
++  say('huỷ bỏ');
++  move.listenForResponse('draw', yes => answers.push(yes));
++  fallback('đồng ý');
++  assert.deepEqual(answers, []);
++});
++
++test('recognition routing treats commands and ambiguity as handled, unknown speech as unhandled', async t => {
++  const { say } = await setup(t, start, [
++    ['f2', ['f3', 'f4']],
++    ['g1', ['f3', 'h3']],
++  ]);
++  assert.equal(say('xin chào'), false);
++  assert.equal(say('ép ba'), true);
++  assert.equal(say('huỷ bỏ'), true);
++});
++
++test('natural Vietnamese pawn commands preserve piece, color and coordinates', async t => {
++  for (const phrase of [
++    'tốt trắng e hai e bốn',
++    'quân tốt trắng từ e hai đến e bốn',
++    'đưa tốt trắng từ e2 tới e4',
++    'cho con tốt trắng đi từ ê hai sang ê bốn',
++    'di chuyển tốt màu trắng e 2 e 4',
++    'e hai sang e bốn',
++    'đi từ e hai đến e bốn',
++    'tốt trắng lên e tư',
++    'đẩy tốt trắng từ ô e hai lên ô e bốn',
++    'tốt ở e hai đi e bốn',
++    'quân tốt trắng ở ô e hai đi đến ô e bốn',
++    'tốt trắng tiến lên e bốn',
++    'di chuyển quân tốt từ e2 sang ô e4',
++  ]) {
++    const { move, say, sent } = await setup(t);
++    assert.equal(say(phrase), true, phrase);
++    assert.equal(move.question(), false, phrase);
++    assert.deepEqual(sent, [['e2', 'e4', undefined, true]], phrase);
++  }
++});
++
++test('natural commands reject wrong pieces, colors, captures, negation and illegal destinations', async t => {
++  const { move, say, sent } = await setup(t);
++  for (const phrase of [
++    'mã trắng e hai e bốn',
++    'tốt đen e hai e bốn',
++    'tốt trắng e hai e năm',
++    'tốt trắng từ e ba đến e bốn',
++    'tốt trắng e hai ăn e bốn',
++    'đừng đi tốt trắng e hai e bốn',
++    'không đi tốt trắng e hai e bốn',
++    'tốt trắng e hai e bốn rồi đầu hàng',
++    'tốt trắng e hai e bốn phong hậu',
++    'từ e hai',
++    'tốt trắng ở e hai',
++    'tốt trắng từ e hai đến e bốn rồi xác nhận',
++    'tốt trắng lên e ba hoặc e bốn',
++    'tốt trắng đến e hai đến e bốn',
++  ]) {
++    assert.equal(say(phrase), false, phrase);
++    assert.equal(move.question(), false, phrase);
++    assert.deepEqual(sent, []);
++  }
++});
++
++test('natural piece destinations keep ambiguity and support black pieces and phonetic files', async t => {
++  for (const phrase of [
++    'đưa con ngựa trắng lên ép ba',
++    'mã nhảy lên ô ép ba',
++    'ngựa trắng gờ một đi tới f3',
++  ]) {
++    const white = await setup(t, start, [['g1', ['f3', 'h3']]]);
++    assert.equal(white.say(phrase), true, phrase);
++    assert.deepEqual(white.sent, [['g1', 'f3', undefined, true]], phrase);
++    assert.equal(white.move.question(), false);
++  }
++  const black = await setup(t, start.replace(' w ', ' b '), [['e7', ['e6', 'e5']]]);
++  black.say('quân tốt đen từ ê bảy tới e năm');
++  assert.deepEqual(black.sent, [['e7', 'e5', undefined, true]]);
++  const ambiguous = await setup(t, '4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1', [
++    ['b1', ['d2']],
++    ['f1', ['d2']],
++  ]);
++  ambiguous.say('mã trắng tới đê hai');
++  assert.equal(ambiguous.cg.state.drawable.shapes.length, 2);
++  assert.equal(ambiguous.move.question(), false);
++  ambiguous.say('xác nhận');
++  assert.deepEqual(ambiguous.sent, []);
++});
++
++test('natural capture and promotion commands validate the actual legal move', async t => {
++  const capture = await setup(t, '4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1', [['e4', ['e5', 'd5']]]);
++  capture.say('tốt trắng từ e bốn ăn ở dê năm');
++  assert.deepEqual(capture.sent, [['e4', 'd5', undefined, true]]);
++  const ep = await setup(t, '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1', [['e5', ['e6', 'd6']]]);
++  ep.say('tốt trắng e năm ăn dê sáu');
++  assert.deepEqual(ep.sent, [['e5', 'd6', undefined, true]]);
++  const promotion = await setup(t, 'k7/4P3/8/8/8/8/8/4K3 w - - 0 1', [['e7', ['e8']]]);
++  promotion.say('đưa tốt trắng từ e bảy tới e tám phong thành ngựa');
++  assert.deepEqual(promotion.sent, [['e7', 'e8', 'knight', true]]);
++});
++
++test('natural promotion supports every legal piece for both colors', async t => {
++  for (const [name, role] of [
++    ['hậu', 'queen'],
++    ['xe', 'rook'],
++    ['tịnh', 'bishop'],
++    ['ngựa', 'knight'],
++  ] as const) {
++    for (const color of ['white', 'black'] as const) {
++      const white = color === 'white';
++      const from: Key = white ? 'e7' : 'e2';
++      const to: Key = white ? 'e8' : 'e1';
++      const fen = white ? 'k7/4P3/8/8/8/8/8/K7 w - - 0 1' : 'k7/8/8/8/8/8/4p3/K7 b - - 0 1';
++      const { say, sent } = await setup(t, fen, [[from, [to]]]);
++      const phrase = `tốt ${white ? 'trắng' : 'đen'} từ ${from} đến ${to} phong cấp thành ${name}`;
++      assert.equal(say(phrase), true, phrase);
++      assert.deepEqual(sent, [[from, to, role, true]], phrase);
++      say('đồng ý');
++      assert.deepEqual(sent, [[from, to, role, true]], phrase);
++    }
++  }
++});
++
++test('standalone old confirmation and cancellation aliases cannot submit moves', async t => {
++  for (const phrase of [
++    'xác nhận nước đi',
++    'đồng ý',
++    'đúng rồi',
++    'thực hiện nước đi',
++    'hủy bỏ',
++    'huỷ bỏ',
++    'hủy nước đi',
++    'huỷ nước đi',
++    'bỏ nước này',
++    'không đi',
++    'sai rồi',
++  ]) {
++    const { say, sent, move } = await setup(t);
++    say(phrase);
++    assert.deepEqual(sent, [], phrase);
++    assert.equal(move.question(), false);
++  }
++  for (const [phrase, destination] of [
++    ['nhập thành ngắn', 'h1'],
++    ['nhập thành bên vua', 'h1'],
++    ['nhập thành dài', 'a1'],
++    ['nhập thành bên hậu', 'a1'],
++  ] as const) {
++    const castle = await setup(t, '4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1', [['e1', ['a1', 'h1']]]);
++    assert.equal(castle.say(phrase), true, phrase);
++    assert.deepEqual(castle.sent, [['e1', destination, undefined, true]], phrase);
++  }
++});
++
++test('natural templates are present in the legal-position Vosk grammar', async t => {
++  const { grammars } = await setup(t);
++  const phrases = grammars.get('default')!;
++  assert.ok(phrases.includes('tốt trắng e hai e bốn'));
++  assert.ok(phrases.includes('quân tốt trắng từ e hai đến e bốn'));
++  assert.ok(phrases.includes('tốt trắng lên e bốn'));
++  assert.ok(!phrases.includes('tốt đen e hai e bốn'));
++  assert.ok(!phrases.includes('tốt trắng e hai e năm'));
++  assert.ok(phrases.includes('đồng ý'));
++  assert.ok(phrases.includes('hủy nước đi'));
++});
++
++test('explicit file and rank names distinguish B and D with immediate submission', async t => {
++  const cases = [
++    ['tốt từ cột bê hàng hai đến cột bê hàng bốn', 'b2', 'b4'],
++    ['tốt từ cột đê hàng hai đến cột đê hàng bốn', 'd2', 'd4'],
++    ['tốt cột bê hàng hai tới cột bê hàng bốn', 'b2', 'b4'],
++    ['tốt cột dê hàng hai tới cột dê hàng bốn', 'd2', 'd4'],
++    ['tốt từ cột hai hàng hai đến cột hai hàng bốn', 'b2', 'b4'],
++    ['tốt từ cột bốn hàng hai đến cột bốn hàng bốn', 'd2', 'd4'],
++    ['tốt từ cột 2 hàng 2 đến cột 2 hàng 4', 'b2', 'b4'],
++    ['tốt từ cột 4 hàng 2 đến cột 4 hàng 4', 'd2', 'd4'],
++    ['tốt cột bê hàng hai tới bê bốn', 'b2', 'b4'],
++  ] as const;
++  for (const [phrase, from, to] of cases) {
++    const { say, sent } = await setup(t, start, [
++      ['b2', ['b4']],
++      ['d2', ['d4']],
++    ]);
++    assert.equal(say(phrase), true, phrase);
++    assert.deepEqual(sent, [[from, to, undefined, true]], phrase);
++    say('xác nhận');
++    assert.deepEqual(sent, [[from, to, undefined, true]], phrase);
++  }
++});
++
++test('numeric file coordinates cover all eight files and reject malformed explicit coordinates', async t => {
++  const fen = '7k/8/8/8/8/8/PPPPPPPP/7K w - - 0 1';
++  for (const [column, from, to] of [
++    ['một', 'a2', 'a4'],
++    ['hai', 'b2', 'b4'],
++    ['ba', 'c2', 'c4'],
++    ['bốn', 'd2', 'd4'],
++    ['năm', 'e2', 'e4'],
++    ['sáu', 'f2', 'f4'],
++    ['bảy', 'g2', 'g4'],
++    ['tám', 'h2', 'h4'],
++  ] as const) {
++    const { say, sent } = await setup(t, fen, [[from, [to]]]);
++    say(`tốt từ cột ${column} hàng hai đến cột ${column} hàng bốn`);
++    say('đồng ý');
++    assert.deepEqual(sent, [[from, to, undefined, true]], column);
++  }
++  for (const phrase of [
++    'tốt cột chín hàng hai tới cột chín hàng bốn',
++    'tốt cột không hàng hai tới cột không hàng bốn',
++    'tốt cột bê hàng hai tới cột bê hàng chín',
++    'tốt cột hai hai tới cột hai bốn',
++    'tốt hai hàng hai tới hai hàng bốn',
++    'tốt cột hàng hai tới cột hàng bốn',
++    'tốt cột bê hàng hai tới cột đê hàng bốn',
++    'đừng đi tốt cột bê hàng hai tới cột bê hàng bốn',
++    'tốt cột bê hàng hai tới cột bê hàng bốn sai',
++  ]) {
++    const { say, sent, move } = await setup(t, start, [
++      ['b2', ['b4']],
++      ['d2', ['d4']],
++    ]);
++    say(phrase);
++    say('xác nhận');
++    assert.ok(!move.question(), phrase);
++    assert.deepEqual(sent, [], phrase);
++  }
++});
++
++test('explicit coordinate phrases train every legal B/D alternative without illegal destinations', async t => {
++  const { grammars } = await setup(t, start, [
++    ['b2', ['b3', 'b4']],
++    ['d2', ['d3', 'd4']],
++  ]);
++  const phrases = grammars.get('default')!;
++  for (const phrase of [
++    'tốt từ cột bê hàng hai đến cột bê hàng ba',
++    'tốt từ cột bê hàng hai đến cột bê hàng bốn',
++    'tốt từ cột đê hàng hai đến cột đê hàng ba',
++    'tốt từ cột đê hàng hai đến cột đê hàng bốn',
++    'tốt từ cột hai hàng hai đến cột hai hàng bốn',
++    'tốt từ cột bốn hàng hai đến cột bốn hàng bốn',
++  ])
++    assert.ok(phrases.includes(phrase), phrase);
++  assert.ok(phrases.includes('[unk]'));
++  assert.ok(!phrases.some(p => p.includes('cột bê hàng năm')));
++  assert.ok(!phrases.some(p => p.includes('cột hai hàng năm')));
++});
++
++test('numeric B/D columns retain their files with Black and a rotated board', async t => {
++  for (const [number, from, to] of [
++    ['hai', 'b7', 'b5'],
++    ['bốn', 'd7', 'd5'],
++  ] as const) {
++    const { cg, say, sent } = await setup(t, start.replace(' w ', ' b '), [
++      ['b7', ['b5']],
++      ['d7', ['d5']],
++    ]);
++    cg.toggleOrientation();
++    say(`tốt từ cột ${number} hàng bảy đến cột ${number} hàng năm`);
++    assert.deepEqual(sent, [[from, to, undefined, true]]);
++    say('xác nhận');
++    assert.deepEqual(sent, [[from, to, undefined, true]], number);
++  }
++});
++
++test('Vietnamese and English B/D file names preserve both coordinates', async t => {
++  for (const [name, from, to] of [
++    ['bê', 'b2', 'b4'],
++    ['bờ', 'b2', 'b4'],
++    ['bi', 'b2', 'b4'],
++    ['đê', 'd2', 'd4'],
++    ['dê', 'd2', 'd4'],
++    ['dờ', 'd2', 'd4'],
++    ['đờ', 'd2', 'd4'],
++    ['đi', 'd2', 'd4'],
++  ] as const) {
++    for (const phrase of [
++      `tốt ${name} hai ${name} bốn`,
++      `tốt từ cột ${name} hàng hai đến cột ${name} hàng bốn`,
++    ]) {
++      const { say, sent } = await setup(t, start, [
++        ['b2', ['b4']],
++        ['d2', ['d4']],
++      ]);
++      assert.equal(say(phrase), true, phrase);
++      assert.deepEqual(sent, [[from, to, undefined, true]]);
++      say('đồng ý');
++      assert.deepEqual(sent, [[from, to, undefined, true]], phrase);
++    }
++  }
++});
++
++test('English D coordinates and the Vietnamese move verb do not consume each other', async t => {
++  for (const [phrase, from, to] of [
++    ['đi e hai e bốn', 'e2', 'e4'],
++    ['tốt đi từ e hai đến e bốn', 'e2', 'e4'],
++    ['tốt e hai đi e bốn', 'e2', 'e4'],
++    ['mã đi ép ba', 'g1', 'f3'],
++    ['đi đi hai đi bốn', 'd2', 'd4'],
++    ['tốt đi từ đi hai đến đi bốn', 'd2', 'd4'],
++    ['tốt từ cột đi hàng hai đến đê bốn', 'd2', 'd4'],
++  ] as const) {
++    const { say, sent } = await setup(t, start, [
++      ['e2', ['e4']],
++      ['g1', ['f3']],
++      ['d2', ['d4']],
++    ]);
++    assert.equal(say(phrase), true, phrase);
++    assert.deepEqual(sent, [[from, to, undefined, true]]);
++    say('xác nhận');
++    assert.deepEqual(sent, [[from, to, undefined, true]], phrase);
++  }
++});
++
++test('a single unlabelled English D cannot turn an ambiguous move verb into a destination', async t => {
++  const fen = '7k/8/8/8/8/8/8/4K3 w - - 0 1';
++  for (const phrase of ['vua đi một', 'đi một', 'đừng đi vua cột đi hàng một', 'vua đi một bước']) {
++    const { say, move, sent } = await setup(t, fen, [['e1', ['d1']]]);
++    say(phrase);
++    say('xác nhận');
++    assert.ok(!move.question(), phrase);
++    assert.deepEqual(sent, [], phrase);
++  }
++  const { say, sent } = await setup(t, fen, [['e1', ['d1']]]);
++  say('vua tới cột đi hàng một');
++  say('xác nhận');
++  assert.deepEqual(sent, [['e1', 'd1', undefined, true]]);
++  for (const phrase of ['tốt bờ hai tới dờ bốn', 'tốt bi hai tới đi bốn']) {
++    const rejected = await setup(t, start, [
++      ['b2', ['b4']],
++      ['d2', ['d4']],
++    ]);
++    rejected.say(phrase);
++    rejected.say('đồng ý');
++    assert.deepEqual(rejected.sent, [], phrase);
++  }
++});
++
++test('phonetic B/D grammar covers legal aliases with words present in the pinned Vosk vocabulary', async t => {
++  const { grammars } = await setup(t, start, [
++    ['b2', ['b4']],
++    ['d2', ['d4']],
++  ]);
++  const phrases = grammars.get('default')!;
++  for (const phrase of [
++    'tốt bờ hai bờ bốn',
++    'tốt bi hai bi bốn',
++    'tốt đờ hai đờ bốn',
++    'tốt đi hai đi bốn',
++    'tốt từ cột bờ hàng hai đến cột bờ hàng bốn',
++    'tốt từ cột đờ hàng hai đến cột đờ hàng bốn',
++    'tốt từ cột bi hàng hai đến cột bi hàng bốn',
++    'tốt từ cột đi hàng hai đến cột đi hàng bốn',
++  ])
++    assert.ok(phrases.includes(phrase), phrase);
++  assert.ok(
++    !phrases.some(phrase => phrase.split(' ').includes('dờ')),
++    'Primary model lacks dờ; keep it available to secondary parsing only',
++  );
++  assert.ok(!phrases.includes('tốt bi hai đi bốn'));
++  assert.ok(phrases.includes('[unk]'));
++});
++
++test('Vietnamese recognizer uses legal command context and retains an unknown-speech path', async t => {
++  const { grammars, move, cg } = await setup(t, start, [
++    ['f2', ['f3', 'f4']],
++    ['g1', ['f3', 'h3']],
++  ]);
++  const phrases = grammars.get('default')!;
++  assert.ok(phrases.includes('ép hai ép bốn'));
++  assert.ok(phrases.includes('ép hai ép ba'));
++  assert.ok(phrases.includes('mã ép ba'));
++  assert.ok(phrases.includes('xác nhận'));
++  assert.ok(phrases.includes('[unk]'));
++  assert.ok(!phrases.includes('tiếp theo'), 'Round input must not train on puzzle-only commands');
++  assert.ok(!phrases.includes('ép hai ép năm'), 'Illegal destinations must not train the command recognizer');
++  assert.ok(!phrases.some(p => p.split(' ').includes('f')), 'Do not train on the missing f vocabulary entry');
++  const next = 'rnbqkbnr/pppppppp/8/8/5P2/8/PPPPP1PP/RNBQKBNR w KQkq - 0 2';
++  cg.set({ fen: next, movable: { dests: new Map([['f4', ['f5']]]) } });
++  move.update({ fen: next, canMove: true });
++  assert.ok(!grammars.get('default')!.includes('ép hai ép bốn'));
++  assert.ok(grammars.get('default')!.includes('ép bốn ép năm'));
++});
++
++test('Vietnamese direct submission bypasses the old countdown and never repeats on its timeout', async t => {
++  const { say, sent } = await setup(t, start, [['e2', ['e3', 'e4']]], '3');
++  t.mock.timers.enable({ apis: ['setTimeout'] });
++  say('e hai e bốn');
++  assert.deepEqual(sent, [['e2', 'e4', undefined, true]]);
++  t.mock.timers.tick(10000);
++  assert.equal(sent.length, 1);
++});
++
++test('cancelling after a direct move cannot repeat or undo that submitted move', async t => {
++  const { move, say, sent } = await setup(t);
++  say('e hai e bốn');
++  say('huỷ bỏ');
++  say('xác nhận');
++  assert.deepEqual(sent, [['e2', 'e4', undefined, true]]);
++  assert.equal(move.question(), false);
++});
++
++test('stopping continuous input clears unresolved arrows while push-to-talk release preserves them', async t => {
++  const { cg, say, sent, voice } = await setup(t, '7k/8/8/8/8/5N2/8/1N5K w - - 0 1', [
++    ['b1', ['d2']],
++    ['f3', ['d2']],
++  ]);
++  say('mã đê hai');
++  voice.mic.stop();
++  assert.equal(cg.state.drawable.shapes.length, 2);
++  voice.pushTalk = () => false;
++  voice.mic.stop();
++  say('xanh');
++  assert.equal(cg.state.drawable.shapes.length, 0);
++  assert.deepEqual(sent, []);
++});
++
++test('a board update invalidates arrow choices even at the same FEN', async t => {
++  const fen = '7k/8/8/8/8/5N2/8/1N5K w - - 0 1';
++  const { move, say, sent } = await setup(t, fen, [
++    ['b1', ['d2']],
++    ['f3', ['d2']],
++  ]);
++  say('mã đê hai');
++  move.update({ fen, canMove: true });
++  say('xanh');
++  assert.deepEqual(sent, []);
++});
++
++test('an authoritative board update permits a new move after suppressing duplicate results', async t => {
++  const { move, say, sent, cg } = await setup(t);
++  say('tốt e hai e bốn');
++  say('tốt e hai e ba');
++  assert.equal(sent.length, 1);
++  const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
++  cg.set({ fen, movable: { dests: new Map([['e4', ['e5']]]) } });
++  move.update({ fen, canMove: true });
++  say('tốt e bốn e năm');
++  assert.deepEqual(sent, [
++    ['e2', 'e4', undefined, true],
++    ['e4', 'e5', undefined, true],
++  ]);
++});
++
++test('a source-square selection can be followed by a direct destination move', async t => {
++  const { move, say, sent } = await setup(t, start, [['f2', ['f3', 'f4']]]);
++  say('ép hai');
++  assert.equal(move.question(), false);
++  assert.deepEqual(sent, []);
++  say('ép bốn');
++  assert.deepEqual(sent, [['f2', 'f4', undefined, true]]);
++});
++
++test('a direct move never accepts a pending opponent request', async t => {
++  const { move, say, sent } = await setup(t);
++  const drawAnswers: boolean[] = [];
++  move.listenForResponse('draw', answer => drawAnswers.push(answer));
++  say('e hai e bốn');
++  assert.deepEqual(sent, [['e2', 'e4', undefined, true]]);
++  assert.deepEqual(drawAnswers, []);
++});
++
++test('out-of-turn and completed positions reject Vietnamese moves', async t => {
++  const { move, say, sent } = await setup(t);
++  move.update({ fen: start, canMove: false });
++  say('e hai e bốn');
++  say('xác nhận');
++  assert.deepEqual(sent, []);
++});
++
++test('an illegal coordinate or unknown speech cannot be shortened into a legal move', async t => {
++  const { say, sent } = await setup(t);
++  for (const phrase of ['e hai e năm', 'đừng đi e hai e bốn', 'xin chào']) {
++    say(phrase);
++    say('xác nhận');
++  }
++  assert.deepEqual(sent, []);
++});
++
++test('two knights require disambiguation and then execute without confirmation', async t => {
++  const { say, sent, cg } = await setup(t, '7k/8/8/8/8/5N2/8/1N5K w - - 0 1', [
++    ['b1', ['d2']],
++    ['f3', ['d2']],
++  ]);
++  say('mã d hai');
++  say('xác nhận');
++  assert.deepEqual(sent, []);
++  assert.equal(cg.state.drawable.shapes.length, 2);
++  say('xanh');
++  assert.deepEqual(sent, [['b1', 'd2', undefined, true]]);
++});
++
++test('Vietnamese castling and promotion preserve the intended legal move', async t => {
++  const castle = await setup(t, '4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1', [['e1', ['a1', 'h1']]]);
++  castle.say('nhập thành cánh vua');
++  castle.say('xác nhận');
++  assert.deepEqual(castle.sent, [['e1', 'h1', undefined, true]]);
++  const promotion = await setup(t, '7k/4P3/8/8/8/8/8/7K w - - 0 1', [['e7', ['e8']]]);
++  promotion.say('e tám phong mã');
++  promotion.say('xác nhận');
++  assert.deepEqual(promotion.sent, [['e7', 'e8', 'knight', true]]);
++});
++
++test('Vietnamese letter-name ép addresses the f-file without losing its coordinate', async t => {
++  const { say, sent } = await setup(t, start, [['g1', ['f3', 'h3']]]);
++  say('mã ép ba');
++  say('xác nhận');
++  assert.deepEqual(sent, [['g1', 'f3', undefined, true]]);
++});
++
++test('misheard dờ as giờ is a file only in explicit chess coordinates', async t => {
++  for (const [phrase, from, to] of [
++    ['tốt giờ hai tới giờ bốn', 'd2', 'd4'],
++    ['tốt gờ hai tới gờ bốn', 'g2', 'g4'],
++  ] as const) {
++    const { say, sent } = await setup(t, start, [
++      ['d2', ['d4']],
++      ['g2', ['g4']],
++    ]);
++    say(phrase);
++    assert.deepEqual(sent, [[from, to, undefined, true]], phrase);
++  }
++  for (const text of [
++    'giờ hai tới giờ bốn',
++    'tốt giờ bốn',
++    'bây giờ tốt đê hai tới đê bốn',
++    'không tốt giờ hai tới giờ bốn',
++  ]) {
++    const { say, sent } = await setup(t, start, [
++      ['d2', ['d4']],
++      ['g2', ['g4']],
++    ]);
++    say(text);
++    assert.deepEqual(sent, [], text);
++  }
++});
++
++test('incomplete numeric columns and misplaced từ still cannot propose a move', async t => {
++  const { say, sent, move } = await setup(t, start, [['b2', ['b3', 'b4']]]);
++  for (const text of ['tốt từ cột hàng hai đến cột hàng bốn', 'tốt bê hai từ bê bốn']) {
++    say(text);
++    assert.equal(move.question(), false);
++    say('xác nhận');
++  }
++  assert.deepEqual(sent, []);
++});
++
++test('direct Vietnamese moves submit immediately with no confirmation question', async t => {
++  const { say, sent, move } = await setup(t);
++  assert.equal(say('tốt trắng e hai e bốn'), true);
++  assert.deepEqual(sent, [['e2', 'e4', undefined, true]]);
++  assert.equal(move.question(), false);
++  say('xác nhận');
++  assert.equal(sent.length, 1);
++});
++
++test('direct Vietnamese secondary recognition submits a legal move immediately', async t => {
++  const { say, fallback, sent, move } = await setup(t, start, [['b2', ['b3', 'b4']]]);
++  assert.equal(say('tốt từ cột hai a hai đến cột hai a bốn'), false);
++  assert.equal(fallback('tốt từ cột hai hàng hai đến cột hai hàng bốn'), true);
++  assert.deepEqual(sent, [['b2', 'b4', undefined, true]]);
++  assert.equal(move.question(), false);
++});
++
++test('direct Vietnamese duplicate results cannot send twice before a position update', async t => {
++  const { say, fallback, sent } = await setup(t);
++  say('tốt e hai tới e bốn');
++  say('tốt e hai tới e bốn');
++  fallback('tốt e hai tới e ba');
++  assert.deepEqual(sent, [['e2', 'e4', undefined, true]]);
++});
++
++test('direct Vietnamese illegal final recognition reports feedback without moving', async t => {
++  const { say, fallback, sent, notices, move } = await setup(t);
++  assert.equal(say('tốt e hai tới e năm'), false, 'Allow secondary ASR to recover primary errors');
++  assert.deepEqual(notices, []);
++  fallback('tốt e hai tới e năm');
++  assert.match(notices.at(-1) ?? '', /không hợp lệ/u);
++  assert.deepEqual(sent, []);
++  assert.equal(move.question(), false);
++});
++
++test('direct Vietnamese unrecognized final speech reports feedback without dropping words', async t => {
++  const { fallback, sent, notices } = await setup(t);
++  fallback('đừng đi tốt e hai tới e bốn');
++  assert.ok(notices.at(-1)?.length);
++  assert.deepEqual(sent, []);
++});
++
++test('direct Vietnamese ambiguity asks for a source before executing the clarified move', async t => {
++  const { say, sent, notices, move } = await setup(t, '7k/8/8/8/8/5N2/8/1N5K w - - 0 1', [
++    ['b1', ['d2']],
++    ['f3', ['d2']],
++  ]);
++  say('mã đê hai');
++  assert.deepEqual(sent, []);
++  assert.ok(notices.at(-1)?.length);
++  assert.equal(move.question(), false);
++  say('mã bê một tới đê hai');
++  assert.deepEqual(sent, [['b1', 'd2', undefined, true]]);
++});
++
++test('direct Vietnamese incomplete one-word speech still shows final feedback', async t => {
++  const { fallback, notices, sent } = await setup(t);
++  fallback('mã');
++  assert.ok(notices.at(-1)?.length);
++  assert.deepEqual(sent, []);
++});
+diff --git a/ui/voice/tests/vosk.test.ts b/ui/voice/tests/vosk.test.ts
+new file mode 100644
+index 0000000..bf48b77
+--- /dev/null
++++ b/ui/voice/tests/vosk.test.ts
+@@ -0,0 +1,208 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++
++import type { RecognizerOpts } from '../src/interfaces';
++
++const recognizers: FakeRecognizer[] = [];
++class FakeRecognizer {
++  handlers = new Map<string, (msg: any) => void>();
++  removed = false;
++  constructor() {
++    recognizers.push(this);
++  }
++  on(event: string, handler: (msg: any) => void) {
++    this.handlers.set(event, handler);
++  }
++  remove() {
++    this.removed = true;
++  }
++  retrieveFinalResult() {}
++  acceptWaveform() {}
++  acceptWaveformFloat() {}
++  emit(text: string) {
++    this.handlers.get('result')!({ result: { text } });
++  }
++}
++class FakeClient {
++  KaldiRecognizer = FakeRecognizer;
++  handlers = new Map<string, (msg: any) => void>();
++  terminated = false;
++  constructor() {
++    const load = loadClient;
++    queueMicrotask(() => load(this));
++  }
++  on(event: string, handler: (msg: any) => void) {
++    this.handlers.set(event, handler);
++  }
++  emit(event: string, message: any) {
++    this.handlers.get(event)?.(message);
++  }
++  terminate() {
++    this.terminated = true;
++  }
++}
++const loaded = (client: FakeClient) => client.emit('load', { result: true });
++let loadClient: (client: FakeClient) => void = loaded;
++mock.module('@lichess-org/vosk-browser', { namedExports: { VoskClient: FakeClient } });
++const { initModule } = await import('../src/voice.vosk');
++
++test('late results from replaced position recognizers are discarded', async () => {
++  Object.assign(site, { asset: { url: (path: string) => path } });
++  const vosk = initModule();
++  await vosk.initModel('/model.tar.gz', 'vi');
++  const heard: string[] = [];
++  const opts = {
++    words: ['e', 'hai', 'bốn'],
++    recId: 'default',
++    partial: false,
++    audioCtx: { sampleRate: 16000, createScriptProcessor: () => ({}) },
++    broadcast: (text: string) => heard.push(text),
++  } as unknown as RecognizerOpts;
++  vosk.initRecognizer(opts);
++  const old = recognizers.at(-1)!;
++  vosk.initRecognizer(opts);
++  assert.equal(old.removed, true, 'Replacing an inactive recognizer must release its model resources');
++  old.emit('e hai e bốn');
++  recognizers.at(-1)!.emit('mã f ba');
++  assert.deepEqual(heard, ['mã f ba']);
++});
++
++test('full results carry only audio acknowledged for that utterance, including an empty transcript', async () => {
++  Object.assign(site, { asset: { url: (path: string) => path } });
++  const vosk = initModule();
++  await vosk.initModel('/model.tar.gz', 'vi');
++  const packets: number[][] = [];
++  const node = {} as ScriptProcessorNode;
++  vosk.initRecognizer({
++    words: ['ép', 'bốn'],
++    recId: 'default',
++    partial: false,
++    audioCtx: { sampleRate: 16000, createScriptProcessor: () => node },
++    broadcast() {},
++    audioResult: (_text: string, samples: Float32Array) => packets.push([...samples]),
++  } as unknown as RecognizerOpts);
++  vosk.select('default');
++  const rec = recognizers.at(-1)!;
++  for (const samples of [
++    [1, 2],
++    [3, 4],
++    [5, 6],
++  ])
++    node.onaudioprocess!({ inputBuffer: { getChannelData: () => new Float32Array(samples) } } as any);
++  rec.handlers.get('partialresult')?.({ result: { partial: '' } });
++  rec.emit('');
++  assert.deepEqual(packets, [[1, 2, 3, 4]]);
++  rec.handlers.get('partialresult')?.({ result: { partial: '' } });
++  vosk.select(false);
++  rec.emit('ép bốn');
++  assert.deepEqual(packets, [
++    [1, 2, 3, 4],
++    [5, 6],
++  ]);
++});
++
++test('a failed language load cannot report the terminated previous model as ready', async () => {
++  const vosk = initModule();
++  loadClient = loaded;
++  await vosk.initModel('/vi.tar.gz', 'vi');
++  let failed!: FakeClient;
++  loadClient = client => {
++    failed = client;
++    client.emit('error', { error: 'Invalid archive' });
++  };
++  await assert.rejects(vosk.initModel('/bad.tar.gz', 'fr'), /Invalid archive/);
++  assert.equal(vosk.isLoaded(), false);
++  assert.equal(failed.terminated, true);
++  loadClient = loaded;
++  await vosk.initModel('/vi.tar.gz', 'vi');
++  assert.equal(vosk.isLoaded('vi'), true);
++});
++
++test('a slow old model load cannot replace a newly selected language', async () => {
++  const vosk = initModule();
++  let finish!: () => void;
++  loadClient = client => {
++    finish = () => loaded(client);
++  };
++  const old = vosk.initModel('/slow.tar.gz', 'fr');
++  loadClient = loaded;
++  await vosk.initModel('/vi.tar.gz', 'vi');
++  finish();
++  await old;
++  assert.equal(vosk.isLoaded('vi'), true);
++  assert.equal(vosk.isLoaded('fr'), false);
++});
++
++test('an unresponsive model load times out and releases its worker', async t => {
++  t.mock.timers.enable({ apis: ['setTimeout'] });
++  let pending!: FakeClient;
++  loadClient = client => {
++    pending = client;
++  };
++  const vosk = initModule();
++  const loading = vosk.initModel('/unresponsive.tar.gz', 'vi');
++  const rejected = assert.rejects(loading, /timed out/);
++  await Promise.resolve();
++  t.mock.timers.tick(30000);
++  await rejected;
++  assert.equal(pending.terminated, true);
++  assert.equal(vosk.isLoaded(), false);
++  loadClient = loaded;
++});
++
++test('one-shot decoding waits for worker acknowledgements, accepts a full grammar phrase and cleans up', async () => {
++  const vosk = initModule();
++  await vosk.initModel('/vi.tar.gz', 'vi');
++  assert.equal(typeof vosk.transcribe, 'function');
++  const samples = new Float32Array(16000).fill(0.2);
++  const pending = vosk.transcribe(
++    samples,
++    16000,
++    ['tốt bi hai bi bốn', '[unk]', 'không'],
++    new AbortController().signal,
++  );
++  const rec = recognizers.at(-1)!;
++  let resolved = false;
++  void pending.then(() => {
++    resolved = true;
++  });
++  rec.handlers.get('partialresult')?.({ result: { partial: '' } });
++  await Promise.resolve();
++  assert.equal(resolved, false);
++  rec.emit('tốt bi hai bi bốn');
++  assert.equal(await pending, 'tốt bi hai bi bốn');
++  assert.equal(rec.removed, true);
++  assert.equal(samples[0], Math.fround(0.2));
++});
++
++test('one-shot decoding rejects word-loop guesses and is released on abort, timeout and model replacement', async t => {
++  t.mock.timers.enable({ apis: ['setTimeout'] });
++  const vosk = initModule();
++  await vosk.initModel('/vi.tar.gz', 'vi');
++  assert.equal(typeof vosk.transcribe, 'function');
++  const grammar = ['tốt bi hai bi bốn', '[unk]', 'không'];
++  const run = (signal = new AbortController().signal) =>
++    vosk.transcribe(new Float32Array(16000), 16000, grammar, signal);
++  const invalid = run();
++  const invalidRec = recognizers.at(-1)!;
++  invalidRec.emit('tốt tốt bi hai bi bốn');
++  invalidRec.emit('');
++  assert.equal(await invalid, undefined);
++  const controller = new AbortController();
++  const aborted = run(controller.signal);
++  const abortedRec = recognizers.at(-1)!;
++  controller.abort();
++  assert.equal(await aborted, undefined);
++  assert.equal(abortedRec.removed, true);
++  abortedRec.emit('tốt bi hai bi bốn');
++  const timed = run();
++  const timedRec = recognizers.at(-1)!;
++  t.mock.timers.tick(2000);
++  assert.equal(await timed, undefined);
++  assert.equal(timedRec.removed, true);
++  const old = run();
++  const oldRec = recognizers.at(-1)!;
++  await vosk.initModel('/fr.tar.gz', 'fr');
++  assert.equal(await old, undefined);
++  assert.equal(oldRec.removed, true);
++});
+diff --git a/ui/voice/tsconfig.json b/ui/voice/tsconfig.json
+index 773326c..0318503 100644
+--- a/ui/voice/tsconfig.json
++++ b/ui/voice/tsconfig.json
+@@ -1,5 +1,5 @@
+ {
+   "extends": "../tsconfig.base.json",
+-  "exclude": ["makeGrammar.mts", "dist"],
++  "exclude": ["makeGrammar.mts", "dist", "tests"],
+   "references": [{ "path": "../lib/tsconfig.json" }]
+ }

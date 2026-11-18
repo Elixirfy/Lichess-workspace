@@ -8,9 +8,31 @@ Tiến độ và bằng chứng nằm trong [mốc engine](openspec/changes/live
 
 **Cập nhật giao diện theo phản hồi:** [một thanh xác suất](reports/acceptance/ui-don-gian.md).
 
+**Chơi cờ bằng giọng nói tiếng Việt (thử nghiệm, Vosk + PhoWhisper, không LLM):**
+[Chế độ hiện tại: nước hợp lệ đi ngay, nước sai/chưa rõ có thông báo](reports/voice-v1/direct-moves/README.md).
+Giữ Shift nói câu lệnh rồi thả phím; không cần nói “Xác nhận”. Kiểm thử audio
+hiện tại dùng `node scripts/voice-recorded-e2e.mjs --direct --files --bot`.
+Các báo cáo xác nhận hai bước bên dưới được giữ làm lịch sử.
+[cách bật, lệnh nói, kiểm thử và giới hạn](reports/voice-v1/README.md).
+Đã nối PhoWhisper và VAD vào trang chơi: Vosk thử trước; nếu parser chưa xử lý
+được câu nói, audio được nhận dạng lại bằng PhoWhisper trên máy local.
+Dùng `scripts/voice.ps1 live` trên stack đã bootstrap/start để chuẩn bị model,
+khởi động dịch vụ và build UI. Xem [hướng dẫn test trực tiếp](reports/voice-v1/live/README.md).
+Nút **Thu mẫu** mở [trang thu nguyên câu trên local](http://localhost:8080/voice-asr/record);
+bản thu chỉ lưu khi bấm lưu, để kiểm thử nhận âm và câu lệnh đi quân.
+[Hướng dẫn thu và chạy acceptance](reports/voice-v1/recorder/README.md).
+`scripts/voice.ps1 matrix` chạy bộ kiểm thử mở rộng; báo cáo giữ nguyên các ca
+nhận dạng còn lỗi, xem kết quả và giới hạn trong tài liệu trên.
+[So sánh PhoWhisper-small với Vosk](reports/voice-v1/asr-comparison/README.md)
+ghi độ đúng lệnh, WER và độ trễ CPU trên cùng PCM trước khi tích hợp live.
+[Đợt tinh chỉnh tiếp theo](reports/voice-v1/asr-tuning/README.md) thử INT8,
+prompt từ vựng cố định và Vosk → PhoWhisper khi parser chưa hiểu: 90/95 ca
+so với 76/95 của Vosk ở lượt đầu; median/p95 93/1.399 ms trong pipeline local.
+Đây là số đo benchmark native, không phải độ trễ microphone/web hiện tại.
+
 ## Chạy trên máy này
 
-Cần Docker Desktop chạy Linux containers, Git và PowerShell. Máy kiểm thử cấp khoảng 14 GiB RAM cho Docker; lần build đầu tải nhiều dependency của Lichess. `uv` và Node chỉ cần cho các lệnh kiểm thử ở máy host.
+Cần Docker Desktop chạy Linux containers, Git và PowerShell. Máy kiểm thử cấp khoảng 14 GiB RAM cho Docker; lần build đầu tải nhiều dependency của Lichess. `uv` cần cho ASR local và kiểm thử Python; Node cần cho kiểm thử trình duyệt ở máy host.
 
 ```powershell
 # Lần đầu: lấy đúng source, áp patch, dựng UI/backend và database.
@@ -27,9 +49,14 @@ Cần Docker Desktop chạy Linux containers, Git và PowerShell. Máy kiểm th
 
 Địa chỉ local: <http://localhost:8080>. Chỉ cổng `127.0.0.1:8080` được công bố; worker, MongoDB và Redis nằm trong mạng Docker. Cấu hình này phục vụ phát triển local.
 
+Chế độ **Chơi với máy** dùng `lila_fishnet` và `fishnet_play`. Lệnh `start`
+bật hai dịch vụ này trước web và gửi tín hiệu phục hồi các lượt AI đang chờ.
+Worker chơi cờ dùng 1 core; image được cố định digest trong `upstream-lock.json`.
+Kiểm tra bot cầm cả hai màu bằng `node scripts/ai-smoke.mjs`.
+
 `bootstrap` tạo bộ JAR bằng task `stage`. `start` chạy bộ JAR đó với heap tối đa 1 GiB và chờ trang chủ sẵn sàng; không giữ tiến trình sbt lúc chơi. Cache dependency và cache task sbt được lưu trong Docker volumes. Sau khi sửa Scala hoặc UI, chạy lại `bootstrap`, rồi `stop` và `start` để dùng bản mới.
 
-Source đã ghim trong [upstream-lock.json](upstream-lock.json). Lichess nằm tại `infra/lila-docker/repos/lila`; các thay đổi cần lưu lại trong `patches/lila-win-probability.patch`. Script chuẩn bị Linux khôi phục symlink mà Git Windows checkout thành file văn bản. Các model LFS lớn của tính năng khác không được tải trong bootstrap này.
+Source đã ghim trong [upstream-lock.json](upstream-lock.json). Lichess nằm tại `infra/lila-docker/repos/lila`; các thay đổi được lưu trong `patches/lila-win-probability.patch` và `patches/lila-vietnamese-voice.patch`. Script chuẩn bị Linux khôi phục symlink mà Git Windows checkout thành file văn bản. Model tiếng Việt có nguồn/checksum riêng trong `voice-model-lock.json`; các model LFS lớn của tính năng khác không được tải trong bootstrap này.
 
 ## Luồng dữ liệu
 

@@ -1,3 +1,5 @@
 # Preserve exact bytes for artifacts verified by SHA256 and replayed upstream patches.
 /services/prediction/models/*.json -text
 /patches/*.patch -text
+/scripts/fixtures/voice/*.wav binary
+/scripts/fixtures/voice/commands/*.wav binary

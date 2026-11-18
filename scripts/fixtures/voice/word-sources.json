@@ -1,0 +1,38 @@
+[
+  {
+    "file": "hai.wav",
+    "text": "hai",
+    "speaker": "Penn Zero MSSJ",
+    "license": "CC0-1.0",
+    "source_page": "https://commons.wikimedia.org/wiki/File:LL-Q9199_%28vie%29-Penn_Zero_MSSJ-hai.wav",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/f/f1/LL-Q9199_%28vie%29-Penn_Zero_MSSJ-hai.wav",
+    "sha256": "690a2e48a2b2efe6dbcee00c19e78dca2946558304d4825b03e0a00bb1f2c00f"
+  },
+  {
+    "file": "ba.wav",
+    "text": "ba",
+    "speaker": "Penn Zero MSSJ",
+    "license": "CC0-1.0",
+    "source_page": "https://commons.wikimedia.org/wiki/File:LL-Q9199_%28vie%29-Penn_Zero_MSSJ-ba.wav",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/8/83/LL-Q9199_%28vie%29-Penn_Zero_MSSJ-ba.wav",
+    "sha256": "fcd29e06d3498d3949931e0a5bbc4be2c2601b97d863414459d53d6406f257dd"
+  },
+  {
+    "file": "ma.wav",
+    "text": "mã",
+    "speaker": "Penn Zero MSSJ",
+    "license": "CC0-1.0",
+    "source_page": "https://commons.wikimedia.org/wiki/File:LL-Q9199_%28vie%29-Penn_Zero_MSSJ-m%C3%A3.wav",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/d/dc/LL-Q9199_%28vie%29-Penn_Zero_MSSJ-m%C3%A3.wav",
+    "sha256": "0320a5e4efa59866fed3d27a646327772774b31b191bf1d9561d6ddc809f7ef5"
+  },
+  {
+    "file": "bon2.wav",
+    "text": "bốn",
+    "speaker": "Jessica Nguyen (Pamputt)",
+    "license": "CC0-1.0",
+    "source_page": "https://commons.wikimedia.org/wiki/File:LL-Q9199_%28vie%29-Jessica_Nguyen_%28Pamputt%29-b%E1%BB%91n.wav",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/f/f7/LL-Q9199_%28vie%29-Jessica_Nguyen_%28Pamputt%29-b%E1%BB%91n.wav",
+    "sha256": "70c95b6b74ee715383b1938bd62320a9191e5c54a4fb5bc935aab6aea8f0544c"
+  }
+]

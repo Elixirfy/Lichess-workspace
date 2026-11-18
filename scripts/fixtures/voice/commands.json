@@ -1,0 +1,65 @@
+{
+  "kind": "concatenated human CC0 word recordings; not natural connected speech",
+  "sample_rate": 48000,
+  "cases": [
+    {
+      "file": "commands/f2f4.wav",
+      "words": [
+        "ep",
+        "hai",
+        "ep",
+        "bon"
+      ],
+      "text": "ép hai ép bốn",
+      "uci": "f2f4",
+      "sha256": "df83da672c269e22f042c6327b4c85a34fedf43807c96617a50327f80f9c638a"
+    },
+    {
+      "file": "commands/f2f4-second-speaker.wav",
+      "words": [
+        "ep",
+        "hai",
+        "ep",
+        "bon2"
+      ],
+      "text": "ép hai ép bốn",
+      "uci": "f2f4",
+      "sha256": "90843fef2fb7681a4abe34090171e692cf94b71b184411c06a4e852c77432629"
+    },
+    {
+      "file": "commands/f2f3.wav",
+      "words": [
+        "ep",
+        "hai",
+        "ep",
+        "ba"
+      ],
+      "text": "ép hai ép ba",
+      "uci": "f2f3",
+      "sha256": "babddacec771640ecf621da48e7bd9bd60cb0fd9090686f8d168cb340983ef9e"
+    },
+    {
+      "file": "commands/knight-f3.wav",
+      "words": [
+        "ma",
+        "ep",
+        "ba"
+      ],
+      "text": "mã ép ba",
+      "uci": "g1f3",
+      "sha256": "140b424ccdbed8a9ae299c76dbbb7ca0025da14acf001277b88b3e14627d3749"
+    },
+    {
+      "file": "commands/illegal-f3f2.wav",
+      "words": [
+        "ep",
+        "ba",
+        "ep",
+        "hai"
+      ],
+      "text": "ép ba ép hai",
+      "uci": null,
+      "sha256": "170c0f24065122f1fc09ea462fe385e308ad9a9a5f191fad580c8c68bf1e1b64"
+    }
+  ]
+}

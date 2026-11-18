@@ -1,0 +1,9 @@
+{
+  "model": "vosk-model-small-vn-0.4",
+  "source_url": "https://alphacephei.com/vosk/models/vosk-model-small-vn-0.4.zip",
+  "source_sha256": "efe5c8494212110471a79befc48c79da679e5b1fc52a4ffb500222ff86d622e5",
+  "asset_path": "lifat/vosk/model-vi-0.4.tar.gz",
+  "license": "Apache-2.0",
+  "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+  "catalog_url": "https://alphacephei.com/vosk/models"
+}
