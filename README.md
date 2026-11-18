@@ -1,14 +1,14 @@
 # Lichess WDL Lab
 
-Fork Lichess tự host, hiển thị một thanh **Trắng thắng / Đen thắng** ngay trên bàn của cả hai người chơi và người xem ván cờ tiêu chuẩn, gồm chơi với máy và người–người. Hai tỷ lệ cộng lại bằng **100%**, tính với điều kiện ván có bên thắng: `Trắng = W / (W + B)`, `Đen = B / (W + B)`. Phần hòa không xuất hiện trên thanh; dữ liệu WDL gốc vẫn được giữ bên trong. Thanh ưu tiên mô hình người chơi có xét thế cờ, rating và đồng hồ; khi thiếu dữ liệu hoặc ngoài phạm vi, dùng engine. Nhãn bên dưới cho biết nguồn và “không tính hòa”. Ván đã hòa hiện kết quả chính thức; khi `W + B = 0`, giao diện không tự gán tỷ lệ 50/50.
+Fork Lichess tự host, hiển thị thanh **Ưu thế Trắng / Đen** ngay trên bàn của cả hai người chơi và người xem ván cờ tiêu chuẩn, gồm chơi với máy và người–người. Thanh dùng **điểm kỳ vọng**: `Trắng = W + D/2`, `Đen = B + D/2`, tổng **100%**. **50% là cân bằng**; hòa được tính nửa điểm mỗi bên. Đây là chỉ số ưu thế theo mô hình, không phải xác suất thắng thực tế của riêng người chơi. Raw WDL ba lớp được giữ nguyên. Khi đủ ngữ cảnh, ưu tiên mô hình người chơi thử nghiệm; nếu thiếu, dùng engine. Nguồn và cách tính điểm hòa được ghi ngay dưới thanh. Ván đã kết thúc hiện kết quả chính thức.
 
 Tiến độ và bằng chứng nằm trong [mốc engine](openspec/changes/live-win-probability/tasks.md) và [mốc mô hình người chơi](openspec/changes/human-win-probability/tasks.md). Phạm vi, kết quả và giới hạn mô hình được ghi trong [model card](reports/human-v1/model-card.md).
 
 **Báo cáo nghiệm thu cuối bằng tiếng Việt:** [bao-cao-nghiem-thu.md](reports/acceptance/bao-cao-nghiem-thu.md), kèm log, JSON và ảnh được lưu trong `reports/acceptance/evidence/`.
 
-**Cập nhật giao diện theo phản hồi:** [tỷ lệ Trắng/Đen khi ván có bên thắng](reports/acceptance/two-way-probability/README.md). [Bản ba tỷ lệ trước đây](reports/acceptance/ui-don-gian.md) được giữ làm lịch sử.
+**Cách hiển thị hiện tại:** [ưu thế theo điểm kỳ vọng](reports/acceptance/expected-score-advantage/README.md). Cách chuẩn hóa bỏ hòa trước đây được giữ làm [lịch sử](reports/acceptance/two-way-probability/README.md).
 
-**Xem tỷ lệ trên bàn chơi với máy hoặc người:** [phạm vi, kiểm thử và cách chạy](reports/acceptance/player-win-probability/README.md). Máy chủ kiểm tra cờ bật tính năng và biến thể của ván; cả hai bên đều dùng dữ liệu thế cờ từ máy chủ.
+**Xem ưu thế trên bàn chơi với máy hoặc người:** cả hai bên dùng dữ liệu thế cờ từ máy chủ; máy chủ kiểm tra cờ bật tính năng và biến thể của ván. [Báo cáo mở quyền trên bàn người chơi](reports/acceptance/player-win-probability/README.md).
 
 **Chơi cờ bằng giọng nói tiếng Việt (thử nghiệm, Vosk + PhoWhisper, không LLM):**
 [Chế độ hiện tại: nước hợp lệ đi ngay, nước sai/chưa rõ có thông báo](reports/voice-v1/direct-moves/README.md).

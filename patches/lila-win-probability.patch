@@ -170,10 +170,10 @@ index 5dc2642..53304bd 100644
  @import 'now-playing';
 diff --git a/ui/round/css/_win-probability.scss b/ui/round/css/_win-probability.scss
 new file mode 100644
-index 0000000..bb01c5c
+index 0000000..f35af8e
 --- /dev/null
 +++ b/ui/round/css/_win-probability.scss
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,41 @@
 +.win-probability {
 +  order: -1;
 +  padding: 0.65rem 0.8rem;
@@ -187,7 +187,8 @@ index 0000000..bb01c5c
 +    gap: 0.4rem;
 +  }
 +
-+  &__source {
++  &__source,
++  &__explanation {
 +    color: $c-font-dim;
 +    font-size: 0.75rem;
 +    margin-top: 0.3rem;
@@ -307,14 +308,14 @@ index fb78301..e294792 100644
        initMessage(ctrl) ||
 diff --git a/ui/round/src/view/winProbability.ts b/ui/round/src/view/winProbability.ts
 new file mode 100644
-index 0000000..5790223
+index 0000000..02abb6e
 --- /dev/null
 +++ b/ui/round/src/view/winProbability.ts
 @@ -0,0 +1,84 @@
 +import { hl, type LooseVNode } from 'lib/view/snabbdom';
 +
 +import type RoundController from '../ctrl';
-+import { winPercentages } from '../winProbability';
++import { expectedScorePercentages } from '../winProbability';
 +
 +export default function winProbability(ctrl: RoundController): LooseVNode {
 +  if (!ctrl.winProbability) return undefined;
@@ -326,24 +327,24 @@ index 0000000..5790223
 +      ? prediction.human
 +      : undefined;
 +  const p = ready && (human?.probabilities ?? prediction.probabilities);
-+  const values = p && winPercentages(p);
 +  const source = prediction?.source === 'official' ? 'official' : human?.probabilities ? 'human' : 'engine';
 +  const officialDraw = !!(ready && source === 'official' && p && p.draw === 1 && !p.white && !p.black);
++  const values = p && !officialDraw && expectedScorePercentages(p);
 +  const result = !!values || officialDraw;
 +  const label =
 +    source === 'official'
 +      ? 'Kết quả chính thức'
 +      : source === 'human'
-+        ? 'Người chơi · thử nghiệm · không tính hòa'
-+        : 'Ước tính từ thế cờ · không tính hòa';
++        ? 'Ưu thế người chơi · thử nghiệm'
++        : 'Ưu thế theo engine';
 +  const description =
 +    source === 'official'
 +      ? 'Kết quả ván đấu đã được xác nhận.'
 +      : source === 'human'
-+        ? 'Tỷ lệ thắng nếu ván có bên thắng, từ thế cờ, rating và đồng hồ. Mô hình thử nghiệm, chưa hiệu chỉnh cho cộng đồng máy chủ này.'
-+        : 'Tỷ lệ thắng nếu ván có bên thắng, theo engine từ thế cờ; không xét rating và đồng hồ của người chơi.';
++        ? 'Điểm kỳ vọng từ thế cờ, rating và đồng hồ; hòa tính nửa điểm cho mỗi bên. Mô hình thử nghiệm, chưa hiệu chỉnh cho cộng đồng máy chủ này.'
++        : 'Điểm kỳ vọng từ thế cờ theo engine; hòa tính nửa điểm cho mỗi bên. Chưa xét trình độ người chơi hay cấp độ bot.';
 +  const status = replay
-+    ? 'Trở về nước mới nhất để xem xác suất.'
++    ? 'Trở về nước mới nhất để xem ưu thế.'
 +    : prediction?.status === 'stale'
 +      ? 'Mất kết nối · đang chờ thế cờ mới nhất.'
 +      : prediction?.status === 'aborted'
@@ -358,9 +359,10 @@ index 0000000..5790223
 +    {
 +      attrs: {
 +        'aria-label':
-+          ready && source === 'official' ? 'Kết quả ván đấu' : 'Tỷ lệ thắng Trắng/Đen nếu ván có bên thắng',
++          ready && source === 'official' ? 'Kết quả ván đấu' : 'Ưu thế Trắng/Đen theo điểm kỳ vọng',
 +        'data-state': replay ? 'replay' : (prediction?.status ?? 'pending'),
 +        'data-source': result ? source : false,
++        'data-metric': result ? (source === 'official' ? 'result' : 'expected-score') : false,
 +        'data-model': values && human ? (human.model_id ?? false) : false,
 +      },
 +    },
@@ -385,22 +387,21 @@ index 0000000..5790223
 +        : hl(
 +            'div.win-probability__status',
 +            { attrs: { role: 'status' } },
-+            officialDraw
-+              ? 'Ván đấu kết thúc hòa.'
-+              : p
-+                ? 'Chưa có tỷ lệ Trắng/Đen khi không tính hòa.'
-+                : status,
++            officialDraw ? 'Ván đấu kết thúc hòa.' : p ? 'Chưa có đánh giá ưu thế cho vị trí này.' : status,
 +          ),
 +      result ? hl('div.win-probability__source', { attrs: { title: description } }, label) : undefined,
++      values && source !== 'official'
++        ? hl('div.win-probability__explanation', '50% = cân bằng · Hòa tính nửa điểm')
++        : undefined,
 +    ],
 +  );
 +}
 diff --git a/ui/round/src/winProbability.ts b/ui/round/src/winProbability.ts
 new file mode 100644
-index 0000000..79fcee0
+index 0000000..068e0c2
 --- /dev/null
 +++ b/ui/round/src/winProbability.ts
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,178 @@
 +import type { RoundData } from './interfaces';
 +
 +export interface Wdl {
@@ -446,13 +447,12 @@ index 0000000..79fcee0
 +  );
 +}
 +
-+// Condition on a decisive result; complementary tenths sum to exactly 100.0%.
-+// Keep the authoritative three-way WDL intact, including official draws.
-+export function winPercentages(p: Wdl): [number, number] | undefined {
++// Expected points: win = 1, draw = 0.5, loss = 0. Keep raw WDL intact.
++// Complementary tenths keep the two advantage percentages at exactly 100.0%.
++export function expectedScorePercentages(p: Wdl): [number, number] | undefined {
 +  if (!validWdl(p)) return undefined;
-+  const decisive = p.white + p.black;
-+  if (decisive === 0) return undefined;
-+  const white = Math.round((p.white / decisive) * 1000);
++  const total = p.white + p.draw + p.black;
++  const white = Math.round(((p.white + p.draw / 2) / total) * 1000);
 +  return [white / 10, (1000 - white) / 10];
 +}
 +
@@ -582,16 +582,16 @@ index 0000000..79fcee0
 +}
 diff --git a/ui/round/tests/winProbability.test.ts b/ui/round/tests/winProbability.test.ts
 new file mode 100644
-index 0000000..70f750e
+index 0000000..b7031ea
 --- /dev/null
 +++ b/ui/round/tests/winProbability.test.ts
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,187 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +import { setImmediate } from 'node:timers/promises';
 +
 +import type { RoundData } from '../src/interfaces';
-+import WinProbability, { validWdl, winPercentages, wdlRevision } from '../src/winProbability';
++import WinProbability, { validWdl, expectedScorePercentages, wdlRevision } from '../src/winProbability';
 +
 +const round = (moves: string[] = []): RoundData =>
 +  ({
@@ -610,22 +610,33 @@ index 0000000..70f750e
 +    }),
 +  );
 +
-+test('conditional White/Black percentages sum to 100.0% and preserve the raw WDL', () => {
++test('expected-score percentages sum to 100.0% and preserve the raw WDL', () => {
 +  for (let white = 0; white <= 1; white += 0.017) {
 +    for (let draw = 0; draw <= 1 - white; draw += 0.019) {
 +      const p = Object.freeze({ white, draw, black: 1 - white - draw });
-+      const values = winPercentages(p)!;
++      const values = expectedScorePercentages(p)!;
 +      assert.equal(values.length, 2);
 +      assert.equal(Math.round(values.reduce((a, b) => a + b, 0) * 10), 1000);
 +      assert.ok(values.every(v => v >= 0 && v <= 100));
-+      assert.ok(Math.abs(values[0] - (100 * white) / (p.white + p.black)) <= 0.050001);
++      assert.ok(Math.abs(values[0] - 100 * (white + draw / 2)) <= 0.050001);
 +    }
 +  }
-+  assert.deepEqual(winPercentages({ white: 1, draw: 0, black: 0 }), [100, 0]);
-+  assert.deepEqual(winPercentages({ white: 0.6, draw: 0.1, black: 0.3 }), [66.7, 33.3]);
-+  assert.equal(winPercentages({ white: 0, draw: 1, black: 0 }), undefined);
-+  assert.equal(winPercentages({ white: NaN, draw: 0.5, black: 0.5 }), undefined);
-+  assert.equal(winPercentages({ white: 0.3, draw: 0.3, black: 0.3 }), undefined);
++  assert.deepEqual(expectedScorePercentages({ white: 1, draw: 0, black: 0 }), [100, 0]);
++  assert.deepEqual(expectedScorePercentages({ white: 0.6, draw: 0.1, black: 0.3 }), [65, 35]);
++  assert.deepEqual(expectedScorePercentages({ white: 0, draw: 1, black: 0 }), [50, 50]);
++  assert.equal(expectedScorePercentages({ white: NaN, draw: 0.5, black: 0.5 }), undefined);
++  assert.equal(expectedScorePercentages({ white: 0.3, draw: 0.3, black: 0.3 }), undefined);
++});
++
++test('draw-heavy, balanced and winning reference positions have intuitive expected scores', () => {
++  for (const [p, expected] of [
++    [{ white: 0, draw: 0.876, black: 0.124 }, [43.8, 56.2]],
++    [{ white: 0.037, draw: 0.961, black: 0.002 }, [51.8, 48.2]],
++    [{ white: 0, draw: 0.98, black: 0.02 }, [49, 51]],
++    [{ white: 0.8, draw: 0.1, black: 0.1 }, [85, 15]],
++    [{ white: 0.98, draw: 0.02, black: 0 }, [99, 1]],
++  ] as const)
++    assert.deepEqual(expectedScorePercentages(Object.freeze(p)), expected);
 +});
 +
 +test('reject invalid and nonfinite probabilities', () => {
@@ -764,10 +775,10 @@ index 0000000..70f750e
 +});
 diff --git a/ui/round/tests/winProbabilityView.test.ts b/ui/round/tests/winProbabilityView.test.ts
 new file mode 100644
-index 0000000..65c5395
+index 0000000..e1529c3
 --- /dev/null
 +++ b/ui/round/tests/winProbabilityView.test.ts
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,163 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +import { init, attributesModule, type VNode } from 'snabbdom';
@@ -789,19 +800,23 @@ index 0000000..65c5395
 +  return init([attributesModule])(document.createElement('div'), render(ctrl) as VNode).elm as HTMLElement;
 +}
 +
-+test('one bar shows conditional White/Black percentages from the preferred human estimate', () => {
++test('one bar shows expected-score advantage from the preferred human estimate', () => {
 +  const view = panel();
 +  assert.equal(view.querySelectorAll('.win-probability__bar').length, 1);
 +  assert.equal(view.querySelectorAll('.win-probability__values').length, 1);
 +  assert.equal(view.textContent.match(/\d+\.\d%/g)?.length, 2);
 +  assert.equal(view.dataset.source, 'human');
-+  assert.match(view.textContent, /Người chơi · thử nghiệm/);
-+  assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 66.7%.*Đen 33.3%/);
-+  assert.equal(view.querySelector('.win-probability__white')!.getAttribute('style'), 'width:66.7%');
-+  assert.equal(view.querySelector('.win-probability__black')!.getAttribute('style'), 'width:33.3%');
++  assert.equal(view.dataset.metric, 'expected-score');
++  assert.match(view.textContent, /Ưu thế người chơi · thử nghiệm/);
++  assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 65.0%.*Đen 35.0%/);
++  assert.equal(view.querySelector('.win-probability__white')!.getAttribute('style'), 'width:65%');
++  assert.equal(view.querySelector('.win-probability__black')!.getAttribute('style'), 'width:35%');
 +  assert.equal(view.querySelector('.win-probability__draw'), null);
-+  assert.match(view.querySelector('.win-probability__source')!.textContent, /không tính hòa/);
-+  assert.match(view.getAttribute('aria-label')!, /Trắng.*Đen.*có bên thắng/);
++  assert.match(
++    view.querySelector('.win-probability__explanation')!.textContent,
++    /50% = cân bằng.*Hòa tính nửa điểm/,
++  );
++  assert.match(view.getAttribute('aria-label')!, /Ưu thế Trắng\/Đen.*điểm kỳ vọng/);
 +  assert.deepEqual(prediction.human.probabilities, { white: 0.6, draw: 0.1, black: 0.3 });
 +  assert.doesNotMatch(view.textContent, /Theo engine|Stockfish|d17/);
 +});
@@ -810,7 +825,7 @@ index 0000000..65c5395
 +  for (const reason of ['missing_context', 'outside_scope', 'model_unavailable']) {
 +    const view = panel({ ...prediction, human: { status: 'unavailable', reason } });
 +    assert.equal(view.dataset.source, 'engine');
-+    assert.match(view.textContent, /Ước tính từ thế cờ/);
++    assert.match(view.textContent, /Ưu thế theo engine/);
 +    assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 50.0%.*Đen 50.0%/);
 +    assert.match(view.querySelector('.win-probability__source')!.getAttribute('title')!, /engine/);
 +    assert.equal(view.textContent.match(/\d+\.\d%/g)?.length, 2);
@@ -818,7 +833,7 @@ index 0000000..65c5395
 +  }
 +});
 +
-+test('an official draw overrides both estimates without invented conditional percentages', () => {
++test('an official draw shows the result without an estimated advantage bar', () => {
 +  const view = panel({
 +    ...prediction,
 +    status: 'finished',
@@ -826,11 +841,13 @@ index 0000000..65c5395
 +    probabilities: { white: 0, draw: 1, black: 0 },
 +  });
 +  assert.equal(view.dataset.source, 'official');
++  assert.equal(view.dataset.metric, 'result');
 +  assert.match(view.textContent, /Kết quả chính thức/);
 +  assert.match(view.querySelector('.win-probability__status')!.textContent, /Ván đấu kết thúc hòa/);
 +  assert.equal(view.querySelector('.win-probability__values'), null);
 +  assert.equal(view.querySelector('.win-probability__bar'), null);
 +  assert.equal(view.dataset.model, undefined);
++  assert.equal(view.querySelector('.win-probability__explanation'), null);
 +  assert.doesNotMatch(view.textContent, /thử nghiệm/);
 +});
 +
@@ -843,6 +860,7 @@ index 0000000..65c5395
 +      probabilities: { white, draw: 0, black: 1 - white },
 +    });
 +    assert.equal(view.dataset.source, 'official');
++    assert.equal(view.dataset.metric, 'result');
 +    assert.equal(view.dataset.model, undefined);
 +    assert.equal(
 +      view.querySelector('.win-probability__values')!.textContent,
@@ -852,7 +870,7 @@ index 0000000..65c5395
 +  }
 +});
 +
-+test('zero decisive probability is unavailable rather than an invented 50/50 split', () => {
++test('a live all-draw estimate has equal expected points for both colors', () => {
 +  for (const human of [false, true]) {
 +    const probabilities = { white: 0, draw: 1, black: 0 };
 +    const view = panel({
@@ -860,10 +878,10 @@ index 0000000..65c5395
 +      probabilities,
 +      human: human ? { status: 'ready', model_id: 'pilot-v1', probabilities } : { status: 'unavailable' },
 +    });
-+    assert.equal(view.querySelector('.win-probability__values'), null);
-+    assert.equal(view.querySelector('.win-probability__bar'), null);
-+    assert.match(view.textContent, /Chưa có tỷ lệ Trắng\/Đen/);
-+    assert.doesNotMatch(view.textContent, /NaN|Infinity|50.0%|kết thúc hòa/);
++    assert.equal(view.dataset.metric, 'expected-score');
++    assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 50.0%.*Đen 50.0%/);
++    assert.match(view.querySelector('.win-probability__explanation')!.textContent, /Hòa tính nửa điểm/);
++    assert.doesNotMatch(view.textContent, /NaN|Infinity|kết thúc hòa/);
 +  }
 +});
 +
@@ -879,13 +897,35 @@ index 0000000..65c5395
 +    assert.equal(nodes.length, 2);
 +    const values = nodes.map(node => Number(node.textContent.match(/(\d+\.\d)%/)![1]));
 +    assert.equal(Math.round((values[0] + values[1]) * 10), 1000);
-+    const expectedWhite = (probabilities.white / (probabilities.white + probabilities.black)) * 100;
++    const expectedWhite = (probabilities.white + probabilities.draw / 2) * 100;
 +    assert.ok(Math.abs(values[0] - expectedWhite) <= 0.050001);
 +    for (const [i, color] of ['white', 'black'].entries())
 +      assert.equal(
 +        view.querySelector(`.win-probability__${color}`)!.getAttribute('style'),
 +        `width:${values[i]}%`,
 +      );
++  }
++});
++
++test('the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL', () => {
++  const probabilities = Object.freeze({ white: 0, draw: 0.876, black: 0.124 });
++  const view = panel({ ...prediction, human: undefined, probabilities });
++  assert.equal(view.querySelector('.win-probability__values')!.textContent, 'Trắng 43.8%Đen 56.2%');
++  assert.equal(view.dataset.metric, 'expected-score');
++  assert.match(view.textContent, /Ưu thế/);
++  assert.doesNotMatch(view.textContent, /không tính hòa|có bên thắng|100.0%/);
++});
++
++test('advantage distinguishes clear and near-winning positions while remaining an estimate', () => {
++  for (const [probabilities, text] of [
++    [{ white: 0.8, draw: 0.1, black: 0.1 }, 'Trắng 85.0%Đen 15.0%'],
++    [{ white: 0.98, draw: 0.02, black: 0 }, 'Trắng 99.0%Đen 1.0%'],
++  ] as const) {
++    const view = panel({ ...prediction, human: undefined, probabilities });
++    assert.equal(view.querySelector('.win-probability__values')!.textContent, text);
++    assert.equal(view.dataset.source, 'engine');
++    assert.equal(view.dataset.metric, 'expected-score');
++    assert.doesNotMatch(view.textContent, /Kết quả chính thức|không tính hòa/);
 +  }
 +});
 +
@@ -897,6 +937,8 @@ index 0000000..65c5395
 +    assert.equal(view.querySelector('.win-probability__bar'), null);
 +    assert.equal(view.querySelector('.win-probability__values'), null);
 +    assert.equal(view.querySelector('.win-probability__source'), null);
++    assert.equal(view.querySelector('.win-probability__explanation'), null);
 +    assert.equal(view.dataset.source, undefined);
++    assert.equal(view.dataset.metric, undefined);
 +  }
 +});

@@ -19,7 +19,7 @@ await mkdir(artifacts, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const contexts = [];
 const errors = [];
-const report = { base, humanPlayers, assertions: [], latency_ms: [] };
+const report = { base, humanPlayers, metric: 'expected-score', assertions: [], latency_ms: [] };
 let workerStopped = false;
 const check = (condition, message) => {
   assert.ok(condition, message);
@@ -107,7 +107,7 @@ try {
       await tab.locator('.win-probability__values').waitFor();
       check(await tab.locator('.win-probability__bar > span').count() === 2 &&
         await tab.locator('.win-probability__draw').count() === 0,
-        `${color}: two conditional percentages appear on the actual player board`);
+        `${color}: two advantage percentages appear on the actual player board`);
     }
 
     async function clickMove(tab, from, to, color) {
@@ -146,9 +146,9 @@ try {
           const panel = document.querySelector('.win-probability');
           const values = [...(panel?.querySelector('.win-probability__values')?.textContent ?? '').matchAll(/(\d+\.\d)%/g)]
             .map(m => Number(m[1]));
-          return panel?.getAttribute('data-source') === ownSource && values.length === 2 &&
+          return panel?.getAttribute('data-source') === ownSource && panel?.getAttribute('data-metric') === 'expected-score' && values.length === 2 &&
             Math.abs(values[0] + values[1] - 100) < 0.00001 &&
-            [p.white, p.black].every((x, j) => Math.abs(values[j] - 100 * x / (p.white + p.black)) <= 0.050001);
+            [p.white + p.draw / 2, p.black + p.draw / 2].every((x, j) => Math.abs(values[j] - 100 * x) <= 0.050001);
         }, { p, ownSource });
         check(true, `Ply ${ply}: ${i ? 'black' : 'white'} player display matches its authoritative ${ownSource} response`);
         (report.playerSamples ??= []).push({ color: i ? 'black' : 'white', ply,
@@ -161,20 +161,21 @@ try {
         const panel = document.querySelector('.win-probability');
         const values = [...(panel?.querySelector('.win-probability__values')?.textContent ?? '').matchAll(/(\d+\.\d)%/g)]
           .map(match => Number(match[1]));
-        const decisive = selected[0] + selected[1];
-        return decisive > 0 && panel?.getAttribute('data-source') === source && values.length === 2 &&
-          values.every((value, index) => Math.abs(value - selected[index] / decisive * 100) <= 0.050001);
-      }, { source, selected: [selected.white, selected.black] });
+        const expected = [selected[0] + selected[1] / 2, selected[2] + selected[1] / 2];
+        return panel?.getAttribute('data-source') === source && panel?.getAttribute('data-metric') === 'expected-score' && values.length === 2 &&
+          values.every((value, index) => Math.abs(value - expected[index] * 100) <= 0.050001);
+      }, { source, selected: [selected.white, selected.draw, selected.black] });
       report.latency_ms.push(Math.round(performance.now() - start));
       const labels = await panel.locator('.win-probability__values').innerText();
       const values = [...labels.matchAll(/(\d+\.\d)%/g)].map(m => Number(m[1]));
       check(values.length === 2 && Math.abs(values.reduce((a, b) => a + b, 0) - 100) < 0.01,
-        `Ply ${ply}: conditional White/Black percentages sum to 100%`);
+        `Ply ${ply}: expected-score White/Black advantage sums to 100%`);
       check((await panel.innerText()).match(/\d+\.\d%/g)?.length === 2,
-        `Ply ${ply}: exactly two conditional percentages match the ${source} estimate`);
+        `Ply ${ply}: exactly two advantage percentages match the ${source} estimate`);
       check(await panel.locator('.win-probability__draw').count() === 0 &&
-        (await panel.locator('.win-probability__source').innerText()).includes('không tính hòa'),
-        `Ply ${ply}: no draw segment and conditional meaning is visible`);
+        (await panel.locator('.win-probability__source').innerText()).includes('Ưu thế') &&
+        (await panel.locator('.win-probability__explanation').innerText()).includes('Hòa tính nửa điểm'),
+        `Ply ${ply}: the expected-score meaning and draw treatment are visible`);
       if (humanPlayers && ply >= 4) {
         check(prediction.human?.status === 'ready', `Ply ${ply}: server ratings/clocks produce a human prediction`);
         report.model_id = prediction.human.model_id;
@@ -194,7 +195,7 @@ try {
     await panel.screenshot({ path: resolve(artifacts, `${prefix}-panel.png`) });
     const beforeFlip = await panel.locator('.win-probability__values').innerText();
     await spectator.keyboard.press('f');
-    check(await panel.locator('.win-probability__values').innerText() === beforeFlip, 'Board flip preserves White/Black conditional percentages');
+    check(await panel.locator('.win-probability__values').innerText() === beforeFlip, 'Board flip preserves White/Black expected-score advantage');
     await spectator.keyboard.press('ArrowLeft');
     await spectator.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'replay');
     check(await panel.locator('.win-probability__values').count() === 0, 'Historical replay hides live-position percentages');

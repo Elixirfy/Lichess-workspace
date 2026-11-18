@@ -15,6 +15,7 @@ const core = (await readdir(pnpm)).find(n => /^playwright-core@\d/.test(n));
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= resolve(root, '.cache/playwright');
 const { chromium } = await import(pathToFileURL(resolve(pnpm, core, 'node_modules/playwright-core/index.mjs')));
 const report = { started: new Date().toISOString(), cases: [], errors: [] };
+report.metric = 'expected-score';
 const browser = await chromium.launch({ headless: true });
 const argument = name => process.argv[process.argv.indexOf(name) + 1];
 const timeoutMs = process.argv.includes('--timeout-ms') ? Number(argument('--timeout-ms')) : 25000;
@@ -57,19 +58,20 @@ async function probability(page, context, result, ply, phase) {
   assert.equal(prediction.status, 'ready');
   assert.equal(prediction.ply, ply);
   const p = prediction.probabilities;
-  assert.ok(p.white + p.black > 0);
+  assert.ok(p.white + p.draw + p.black > 0);
   await page.waitForFunction(({ p }) => {
     const panel = document.querySelector('.win-probability');
     const values = [...(panel?.querySelector('.win-probability__values')?.textContent ?? '').matchAll(/(\d+\.\d)%/g)]
       .map(m => Number(m[1]));
-    return panel?.getAttribute('data-source') === 'engine' && values.length === 2 &&
+    return panel?.getAttribute('data-source') === 'engine' && panel?.getAttribute('data-metric') === 'expected-score' && values.length === 2 &&
       Math.abs(values[0] + values[1] - 100) < 0.00001 &&
-      [p.white, p.black].every((x, i) => Math.abs(values[i] - 100 * x / (p.white + p.black)) <= 0.050001);
+      [p.white + p.draw / 2, p.black + p.draw / 2].every((x, i) => Math.abs(values[i] - 100 * x) <= 0.050001);
   }, { p });
   const panel = page.locator('.win-probability');
   assert.equal(await panel.locator('.win-probability__bar > span').count(), 2);
   assert.equal(await panel.locator('.win-probability__draw').count(), 0);
-  assert.match(await panel.locator('.win-probability__source').innerText(), /không tính hòa/);
+  assert.match(await panel.locator('.win-probability__source').innerText(), /Ưu thế/);
+  assert.match(await panel.locator('.win-probability__explanation').innerText(), /50% = cân bằng.*Hòa tính nửa điểm/);
   Object.assign(sample, { revision: prediction.revision, rawWdl: p,
     displayed: await panel.locator('.win-probability__values').innerText(), source: 'engine', passed: true });
 }
