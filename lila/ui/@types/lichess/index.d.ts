@@ -255,6 +255,8 @@ interface Paginator<A> {
 interface EvalScore {
   cp?: number;
   mate?: number;
+  // Normalized White / draw / Black, independent of the side to move.
+  wdl?: { white: number; draw: number; black: number };
 }
 
 interface CashStatic {

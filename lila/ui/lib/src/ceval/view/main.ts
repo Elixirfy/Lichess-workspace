@@ -31,8 +31,9 @@ import { cmnToggle } from '@/view/cmn-toggle';
 import stepwiseScroll from '@/view/stepwiseScroll';
 
 import type { CevalCtrl } from '../ctrl';
-import { type CevalHandler, type NodeEvals, CevalState } from '../types';
+import { type CevalHandler, type NodeEvals, type GaugeOptions, CevalState } from '../types';
 import { renderEval } from '../util';
+import { evalWdl, expectedScorePercentages } from '../wdl';
 import { povChances } from '../winningChances';
 import { renderCevalSettings } from './settings';
 
@@ -148,13 +149,70 @@ export const getBestEval = (ctrl: CevalHandler): EvalScore | undefined => {
 let gaugeLast = 0;
 let gaugeTicks: VNode[];
 
-export function renderGauge(ctrl: CevalHandler): VNode | undefined {
+export function renderGauge(ctrl: CevalHandler, options?: GaugeOptions): VNode | undefined {
   if (ctrl.ongoing || !ctrl.showEvalGauge()) return undefined;
   gaugeTicks ??= Array.from({ length: 7 }, (_, i) =>
     hl('tick', { class: { zero: i === 3 }, attrs: { style: `height: ${(i + 1) * 12.5}%` } }),
   );
   const outcome = ctrl.getNode().outcome();
   const bestEv = outcome ? undefined : getBestEval(ctrl);
+  if (options?.expectedScore) {
+    const evaluation = options.result
+      ? { probabilities: options.result, source: 'official' }
+      : outcome
+        ? {
+            probabilities: {
+              white: Number(outcome.winner === 'white'),
+              draw: Number(!outcome.winner),
+              black: Number(outcome.winner === 'black'),
+            },
+            source: 'position-result',
+          }
+        : bestEv
+          ? evalWdl(bestEv, ctrl.getNode().ply)
+          : undefined;
+    const values = evaluation && expectedScorePercentages(evaluation.probabilities);
+    const source = values ? evaluation.source : undefined;
+    const description =
+      source === 'official'
+        ? 'Kết quả chính thức.'
+        : source === 'position-result'
+          ? 'Kết quả của vị trí đang chọn.'
+          : source === 'engine-wdl'
+            ? 'WDL từ engine phân tích.'
+            : 'Quy đổi đánh giá sang WDL theo mô hình Stockfish 15.1.';
+    const title = values
+      ? `${source === 'official' || source === 'position-result' ? 'Điểm' : 'Ưu thế'} Trắng ${values[0].toFixed(1)}% · Đen ${values[1].toFixed(1)}%. ${description} 50% = cân bằng · Hòa tính nửa điểm.`
+      : 'Chưa có đánh giá cho vị trí đang chọn. Bật engine để phân tích.';
+    return div(
+      '.eval-gauge.expected-score',
+      {
+        class: { empty: !values, reverse: ctrl.getOrientation() === 'black' },
+        attrs: {
+          style: `--eval-percent: ${values?.[1] ?? 50}%`,
+          title,
+          role: 'img',
+          'aria-label': title,
+          'data-metric': values
+            ? source === 'official' || source === 'position-result'
+              ? 'result'
+              : 'expected-score'
+            : false,
+          'data-source': source ?? false,
+        },
+      },
+      [
+        gaugeTicks,
+        values &&
+          ['white', 'black'].map((color, i) =>
+            span(`.eval-gauge__${color}`, [
+              span(i ? 'Đen' : 'Trắng'),
+              span('.eval-gauge__value', `${values[i].toFixed(1)}%`),
+            ]),
+          ),
+      ],
+    );
+  }
   let ev;
   if (outcome) ev = outcome.winner === 'white' ? 1 : outcome.winner === 'black' ? -1 : 0;
   else if (bestEv) {
