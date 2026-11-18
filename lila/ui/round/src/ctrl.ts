@@ -163,6 +163,25 @@ export default class RoundController implements MoveRootCtrl {
 
     if (!document.referrer?.includes('/serviceWorker.')) setTimeout(this.showYourMoveNotification, 500);
 
+    let voiceNeedsResync = false;
+    const stopVoiceForDisconnect = () => {
+      if (this.voiceMove?.ctrl.lang() !== 'vi') return;
+      voiceNeedsResync = true;
+      this.voiceMove.update({ fen: this.stepAt(this.ply).fen, canMove: false });
+      this.voiceMove.ctrl.mic.stop();
+      this.redraw();
+    };
+    const resyncVoiceAfterDisconnect = () => {
+      if (!voiceNeedsResync) return;
+      voiceNeedsResync = false;
+      this.socket.reload();
+    };
+    pubsub.on('socket.close', stopVoiceForDisconnect);
+    pubsub.on('socket.open', resyncVoiceAfterDisconnect);
+    // Network loss can precede the socket timeout; invalidate pending ASR immediately.
+    window.addEventListener('offline', stopVoiceForDisconnect);
+    window.addEventListener('online', resyncVoiceAfterDisconnect);
+
     // at the end:
     pubsub.on('jump', ply => {
       this.jump(parseInt(ply));
@@ -625,6 +644,10 @@ export default class RoundController implements MoveRootCtrl {
     }
     this.promotion.cancel();
     this.chessground.stop();
+    if (this.voiceMove?.ctrl.lang() === 'vi') {
+      this.voiceMove.update({ fen: step.fen, canMove: false });
+      this.voiceMove.ctrl.mic.stop();
+    }
     if (o.ratingDiff) {
       d.player.ratingDiff = o.ratingDiff[d.player.color];
       d.opponent.ratingDiff = o.ratingDiff[d.opponent.color];

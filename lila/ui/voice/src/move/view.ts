@@ -8,7 +8,16 @@ export function settingNodes(
   clarity: Prop<number>,
   timer: Prop<number>,
   redraw: () => void,
+  vietnamese = false,
 ): VNode[] {
+  if (vietnamese)
+    return [
+      colorsSetting(colors, redraw),
+      h(
+        'p',
+        'Có thể nói “tốt trắng e hai e bốn”, “đưa tốt từ e hai đến e bốn”, “mã nhảy lên ép ba” hoặc “nhập thành ngắn”. Cột B đọc “bê”, “bờ” hoặc “bi”; D đọc “đê”, “dê”, “dờ”, “đờ” hoặc “đi”; F đọc “ép”. Có thể đọc rõ “tốt từ cột bê hàng hai đến cột bê hàng bốn”. D đọc kiểu Anh nên nói rõ “cột đi hàng hai”, hoặc đọc đủ cả ô đi và ô đến, để phân biệt với động từ “đi”. Khi tên cột khó nghe, dùng số từ A = một đến H = tám, ví dụ “tốt từ cột hai hàng hai đến cột hai hàng bốn”. Số 4 đọc “bốn” hoặc “tư”. Nước đi rõ ràng và hợp lệ sẽ được đi ngay, không cần xác nhận. Nước sai hoặc chưa rõ sẽ có thông báo; khi có nhiều nước phù hợp, hãy nói rõ ô xuất phát hoặc chọn mũi tên. Giữ Shift để nói nếu bật chế độ nhấn giữ.',
+      ),
+    ];
   return [colorsSetting(colors, redraw), claritySetting(clarity, redraw), timerSetting(timer, redraw)];
 }
 

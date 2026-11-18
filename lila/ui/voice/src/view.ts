@@ -16,6 +16,15 @@ export function renderVoiceBar(ctrl: VoiceCtrl, redraw: () => void, cls?: string
       hl('span#voice-status', {
         hook: onInsert(el => ctrl.mic.setController(voiceBarUpdater(ctrl, el))),
       }),
+      ctrl.lang() === 'vi' &&
+        ['localhost', '127.0.0.1'].includes(location.hostname) &&
+        hl(
+          'a#voice-recordings-button',
+          {
+            attrs: { href: '/voice-asr/record', title: 'Thu từng câu mẫu để kiểm thử giọng nói' },
+          },
+          'Thu mẫu',
+        ),
       hl('button#voice-help-button', {
         attrs: { ...dataIcon(licon.InfoCircle), title: i18n.voiceCommands.voiceHelp },
         hook: bind('click', () => openHelpDialog(ctrl), undefined, false),
@@ -32,6 +41,11 @@ export function renderVoiceBar(ctrl: VoiceCtrl, redraw: () => void, cls?: string
         langSetting(ctrl),
         ctrl.module()?.prefNodes(redraw),
         pushTalkSetting(ctrl),
+        ctrl.lang() === 'vi' &&
+          hl(
+            'p.voice-setting',
+            'Nước đi rõ ràng và hợp lệ sẽ được đi ngay, không cần xác nhận. Nước sai hoặc chưa rõ sẽ có thông báo. Có thể giữ Shift để nói. Đoạn khó nghe được nhận dạng bổ sung tại máy chủ local; không lưu âm thanh.',
+          ),
       ]),
   ]);
 }

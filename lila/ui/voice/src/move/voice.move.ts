@@ -1,14 +1,14 @@
 import { charToRole } from 'chessops';
 
-import { myUserId } from 'lib';
 import { readFen, destsToUcis, square, type Board } from 'lib/game';
 import type { MoveRootCtrl, MoveUpdate } from 'lib/game/moveRootCtrl';
 import { type PromotionCtrl, promote } from 'lib/game/promotion';
 import { licon, type LiconValue } from 'lib/licon';
-import { storedIntProp, storedBooleanPropWithEffect, storedIntPropWithEffect, once } from 'lib/storage';
+import { storedIntProp, storedBooleanPropWithEffect, storedIntPropWithEffect } from 'lib/storage';
 import type { QuestionOpts } from 'lib/types';
 import * as xhr from 'lib/xhr';
 
+import { balanceGrammar } from '../grammar';
 import type { MsgType } from '../interfaces';
 import {
   spread,
@@ -25,6 +25,7 @@ import {
   type Transform,
   type SparseMap,
 } from '../util';
+import { vietnameseMoveCandidates, vietnameseMovePhrases } from '../vietnamese';
 import { openHelpDialog, openAllPhrasesDialog } from '../view';
 import type { VoiceMove, VoiceCtrl, Entry, Match } from '../voice';
 import { coloredArrows, numberedArrows, brushes } from './arrows';
@@ -59,6 +60,8 @@ export function initModule({
   let command: Confirm | undefined; // confirm player commands (before sending request)
   let choices: Map<string, Uci> | undefined; // map choice arrows (yes, blue, red, 1, 2, etc) to moves
   let choiceTimeout: number | undefined; // timeout for ambiguity choices
+  let positionVersion = 0;
+  let submittedPosition = -1;
   const clarityPref = storedIntProp('voice.clarity', 1);
   const colorsPref = storedBooleanPropWithEffect('voice.useColors', true, () => initTimerRec());
   const timerPref = storedIntPropWithEffect('voice.timer', 3, () => initTimerRec());
@@ -103,12 +106,14 @@ export function initModule({
   };
 
   async function initGrammar(): Promise<void> {
-    const g = await xhr
-      .jsonSimple(site.asset.url(`compiled/grammar/move-${voice.lang()}.json`))
-      .catch(() => ({
-        entries: [],
-        partials: { numbers: [], commands: [], colors: [] },
-      }));
+    const language = voice.lang();
+    clearMoveProgress();
+    clearConfirm();
+    const g = await xhr.jsonSimple(site.asset.url(`compiled/grammar/move-${language}.json`)).catch(() => ({
+      entries: [],
+      partials: { numbers: [], commands: [], colors: [] },
+    }));
+    if (language !== voice.lang()) return;
     byWord.clear();
     byTok.clear();
     byVal.clear();
@@ -126,6 +131,18 @@ export function initModule({
 
   function initDefaultRec() {
     const excludeTag = root?.vote ? 'round' : 'puzzle'; // reduce unneeded vocabulary
+    if (voice.lang() === 'vi') {
+      // Vosk learns word transitions from phrases. A flat word list loses the
+      // coordinate context that distinguishes short Vietnamese rank names.
+      const phrases = allPhrases(excludeTag)
+        .map(([phrase]) => phrase)
+        .filter(phrase => !phrase.split(' ').includes('f'));
+      voice.mic.initRecognizer(balanceGrammar([...phrases, ...vietnameseMovePhrases(ucis, board), '[unk]']), {
+        listener: listen,
+        fallback: true,
+      });
+      return;
+    }
     const words = tagWords().filter(x => !byWord.get(x)?.tags?.includes(excludeTag));
     voice.mic.initRecognizer(words, { listener: listen });
   }
@@ -139,23 +156,51 @@ export function initModule({
   }
 
   function listen(heard: string, msgType: MsgType) {
-    if (msgType === 'stop' && !voice.pushTalk()) clearMoveProgress();
-    else if (msgType !== 'full') return;
+    if (msgType === 'stop' && !voice.pushTalk()) {
+      clearMoveProgress();
+      if (voice.lang() === 'vi') {
+        clearConfirm();
+        root.redraw();
+      }
+    }
+    if (msgType !== 'full' && msgType !== 'fallback') return false;
+    // Let secondary ASR recover primary errors before showing a final failure.
+    // Mic discards obsolete results when the capture or position changes.
+    const reject = (message: string) => {
+      if (msgType !== 'fallback') return false;
+      voice.mic.setStatus(message);
+      return true;
+    };
+    if (voice.lang() === 'vi') {
+      heard = heard.normalize('NFC').toLowerCase().trim().replace(/\s+/g, ' ');
+      if (!heard) return !!command || !!choices;
+      const natural = vietnameseMoveCandidates(heard, ucis, board);
+      if (natural !== undefined)
+        return (
+          chooseMoves(natural.map(uci => [uci, { cost: 0 }])) ||
+          reject('Nước đi không hợp lệ ở vị trí hiện tại. Hãy nói lại.')
+        );
+      if (heard.split(' ').some(word => !byWord.has(word)))
+        return reject('Chưa hiểu nước đi. Hãy nói rõ ô đi và ô đến.');
+    }
     try {
       (DEBUG.collapse ? console.groupCollapsed : console.info)(`listen '${heard}'`);
 
       const results = [];
-      for (const handler of listenHandlers) {
+      // Secondary ASR may make a legal move, never execute unrelated controls.
+      const handlers = msgType !== 'fallback' ? listenHandlers : [handleMove];
+      for (const handler of handlers) {
         results.push(...handler(heard));
 
         if (results.includes('ok')) {
           if (results.includes('clear')) clearConfirm();
-          return;
+          return true;
         }
       }
-      if (heard.length <= 3) return; // just ignore
+      if (heard.length <= 3 && voice.lang() !== 'vi') return false;
 
       voice.flash();
+      return voice.lang() === 'vi' ? reject('Chưa hiểu nước đi. Hãy nói rõ ô đi và ô đến.') : false;
     } finally {
       if (DEBUG.collapse) console.groupEnd();
     }
@@ -180,7 +225,7 @@ export function initModule({
 
   function handleConfirm(heard: string): ListenResult[] {
     const answer = matchOneTags(heard, ['command', 'choice']);
-    const confirm = request ?? command;
+    const confirm = voice.lang() === 'vi' ? (command ?? request) : (request ?? command);
     if (!confirm || !answer) return [];
     if (['yes', 'no', confirm.key].includes(answer)) {
       confirm.action(answer !== 'no');
@@ -197,28 +242,32 @@ export function initModule({
   }
 
   function handleAmbiguity(heard: string): ListenResult[] {
-    if (!choices || heard.includes(' ')) return [];
+    if (!choices || (voice.lang() !== 'vi' && heard.includes(' '))) return [];
 
     const chosen = matchOne(
       heard,
       [...choices].map(([w, uci]) => [wordVal(w), [uci]]),
     );
     if (!chosen) {
+      if (voice.lang() === 'vi') return [];
       clearMoveProgress();
       console.info('handleAmbiguity', `no match for '${heard}' among`, choices);
       return [];
     }
     console.info('handleAmbiguity', `matched '${heard}' to '${chosen}' among`, choices);
+    if (voice.lang() === 'vi') {
+      submit(chosen);
+      return ['ok'];
+    }
     submit(chosen);
     return ['ok', 'clear'];
   }
 
   function handleMove(phrase: string): ListenResult[] {
     if (phrase.trim().length < 3) return [];
-    if (selection() && chooseMoves(matchMany(phrase, spreadMap(squares)))) return ['ok', 'clear'];
-    return chooseMoves(matchMany(phrase, [...spreadMap(moves), ...spreadMap(squares)]))
-      ? ['ok', 'clear']
-      : [];
+    const handled: ListenResult[] = voice.lang() === 'vi' ? ['ok'] : ['ok', 'clear'];
+    if (selection() && chooseMoves(matchMany(phrase, spreadMap(squares)))) return handled;
+    return chooseMoves(matchMany(phrase, [...spreadMap(moves), ...spreadMap(squares)])) ? handled : [];
   }
 
   // see the README.md in ui/voice/.build to decrypt these variable names.
@@ -262,6 +311,8 @@ export function initModule({
 
   function costToMatch(h: string, x: string, partite: boolean) {
     if (h === x) return 0;
+    // The Vietnamese pilot accepts explicit commands, never dropped coordinates.
+    if (voice.lang() === 'vi') return Infinity;
     const xforms = findTransforms(h, x)
       .map(t => t.reduce((acc, t) => acc + transformCost(t, partite), 0))
       .sort((lhs, rhs) => lhs - rhs);
@@ -284,6 +335,8 @@ export function initModule({
 
   function chooseMoves(options: [string, Match][]) {
     if (options.length === 0) return false;
+    // A fresh move or square selection dismisses an unrelated command question.
+    if (voice.lang() === 'vi') command?.action(false);
     if (options.length === 1 && options[0][0].length === 2) {
       console.info('chooseMoves', `select '${options[0][0]}'`);
       submit(options[0][0]);
@@ -310,6 +363,8 @@ export function initModule({
     const lowestCost = options[0][1].cost;
     // trim choices to clarity window
     options = options.filter(([, m]) => m.cost - lowestCost <= clarityThreshold);
+
+    if (voice.lang() === 'vi' && options.length === 1) return submit(options[0][0]);
 
     if (!timer() && options.length === 1 && (options[0][1].cost < 0.3 || root.confirmMoveToggle?.())) {
       console.info('chooseMoves', `chose '${options[0][0]}' cost=${options[0][1].cost}`);
@@ -348,6 +403,8 @@ export function initModule({
       colorsPref() ? coloredArrows([...choices], arrowTime) : numberedArrows([...choices], arrowTime),
     );
     cg.redrawAll();
+    if (voice.lang() === 'vi')
+      voice.mic.setStatus('Có nhiều nước phù hợp. Hãy nói rõ ô xuất phát hoặc chọn mũi tên.');
     return true;
   }
 
@@ -356,11 +413,16 @@ export function initModule({
       cg = up.cg;
       for (const [color, brush] of brushes) cg.state.drawable.brushes[`v-${color}`] = brush;
     }
+    positionVersion++;
+    clearMoveProgress();
+    clearConfirm();
     board = readFen(up.fen);
     cg.setShapes([]);
     ucis = up.canMove && cg.state.movable.dests ? destsToUcis(cg.state.movable.dests) : [];
     buildMoves();
     buildSquares();
+    // Replacing the recognizer discards audio captured for the previous position.
+    if (entries.length && voice.lang() === 'vi') initDefaultRec();
   }
 
   function submit(uci: Uci, preConfirmed = true) {
@@ -373,11 +435,15 @@ export function initModule({
       cg.redrawAll();
       return true;
     }
+    if (!ucis.includes(uci.slice(0, 4))) return false;
+    if (voice.lang() === 'vi') {
+      if (submittedPosition === positionVersion) return true;
+      submittedPosition = positionVersion;
+    }
     const role = promo(uci);
     cg.cancelMove();
     if (role) promote(cg, dest(uci), role);
     root.pluginMove(src(uci), dest(uci), role, preConfirmed);
-    if (once('voice.move', { days: 1 })) xhr.text(`/jslog/feature?n=voiceMove&u=${myUserId()}`);
     return true;
   }
 
@@ -513,7 +579,7 @@ export function initModule({
     choiceTimeout = undefined;
     choices = undefined;
     cg.setShapes([]);
-    selection(false);
+    if (board) selection(false);
     if (mustRedraw) cg.redrawAll();
   }
 
@@ -542,10 +608,14 @@ export function initModule({
   }
 
   function question(): QuestionOpts | false {
+    const active = command;
+    const respond = (yes: boolean) => {
+      if (command === active) active?.action(yes);
+    };
     const mkOpts = (prompt: string, yesIcon: LiconValue) => ({
       prompt,
-      yes: { action: () => command?.action?.(true), key: 'yes', icon: yesIcon },
-      no: { action: () => command?.action?.(false), key: 'no' },
+      yes: { action: () => respond(true), key: 'yes', icon: yesIcon },
+      no: { action: () => respond(false), key: 'no' },
     });
     return command?.key === 'resign'
       ? mkOpts('Confirm resignation', licon.FlagOutline)
@@ -568,7 +638,7 @@ export function initModule({
   }
 
   function prefNodes() {
-    return settingNodes(colorsPref, clarityPref, timerPref, root.redraw);
+    return settingNodes(colorsPref, clarityPref, timerPref, root.redraw, voice.lang() === 'vi');
   }
 
   function maxArrows() {
@@ -576,11 +646,12 @@ export function initModule({
   }
 
   function timer(): number {
+    if (voice.lang() === 'vi') return 0;
     return [0, 1.5, 2, 2.5, 3, 5][timerPref()];
   }
 
   function moveInProgress() {
-    return selection !== undefined || choices !== undefined;
+    return cg.state.selected !== undefined || choices !== undefined;
   }
 
   function tokWord(tok: string) {
@@ -653,13 +724,14 @@ export function initModule({
     } else return v ? v.in : val;
   }
 
-  function allPhrases() {
+  function allPhrases(excludeTag?: string) {
     const res: [string, string][] = [];
     for (const [xval, uci] of [...moves, ...squares]) {
       const toVal = typeof uci === 'string' ? uci : '[...]';
       res.push(...valsWords(xval).map<[string, string]>(p => [p, toVal]));
     }
     for (const e of byTags(['command', 'choice'])) {
+      if (excludeTag && e.tags.includes(excludeTag)) continue;
       res.push(...valsWords(e.val!).map<[string, string]>(p => [p, e.val!]));
     }
     return [...new Map(res)]; // vals expansion can create duplicates

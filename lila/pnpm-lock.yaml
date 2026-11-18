@@ -167,6 +167,7 @@ overrides:
   undici: ^8.10.2
 
 patchedDependencies:
+  '@lichess-org/vosk-browser@0.0.3': a41070d01206a9328d6b928bb222e6c7b4f9967158b69cb7044d2ea5e95d361d
   '@toast-ui/editor@3.2.2': 3c9aa5176e0c4e67d96e6cfc8928789dfb22ebcb7db6a5c68f40caf5cc9bbce9
 
 importers:
@@ -769,7 +770,7 @@ importers:
     dependencies:
       '@lichess-org/vosk-browser':
         specifier: 0.0.3
-        version: 0.0.3
+        version: 0.0.3(patch_hash=a41070d01206a9328d6b928bb222e6c7b4f9967158b69cb7044d2ea5e95d361d)
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -1249,6 +1250,7 @@ packages:
 
   '@toast-ui/editor@3.2.2':
     resolution: {integrity: sha512-ASX7LFjN2ZYQJrwmkUajPs7DRr9FsM1+RQ82CfTO0Y5ZXorBk1VZS4C2Dpxinx9kl55V4F8/A2h2QF4QMDtRbA==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
@@ -2735,7 +2737,7 @@ snapshots:
 
   '@lichess-org/stockfish-web@0.5.0': {}
 
-  '@lichess-org/vosk-browser@0.0.3':
+  '@lichess-org/vosk-browser@0.0.3(patch_hash=a41070d01206a9328d6b928bb222e6c7b4f9967158b69cb7044d2ea5e95d361d)':
     dependencies:
       uuid: 11.1.0
 

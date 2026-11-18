@@ -3,7 +3,7 @@ import * as ps from 'node:process';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
-import { findTransforms } from './src/util';
+import { findTransforms } from './src/transforms.ts';
 
 let builder: Builder;
 
@@ -127,7 +127,7 @@ function writeGrammar(out: string) {
 }
 
 function getArg(arg: string) {
-  return ps.argv
+  return [...ps.argv]
     .reverse()
     .find(value => value.startsWith(`--${arg}`))
     ?.slice(3 + arg.length);

@@ -1,0 +1,11 @@
+[
+  {"id":"pawn_plain","text":"Tốt trắng e hai e bốn","kind":"move","uci":"e2e4"},
+  {"id":"pawn_from","text":"Đưa quân tốt từ e hai đến e bốn","kind":"move","uci":"e2e4"},
+  {"id":"pawn_at","text":"Tốt ở e hai đi đến e bốn","kind":"move","uci":"e2e4"},
+  {"id":"knight_jump","text":"Mã nhảy lên ép ba","kind":"move","uci":"g1f3"},
+  {"id":"castle_short","text":"Nhập thành ngắn","kind":"move","uci":"e1h1","fen":"4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1"},
+  {"id":"promotion","text":"Tốt e bảy tới e tám phong cấp thành hậu","kind":"move","uci":"e7e8q","fen":"k7/4P3/8/8/8/8/8/K7 w - - 0 1"},
+  {"id":"confirm","text":"Xác nhận","kind":"confirm"},
+  {"id":"agree","text":"Đồng ý","kind":"confirm"},
+  {"id":"cancel","text":"Hủy nước đi","kind":"cancel"}
+]

@@ -1,0 +1,6 @@
+# Install CPU torch first from https://download.pytorch.org/whl/cpu:
+# uv pip install --python .cache/voice-benchmark-venv/Scripts/python.exe torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
+transformers==4.57.1
+numpy==2.2.6
+vosk==0.3.45
+psutil==7.0.0

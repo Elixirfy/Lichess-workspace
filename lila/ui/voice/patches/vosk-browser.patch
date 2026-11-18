@@ -1,0 +1,14 @@
+diff --git a/dist/vosk.wasm.js b/dist/vosk.wasm.js
+--- a/dist/vosk.wasm.js
++++ b/dist/vosk.wasm.js
+@@ -214,9 +214,7 @@ var VoskClient = class extends EventTarget {
+     return this.isReady;
+   }
+   terminate() {
+-    this.postMessage({
+-      action: "terminate"
+-    });
++    this.worker.terminate();
+     this.isReady = false;
+   }
+   setLogLevel(level) {

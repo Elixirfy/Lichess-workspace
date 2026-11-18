@@ -1,8 +1,10 @@
 import { objectStorage } from 'lib/objectStorage';
 import { storedStringProp } from 'lib/storage';
 
+import { SpeechFallback } from './fallback';
 import type { VoskModule, Listener, Microphone, MsgType } from './interfaces';
 import { Switch, type Selectable } from './switch';
+import { vietnameseShortGrammar } from './vietnamese';
 
 export class Mic implements Microphone {
   recId = 'default';
@@ -22,6 +24,7 @@ export class Mic implements Microphone {
   private busy = false;
   private interrupt = false;
   private paused = 0;
+  private readonly fallback = new SpeechFallback();
 
   get lang(): string {
     return this.language;
@@ -58,6 +61,14 @@ export class Mic implements Microphone {
     this.ctrl(...this.ctrlState); // hello
   }
 
+  setStatus(text: string): void {
+    this.ctrlState = [text, 'status'];
+    this.voskStatus = text;
+    this.ctrl(text, 'status');
+    window.clearTimeout(this.broadcastTimeout);
+    this.broadcastTimeout = window.setTimeout(() => this.broadcast(''), 5000);
+  }
+
   addListener(listener: Listener, also: { recId?: string; listenerId?: string } = {}): void {
     const recId = also.recId ?? 'default';
     if (!this.recs.items.has(recId)) throw `No recognizer for '${recId}'`;
@@ -73,6 +84,7 @@ export class Mic implements Microphone {
     also: {
       recId?: string;
       partial?: boolean;
+      fallback?: boolean;
       listener?: Listener;
       listenerId?: string;
     } = {},
@@ -82,7 +94,8 @@ export class Mic implements Microphone {
       return;
     }
     const recId = also.recId ?? 'default';
-    const rec = new RecNode(words.slice(), !!also.partial);
+    this.fallback.cancel();
+    const rec = new RecNode(words.slice(), !!also.partial, !!also.fallback);
     if (this.vosk?.isLoaded(this.lang)) this.initKaldi(recId, rec);
     this.recs.add(recId, rec);
     if (also.listener) this.addListener(also.listener, { recId, listenerId: also.listenerId });
@@ -98,6 +111,9 @@ export class Mic implements Microphone {
   async start(listen = true): Promise<void> {
     try {
       if (listen && this.isListening && this.recId === this.recs.key) return;
+      this.fallback.cancel();
+      // A new capture session cannot accept the previous session's final worker replies.
+      for (const rec of this.recs.items.values()) rec.close();
       this.busy = true;
       await this.initModel();
       if (!this.busy) throw '';
@@ -107,15 +123,22 @@ export class Mic implements Microphone {
       this.micTrack!.enabled = listen;
       this.busy = false;
       site.sound.listeners.add(this.soundListener);
-      this.broadcast(listen ? 'Listening...' : '', 'start');
+      this.broadcast(listen ? (this.lang === 'vi' ? 'Đang nghe…' : 'Listening...') : '', 'start');
     } catch (e: any) {
       if (e instanceof DOMException && e.name === 'NotAllowedError') this.stop(['No permission', 'error']);
       else this.stop([e.toString(), 'error']);
-      if (e !== '') throw e;
     }
   }
 
-  stop(reason: [string, MsgType] = ['', 'stop']): void {
+  finish(): void {
+    this.stop(['', 'stop'], true);
+  }
+
+  stop(reason: [string, MsgType] = ['', 'stop'], finish = false): void {
+    if (!finish) {
+      this.fallback.cancel();
+      for (const rec of this.recs.items.values()) rec.close();
+    }
     site.sound.listeners.delete(this.soundListener);
     if (this.micTrack) this.micTrack.enabled = false;
     this.download?.abort();
@@ -149,13 +172,52 @@ export class Mic implements Microphone {
 
   private initKaldi(recId: string, rec: RecNode) {
     if (rec.node) return;
-    rec.node = this.vosk?.initRecognizer({
+    const current = () => this.recs.items.get(recId) === rec && rec.node === node;
+    const node = this.vosk?.initRecognizer({
       recId,
       audioCtx: this.audioCtx!,
       partial: rec.partial,
       words: rec.words,
-      broadcast: this.broadcast.bind(this),
+      broadcast: (text, type, forMs) => {
+        if (current()) this.broadcast(text, type, forMs);
+      },
+      audioResult:
+        rec.fallback && this.lang === 'vi'
+          ? (text, samples, rate) => {
+              if (!current()) return;
+              if (!text && this.fallback.pending) return;
+              this.fallback.cancel();
+              const handled = this.broadcast(text, 'full', 3000);
+              if (!handled && current() && samples.length >= rate / 10) {
+                const retry = vietnameseShortGrammar(text, rec.words);
+                const words = text.split(/\s+/);
+                const context = words.includes('phong')
+                  ? 'promotion'
+                  : words.includes('cột')
+                    ? 'coordinates'
+                    : 'general';
+                void this.fallback.run(
+                  samples,
+                  rate,
+                  heard => {
+                    if (current()) this.broadcast(heard, 'fallback', 5000);
+                  },
+                  status => {
+                    if (current()) this.broadcast(status, 'status');
+                  },
+                  context,
+                  retry.length
+                    ? {
+                        recognize: signal => this.vosk.transcribe(samples, rate, retry, signal),
+                        accept: heard => current() && this.broadcast(heard, 'fallback', 5000),
+                      }
+                    : undefined,
+                );
+              }
+            }
+          : undefined,
     });
+    rec.node = node;
   }
 
   private async initModel(): Promise<void> {
@@ -169,10 +231,14 @@ export class Mic implements Microphone {
     const downloadAsync = this.downloadModel(`/vosk/${modelUrl.replace(/[\W]/g, '_')}`);
     const audioAsync = this.initAudio();
 
-    this.vosk ??= await site.asset.loadEsm<VoskModule>('voice.vosk');
-    await downloadAsync;
+    // Attach rejection handlers to all parallel work immediately (permission may fail first).
+    const [vosk] = await Promise.all([
+      Promise.resolve(this.vosk ?? site.asset.loadEsm<VoskModule>('voice.vosk')),
+      downloadAsync,
+      audioAsync,
+    ]);
+    this.vosk = vosk;
     await this.vosk.initModel(modelUrl, this.lang);
-    await audioAsync;
   }
 
   private async initAudio(): Promise<void> {
@@ -196,15 +262,20 @@ export class Mic implements Microphone {
   }
 
   private broadcast(text: string, msgType: MsgType = 'status', forMs = 0) {
-    this.ctrlState = [text, msgType];
+    const state = (this.ctrlState = [text, msgType]);
     this.ctrl(text, msgType);
-    if (msgType === 'status' || msgType === 'full') window.clearTimeout(this.broadcastTimeout);
+    if (msgType === 'status' || msgType === 'full' || msgType === 'fallback')
+      window.clearTimeout(this.broadcastTimeout);
     this.voskStatus = text;
+    let handled = false;
     for (const li of this.recs.items.get(this.recId)?.listeners ?? []) {
-      if (!this.interrupt) li(text, msgType);
+      if (!this.interrupt) handled = li(text, msgType) === true || handled;
     }
+    handled ||= this.interrupt;
     this.interrupt = false;
-    this.broadcastTimeout = forMs > 0 ? window.setTimeout(() => this.broadcast(''), forMs) : undefined;
+    if (this.ctrlState === state)
+      this.broadcastTimeout = forMs > 0 ? window.setTimeout(() => this.broadcast(''), forMs) : undefined;
+    return handled;
   }
 
   private async downloadModel(emscriptenPath: string): Promise<void> {
@@ -272,7 +343,7 @@ export class Mic implements Microphone {
   }
 
   private resume() {
-    this.paused = Math.min(this.paused - 1, 0);
+    this.paused = Math.max(this.paused - 1, 0);
     if (this.paused !== 0 || this.micTrack === undefined) return;
     this.micTrack.enabled = !!this.recs.value;
   }
@@ -310,23 +381,32 @@ class RecNode implements Selectable {
   words: string[];
   node?: AudioNode;
   partial: boolean;
+  private source?: AudioNode;
 
-  constructor(words: string[], partial: boolean) {
+  constructor(
+    words: string[],
+    partial: boolean,
+    readonly fallback = false,
+  ) {
     this.words = words;
     this.partial = partial;
   }
 
   select(audio?: Audio): void {
     if (!audio?.source || !this.node) return;
+    this.source = audio.source;
     audio.source.connect(this.node);
     this.node.connect(audio.ctx!.destination);
   }
 
   deselect(): void {
+    if (this.source && this.node) this.source.disconnect(this.node);
+    this.source = undefined;
     this.node?.disconnect();
   }
 
   close(): void {
+    this.deselect();
     this.node = undefined;
   }
 

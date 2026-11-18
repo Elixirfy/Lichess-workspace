@@ -59,7 +59,7 @@ export function makeVoice(opts: {
     shiftDown = false;
     if (!pushTalk()) return;
     clearTimeout(keyupTimeout);
-    keyupTimeout = setTimeout(() => mic.stop(), 600);
+    keyupTimeout = setTimeout(() => mic.finish(), 600);
   });
 
   if (pushTalk()) mic.start(false);
@@ -83,7 +83,7 @@ export function makeVoice(opts: {
     if (pushTalk()) {
       enabled(false);
       pushTalk(false);
-    } else enabled(!enabled()) ? mic.start() : mic.stop();
+    } else enabled(!mic.isListening && !mic.isBusy) ? mic.start() : mic.stop();
     if (opts.tpe === 'move' && once('voice.rtfm')) openHelpDialog(ctrl);
   }
 

@@ -1,0 +1,76 @@
+{
+  "model": "vinai/PhoWhisper-small",
+  "revision": "a86b604c346caf7148c37512eafe783a16420adb",
+  "license": "BSD-3-Clause",
+  "source": "https://huggingface.co/vinai/PhoWhisper-small",
+  "files": [
+    {
+      "file": "README.md",
+      "bytes": 1021,
+      "git_blob_sha1": "c7e9a97b5b75727f8157c6d284a521d3030d7ae8"
+    },
+    {
+      "file": "added_tokens.json",
+      "bytes": 2082,
+      "git_blob_sha1": "a973b01f5b1e5755fb2fd8a89cbd0c0c0ccf1460"
+    },
+    {
+      "file": "config.json",
+      "bytes": 1329,
+      "git_blob_sha1": "52dfd78065a594be171003466d40b794d864d786"
+    },
+    {
+      "file": "generation_config.json",
+      "bytes": 3832,
+      "git_blob_sha1": "f12d4ba56da422b71b635d1b36beaf0dac9c8581"
+    },
+    {
+      "file": "merges.txt",
+      "bytes": 493864,
+      "git_blob_sha1": "3a00c89ee5e8ae0cb159a6ec838843fb2266fac6"
+    },
+    {
+      "file": "normalizer.json",
+      "bytes": 52666,
+      "git_blob_sha1": "dd6ae819ad738ac1a546e9f9282ef325c33b9ea0"
+    },
+    {
+      "file": "preprocessor_config.json",
+      "bytes": 339,
+      "git_blob_sha1": "91876762a536a746d268353c5cba57286e76b058"
+    },
+    {
+      "file": "pytorch_model.bin",
+      "bytes": 967102729,
+      "sha256": "9ec6f07c5bd321fc8f477cf778c43c3fd94b0e33a9f20283fc61cc6d22cbfded"
+    },
+    {
+      "file": "special_tokens_map.json",
+      "bytes": 2077,
+      "git_blob_sha1": "97b19be84030b1efda97fa55e676c21551f9ae54"
+    },
+    {
+      "file": "tokenizer.json",
+      "bytes": 2204003,
+      "git_blob_sha1": "ac3a3edc707445d4a3c2c5845e56c65a45781e57"
+    },
+    {
+      "file": "tokenizer_config.json",
+      "bytes": 805,
+      "git_blob_sha1": "6b53d4f2b480c9267ffc419c7628159d25f3072a"
+    },
+    {
+      "file": "vocab.json",
+      "bytes": 835550,
+      "git_blob_sha1": "d7016e21da8776c8a9d577d0f559600f09a240eb"
+    }
+  ],
+  "runtime": {
+    "python": "3.12.10",
+    "torch": "2.8.0+cpu",
+    "transformers": "4.57.1",
+    "numpy": "2.2.6",
+    "vosk": "0.3.45",
+    "psutil": "7.0.0"
+  }
+}

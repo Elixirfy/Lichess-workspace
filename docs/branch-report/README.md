@@ -1,59 +1,49 @@
-# Tỷ lệ và ưu thế — phần dùng chung trên main
+# Hồ sơ báo cáo — voice tiếng Việt
 
-## Phạm vi và nguồn
+## Phạm vi, nguồn và phân công
 
-Ngày 18/11/2026, theo phân công của người dùng, live/review probability thuộc
-bản chung. Main nền `0d2944e`; code tỷ lệ lấy từ mốc đã kiểm thử `e4d8477`,
-giữ nguyên công thức và model. Nguồn upstream/Docker trong `upstream-lock.json`;
-patch hiện tại ghi bằng checksum trong báo cáo tích hợp. Voice riêng không
-thay đổi bản tỷ lệ được kế thừa từ main.
+Nhánh này được dựng trên main `2fe21556654885236fe3851ac0e420804b225865`.
+Tỷ lệ live/review, model và bằng chứng tỷ lệ thuộc phần chung; delta chỉ thêm
+voice. Toàn bộ triển khai voice lấy từ mốc đã công bố `e4d8477`, được lưu nguyên
+ở `codex/archive-voice-and-probability-e4d8477`. Bản vá voice giữ checksum
+`92bda6c2ea1be33b41391e375a1e30afd89509e64a65fa263286c147d6b1b88c`.
 
-## Chức năng và kiến trúc
+## Thiết kế
 
-Live: lịch sử Lila → endpoint/cached worker → Stockfish/human pilot → WDL →
-điểm kỳ vọng hai màu cho cả hai người chơi/người xem standard.
-Review: node đang chọn → native WDL hoặc cp-only model → cùng helper W+D/2 →
-thanh dọc. Kết quả chính thức chỉ áp ở endpoint gốc, không dùng cho node quá khứ.
+Mic/resample 16 kHz → Vosk grammar theo thế cờ; trường hợp cần thiết gọi
+PhoWhisper local có VAD/context → chuẩn hóa/parser tiếng Việt → giao với nước
+hợp lệ của vị trí hiện tại → điều khiển bàn/server. Không dùng LLM để hiểu câu.
+Kết quả ASR không tự tạo quyền đi; phải đúng lượt, hợp lệ và còn đúng revision.
+Chế độ đi ngay chỉ thực hiện khi xác định duy nhất một nước, lỗi/mơ hồ có phản
+hồi. Mất kết nối/kết thúc ván dừng mic và vô hiệu kết quả đang chờ.
 
-Nguồn có trong `lila/` và patch tái lập cho Docker. Không đưa ASR/recorder vào
-main. Giữ nguyên code bình luận Nano/ba BLV của nhóm, không nhập nhánh coach hay
-WebMCP trong thao tác tách ownership này.
+Source ở `lila/ui/voice/`, hook vòng đời trong `lila/ui/round/src/ctrl.ts`;
+ASR/recorder ở `services/voice/`; harness/model installer ở `scripts/voice*`.
+Docker dùng patch tái lập trên upstream ghim trong `upstream-lock.json`.
+Monorepo `lila/` cũng có mã voice, nhưng vẫn cần dựng ASR và route proxy.
 
 ## Ưu điểm so với tính năng có sẵn
 
-| Có sẵn / mốc trước | Phần chung bổ sung | Ý nghĩa và giới hạn |
+| Có sẵn / mốc trước | Bổ sung | Phạm vi của nhận định |
 |---|---|---|
-| Analysis có thanh cp/mate | Ưu thế W+D/2 trên thanh dọc tại node đang chọn | Tái sử dụng engine/UI; không chứng minh xác suất thắng cá nhân |
-| Chỉ spectator hoặc phải mở tab khác | Panel trên cả hai bàn standard | Ít chuyển trang, server vẫn kiểm tra quyền/variant |
-| W/(W+B) bỏ hòa | Cộng nửa điểm hòa cho mỗi bên | Ví dụ 0/87,6/12,4 thành 43,8/56,2 thay cho 0/100 |
-| Chỉ xét thế cờ engine | Human pilot có rating/clock khi hợp lệ | Có thêm ngữ cảnh; chưa hiệu chỉnh cho cộng đồng local |
-| Đánh giá riêng/trả số cũ sau takeback | Cache và revision theo toàn lịch sử | Giảm việc trùng, tránh nhầm cùng ply khác thế cờ |
+| Lichess có voice nhưng chưa có tiếng Việt ở mốc upstream | Tên quân/ô, từ–đến, nhập thành/phong cấp và biến thể B/D | Tăng phạm vi câu nói được hỗ trợ, không bảo đảm mọi giọng |
+| Vosk đơn thuần dễ nhầm âm ngắn | PhoWhisper local, grammar và nước hợp lệ | Có bằng chứng audio cụ thể; chưa đủ để khái quát cộng đồng |
+| Người chơi xác nhận liên tục | Đi ngay nếu nước duy nhất và hợp lệ | Giảm thao tác, không mặc định đo được thời gian tiết kiệm |
+| Chỉ nhìn transcript | Recorder + kiểm tra nước server/bot | Kiểm tra đủ luồng thay vì chỉ ASR |
 
-## Kiểm thử và giới hạn
+## Bằng chứng, giới hạn và cách chạy
 
-Các mốc cũ có 360 test frontend trên branch kết hợp và browser review 4 ván/22
-snapshot. Đây là bằng chứng lịch sử, không gán nguyên số đó cho source main mới.
-[Báo cáo tách phần chung](../../reports/acceptance/shared-probability/README.md)
-ghi các kiểm tra vừa chạy và lỗi nền nếu còn. Không coi các snapshot lặp của
-flip/reload là mẫu đánh giá model độc lập.
+[Báo cáo tách branch](../../reports/voice-v1/branch-separation/README.md) ghi
+kiểm tra mới. Các báo cáo [voice](../../reports/voice-v1/README.md),
+[B/D](../../reports/voice-v1/bd-numbered-retake/README.md),
+[đi ngay](../../reports/voice-v1/direct-moves/README.md) là bằng chứng lịch sử.
+Giữ nguyên cách chia dữ liệu và provenance; nhiều lần nghe lại cùng audio là
+regression, không phải test set mới. Không cộng số test các branch thành nghiệm
+thu toàn nhóm. Giọng/mic/tiếng ồn/mạng ảnh hưởng nhận dạng và độ trễ.
 
-Human model còn thiên lệch prefix sample, ít hòa, tập tháng 10 từng được xem
-lại sau sửa lấy mẫu. [Model card](../../reports/human-v1/model-card.md) là nguồn
-cho protocol/metric; không biến cải thiện log loss thành tỷ lệ thắng tăng.
-Không đo hiệu quả học cờ/nghe bình luận trong lần tách Git này.
+[README gốc](../../README.md) có lệnh chạy, URL và model; audio riêng của người
+dùng vẫn bị ignore. Không công bố việc chạy lại benchmark người thật/LLM hoặc
+đánh giá học cờ trong lần tổ chức Git này.
 
-## Cách chạy và tài liệu
-
-[README gốc](../../README.md), [chuẩn bị model browser](../../scripts/prepare-analysis-engine.mjs),
-[spec](../../openspec/changes/live-win-probability/specs/win-probability/spec.md),
-[patch](../../patches/lila-win-probability.patch),
-[review](../../reports/acceptance/replay-advantage/README.md),
-[bình luận đang có](../binh-luan-vien-tieng-viet.md).
-
-Voice input có sẵn của Lichess vẫn còn; phần mở rộng tiếng Việt Vosk/PhoWhisper,
-grammar mới, thu âm và đi ngay ở branch voice. WebMCP/coach do các nhánh riêng
-cung cấp, chưa mặc định đã được nghiệm thu chung trên main.
-
-README này được tổng hợp với hỗ trợ của Codex. Khi viết báo cáo, trích revision,
-tập dữ liệu, điều kiện đo và giới hạn; không ghép số test các branch thành một
-nghiệm thu toàn bộ nhóm.
+Tài liệu tổng hợp với hỗ trợ Codex. Khi viết báo cáo cần trích revision, nguồn
+dữ liệu, điều kiện và giới hạn thay vì chỉ nêu con số cao nhất.

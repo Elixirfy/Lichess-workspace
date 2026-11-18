@@ -40,7 +40,7 @@ function Bootstrap {
             }
         }
         $lila = $lock.repositories.lila.path
-        foreach ($patchName in @('lila-win-probability.patch')) {
+        foreach ($patchName in @('lila-win-probability.patch', 'lila-vietnamese-voice.patch')) {
             $patch = Join-Path $workspaceRoot ('patches/' + $patchName)
             if (!(Test-Path -LiteralPath $patch)) { throw "Missing feature patch: $patchName" }
             & git -C $lila apply --reverse --check $patch 2>$null
@@ -52,6 +52,7 @@ function Bootstrap {
     } finally { $env:GIT_LFS_SKIP_SMUDGE = $previousLfs }
     Compose build lila ui prediction
     Compose run --rm --no-deps -v "${workspaceRoot}/scripts:/bootstrap:ro" ui node /bootstrap/prepare-lila.mjs
+    Compose run --rm --no-deps -v "${workspaceRoot}:/workspace" prediction python /workspace/scripts/voice_model.py
     Compose run --rm --no-deps ui bash ./ui/build -p
     Compose up -d --wait mongodb mongodb_secondary redis prediction lila_ws
     Compose exec -T mongodb mongosh --quiet lichess /lila/bin/mongodb/indexes.js
@@ -63,6 +64,10 @@ function Start-Stack {
     $manifest = 'infra/lila-docker/repos/lila/public/compiled/manifest.json'
     if (!(Test-Path -LiteralPath $stage) -or !(Test-Path -LiteralPath $manifest)) {
         throw 'Missing compiled application or UI. Run .\scripts\dev.ps1 bootstrap first.'
+    }
+    if (Test-Path -LiteralPath '.cache/voice/PhoWhisper-small-ct2-f32/model.bin') {
+        Invoke-Checked uv @('run', '--no-project', '--python', '3.12', 'python', '-m', 'scripts.voice_service_model', '--check')
+        Compose --profile voice up -d --wait voice_asr
     }
     Compose up -d --wait mongodb mongodb_secondary redis prediction lila_ws lila_fishnet fishnet_play
     Compose up -d --wait lila caddy
@@ -86,9 +91,9 @@ try {
     switch ($Action) {
         'bootstrap' { Bootstrap }
         'start' { Start-Stack }
-        'stop' { Compose stop }
-        'status' { Compose ps -a }
-        'logs' { Compose logs --tail 80 lila prediction lila_ws lila_fishnet fishnet_play caddy }
+        'stop' { Compose --profile voice stop }
+        'status' { Compose --profile voice ps -a }
+        'logs' { Compose --profile voice logs --tail 80 lila prediction voice_asr lila_ws lila_fishnet fishnet_play caddy }
         'check' {
             Invoke-Checked uv @('run', '--project', 'services/prediction', '--group', 'ml', '--frozen', 'python', '-m', 'pytest', 'services/prediction/tests', '-q')
             Invoke-Checked uv @('run', '--project', 'services/prediction', '--group', 'ml', '--frozen', 'ruff', 'check', 'services/prediction')
