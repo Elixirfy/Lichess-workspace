@@ -19,7 +19,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 
 from core import Job, PHRASEBOOK, comment_id, cp_loss, engine_score, extract, speech_text
-from gemini_tts import Gemini, STYLE
 from narrative import brief, compose
 from phrases import (INTRO, OPENING_CENTRAL, OPENING_FLEXIBLE, OPENING_GENERAL, OPENING_RARE, TRANSITIONS, dress,
                      seed_of, shape)
@@ -49,13 +48,8 @@ class Settings:
     engine_ms: int = int(os.getenv("BLV_ENGINE_MS", "100"))
     ttl_ms: int = int(os.getenv("BLV_TTL_MS", "12000"))
     tts_timeout: float = float(os.getenv("BLV_TTS_TIMEOUT", "4"))
-    # auto uses Google when a key is present, otherwise the existing offline Piper setup.
+    # piper: offline Piper voices; vieneu: VieNeu v3 Nano; auto is the same as piper.
     tts_provider: str = field(default_factory=lambda: os.getenv("BLV_TTS_PROVIDER", "auto"))
-    gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""), repr=False)
-    gemini_model: str = field(default_factory=lambda: os.getenv("BLV_GEMINI_MODEL", "gemini-3.1-flash-tts-preview"))
-    gemini_voice: str = field(default_factory=lambda: os.getenv("BLV_GEMINI_VOICE", "Kore"))
-    gemini_style: str = field(default_factory=lambda: os.getenv("BLV_GEMINI_STYLE", STYLE))
-    gemini_timeout: float = field(default_factory=lambda: float(os.getenv("BLV_GEMINI_TIMEOUT", "7")))
     nano_dir: str = field(default_factory=lambda: os.getenv("BLV_NANO_DIR", ""))
     nano_python: str = field(default_factory=lambda: os.getenv(
         "BLV_NANO_PYTHON", str(Path(__file__).parent / ".venv-nano/bin/python")))
@@ -189,12 +183,9 @@ class Worker:
     def __init__(self, settings: Settings):
         self.settings = settings
         provider = settings.tts_provider.strip().lower()
-        if provider not in ("auto", "piper", "gemini", "vieneu"):
-            raise ValueError("BLV_TTS_PROVIDER must be auto, piper, gemini or vieneu")
-        self.tts_provider = ("gemini" if settings.gemini_api_key.strip() else "piper") if provider == "auto" else provider
-        self.gemini = (Gemini(settings.gemini_api_key.strip(), settings.gemini_model,
-                              settings.gemini_voice, settings.gemini_style)
-                       if self.tts_provider == "gemini" and settings.gemini_api_key.strip() else None)
+        if provider not in ("auto", "piper", "vieneu"):
+            raise ValueError("BLV_TTS_PROVIDER must be auto, piper or vieneu")
+        self.tts_provider = "piper" if provider == "auto" else provider
         self.engine = None
         self.nano = Piper(Path(settings.nano_dir), python=settings.nano_python,
                           script="nano_worker.py", ready_timeout=45)
@@ -233,9 +224,6 @@ class Worker:
             installed = (Path(self.settings.nano_python).is_file() and self.settings.nano_dir
                          and all((Path(self.settings.nano_dir) / name).is_file() for name in files))
             self.voices = [voice.id for voice in CATALOGUE] if installed else []
-            return
-        if self.tts_provider == "gemini":
-            self.voices = [voice.id for voice in CATALOGUE] if self.gemini else []
             return
         self.voices = [voice.id for voice in CATALOGUE
                        if (path := self.model_path(voice)) and path.is_file() and Path(f"{path}.json").is_file()]
@@ -309,8 +297,6 @@ class Worker:
         await asyncio.gather(*tasks, return_exceptions=True)
         for piper in self.pipers.values():
             await piper.stop()
-        if self.gemini:
-            await self.gemini.close()
         await self.nano.stop()
 
     async def search(self, board, limit, mover):
@@ -372,9 +358,6 @@ class Worker:
         if self.tts_provider == "vieneu":
             audio = await self.nano.say(text, VOICES[voice], self.settings.nano_timeout)
             provider = "vieneu-v3-nano:3.8.4"
-        elif self.tts_provider == "gemini":
-            audio = await self.gemini.say(text, voice, self.settings.gemini_timeout)
-            provider = f"gemini:{self.settings.gemini_model}"
         else:
             audio = await self.piper_for(voice).say(text, VOICES[voice], self.settings.tts_timeout)
             provider = "piper-tts:1.8.0"
@@ -386,9 +369,6 @@ class Worker:
         if key in self.audio_cache:
             self.audio_cache.move_to_end(key)
             return self.audio_cache[key]
-        if self.tts_provider == "gemini":
-            # Cancelling an obsolete game position also closes its outgoing cloud request.
-            return await self.cached_audio(key, text, voice)
         if self.tts_provider == "vieneu":
             # Finish at most one active render without reloading the model. Cancelled
             # callers waiting for it must not leave obsolete sentences in its queue.
@@ -609,8 +589,7 @@ def create_app(settings: Settings | None = None, worker: Worker | None = None):
     @app.get("/health", dependencies=[Depends(authorize)])
     async def health():
         speaking = DEFAULT in worker.voices and (
-            worker.tts_provider == "gemini" or
-            (worker.nano.alive if worker.tts_provider == "vieneu" else worker.piper_for(DEFAULT).alive))
+            worker.nano.alive if worker.tts_provider == "vieneu" else worker.piper_for(DEFAULT).alive)
         return {"alive": True, "ready": bool(worker.engine and speaking),
                 "ttsProvider": worker.tts_provider,
                 "engine": worker.engine_name, "voices": worker.voices,
