@@ -11,7 +11,7 @@ import sys
 import time
 from collections import OrderedDict, deque
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import chess.engine
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -22,10 +22,10 @@ from core import Job, PHRASEBOOK, comment_id, cp_loss, engine_score, extract, sp
 from narrative import brief, compose
 from phrases import (INTRO, OPENING_CENTRAL, OPENING_FLEXIBLE, OPENING_GENERAL, OPENING_RARE, TRANSITIONS, dress,
                      seed_of, shape)
-from voices import CATALOGUE, DEFAULT, SAMPLE, VOICES, Voice
+from voices import CATALOGUE, DEFAULT, greeting, VOICES, Voice
 
 # Spoken from audio made in advance, with no wait at all: the voice sample, bridges, greetings, first moves.
-PREPARED = (SAMPLE, *TRANSITIONS, *INTRO, *OPENING_CENTRAL, *OPENING_FLEXIBLE, *OPENING_GENERAL, *OPENING_RARE)
+PREPARED = (*TRANSITIONS, *INTRO, *OPENING_CENTRAL, *OPENING_FLEXIBLE, *OPENING_GENERAL, *OPENING_RARE)
 
 # A move accepted sooner than this after the previous one: the players are moving fast.
 FAST_MS = 3500
@@ -48,6 +48,12 @@ class Settings:
     engine_ms: int = int(os.getenv("BLV_ENGINE_MS", "100"))
     ttl_ms: int = int(os.getenv("BLV_TTL_MS", "12000"))
     tts_timeout: float = float(os.getenv("BLV_TTS_TIMEOUT", "4"))
+    # piper: offline Piper voices; vieneu: VieNeu v3 Nano; auto is the same as piper.
+    tts_provider: str = field(default_factory=lambda: os.getenv("BLV_TTS_PROVIDER", "auto"))
+    nano_dir: str = field(default_factory=lambda: os.getenv("BLV_NANO_DIR", ""))
+    nano_python: str = field(default_factory=lambda: os.getenv(
+        "BLV_NANO_PYTHON", str(Path(__file__).parent / ".venv-nano/bin/python")))
+    nano_timeout: float = field(default_factory=lambda: float(os.getenv("BLV_NANO_TIMEOUT", "7")))
     # The default voice's model; the other voices' models are looked up next to it, or in BLV_PIPER_DIR.
     piper_model: str = os.getenv("BLV_PIPER_MODEL", "")
     piper_dir: str = os.getenv("BLV_PIPER_DIR", "")
@@ -116,8 +122,9 @@ class Recent:
 class Piper:
     """One Piper process for one model file; the voices of that model share it, one sentence at a time."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, python=None, script="piper_worker.py", ready_timeout=10):
         self.path = path
+        self.python, self.script, self.ready_timeout = python or sys.executable, script, ready_timeout
         self.process = None
         self.lock = asyncio.Lock()
 
@@ -127,11 +134,11 @@ class Piper:
 
     async def start(self):
         self.process = await asyncio.create_subprocess_exec(
-            sys.executable, str(Path(__file__).with_name("piper_worker.py")), str(self.path), "--server",
+            self.python, str(Path(__file__).with_name(self.script)), str(self.path), "--server",
             stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL, limit=2_000_000)
         try:
-            ready = await asyncio.wait_for(self.process.stdout.readline(), 10)
+            ready = await asyncio.wait_for(self.process.stdout.readline(), self.ready_timeout)
             if not ready or not json.loads(ready).get("ready"):
                 raise ValueError("Piper unavailable")
         except BaseException:
@@ -158,7 +165,8 @@ class Piper:
             if not self.alive:
                 await self.start()
             try:
-                request = {"text": text, "speaker": voice.speaker, "pitch": voice.pitch, "length": voice.length}
+                request = {"text": text, "voice": voice.id, "speaker": voice.speaker,
+                           "pitch": voice.pitch, "length": voice.length}
                 self.process.stdin.write((json.dumps(request) + "\n").encode())
                 await self.process.stdin.drain()
                 response = await asyncio.wait_for(self.process.stdout.readline(), timeout)
@@ -174,7 +182,13 @@ class Piper:
 class Worker:
     def __init__(self, settings: Settings):
         self.settings = settings
+        provider = settings.tts_provider.strip().lower()
+        if provider not in ("auto", "piper", "vieneu"):
+            raise ValueError("BLV_TTS_PROVIDER must be auto, piper or vieneu")
+        self.tts_provider = "piper" if provider == "auto" else provider
         self.engine = None
+        self.nano = Piper(Path(settings.nano_dir), python=settings.nano_python,
+                          script="nano_worker.py", ready_timeout=45)
         self.transport = None
         self.busy = False
         # Installed voices, catalogue order (the default first).
@@ -186,6 +200,8 @@ class Worker:
         # Model path -> its Piper process, started on first use.
         self.pipers: dict[str, Piper] = {}
         self.audio_cache = OrderedDict()
+        self.nano_render = None
+        self.nano_render_key = None
         # Voice -> text -> audio of PREPARED, filled in the background the first time a voice is used.
         self.prepared: dict[str, dict[str, dict]] = {}
         self.warming: dict[str, asyncio.Task] = {}
@@ -202,6 +218,13 @@ class Worker:
         return Path(folder) / f"{voice.model}.onnx" if folder else None
 
     def find_voices(self):
+        if self.tts_provider == "vieneu":
+            files = ("text_encoder.onnx", "duration_predictor.onnx", "vector_estimator.onnx",
+                     "codec_decoder.onnx", "config.json", "constants.npz")
+            installed = (Path(self.settings.nano_python).is_file() and self.settings.nano_dir
+                         and all((Path(self.settings.nano_dir) / name).is_file() for name in files))
+            self.voices = [voice.id for voice in CATALOGUE] if installed else []
+            return
         self.voices = [voice.id for voice in CATALOGUE
                        if (path := self.model_path(voice)) and path.is_file() and Path(f"{path}.json").is_file()]
 
@@ -220,13 +243,15 @@ class Worker:
 
     async def warm_all(self):
         """Every installed voice, one after another, so a first sample or greeting has no wait either."""
+        if self.tts_provider != "piper":
+            return  # Paid cloud speech is requested on demand; never pre-generate the phrasebook.
         for voice in self.voices:
             await self.ensure_warm(voice)
 
     async def warm_speech(self, voice):
         prepared = self.prepared.setdefault(voice, {})
         try:
-            for text in PREPARED:
+            for text in (greeting(voice), *PREPARED):
                 if text not in prepared:
                     prepared[text] = await self.voice_audio(speech_text(text), voice)
         except Exception:
@@ -265,12 +290,14 @@ class Worker:
         if self.transport:
             self.transport.close()
         self.engine = None
-        tasks = [*self.warming.values(), *([self.preparing] if self.preparing else [])]
+        tasks = [*self.warming.values(), *([self.preparing] if self.preparing else []),
+                 *([self.nano_render] if self.nano_render else [])]
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
         for piper in self.pipers.values():
             await piper.stop()
+        await self.nano.stop()
 
     async def search(self, board, limit, mover):
         # AnalysisResult.info merges successive UCI packets. A lower/upperbound
@@ -328,15 +355,39 @@ class Worker:
     async def voice_audio(self, text, voice):
         if voice not in self.voices:
             raise ValueError("voice not installed")
-        audio = await self.piper_for(voice).say(text, VOICES[voice], self.settings.tts_timeout)
+        if self.tts_provider == "vieneu":
+            audio = await self.nano.say(text, VOICES[voice], self.settings.nano_timeout)
+            provider = "vieneu-v3-nano:3.8.4"
+        else:
+            audio = await self.piper_for(voice).say(text, VOICES[voice], self.settings.tts_timeout)
+            provider = "piper-tts:1.8.0"
         return {"mime": "audio/wav", "base64": base64.b64encode(audio).decode(),
-                "provider": "piper-tts:1.8.0", "voice": voice}
+                "provider": provider, "voice": voice}
 
     async def synthesize(self, text, voice):
         key = (voice, text)
         if key in self.audio_cache:
             self.audio_cache.move_to_end(key)
             return self.audio_cache[key]
+        if self.tts_provider == "vieneu":
+            # Finish at most one active render without reloading the model. Cancelled
+            # callers waiting for it must not leave obsolete sentences in its queue.
+            while self.nano_render and not self.nano_render.done():
+                active = self.nano_render
+                if self.nano_render_key == key:
+                    return await asyncio.shield(active)
+                try:
+                    await asyncio.shield(active)
+                except Exception:
+                    pass
+            if key in self.audio_cache:
+                self.audio_cache.move_to_end(key)
+                return self.audio_cache[key]
+            self.nano_render_key = key
+            self.nano_render = asyncio.create_task(self.cached_audio(key, text, voice))
+            # A caller can disappear while the bounded render finishes in the background.
+            self.nano_render.add_done_callback(lambda task: None if task.cancelled() else task.exception())
+            return await asyncio.shield(self.nano_render)
         # A request cancelled mid-sentence (a move during an idle remark) must not
         # kill Piper: reloading it would delay the next comment. The sentence
         # finishes in the background; Piper's lock keeps requests from interleaving.
@@ -353,10 +404,12 @@ class Worker:
     async def sample(self, wanted):
         """The sample sentence in a voice (or the default when that one is not installed), as WAV bytes."""
         voice = self.voice_for(wanted)
-        audio = self.prepared.get(voice, {}).get(SAMPLE)
+        text = greeting(voice)
+        audio = self.prepared.get(voice, {}).get(text)
         if audio is None:
-            self.ensure_warm(voice)
-            audio = await self.synthesize(speech_text(SAMPLE), voice)
+            if self.tts_provider == "piper":
+                self.ensure_warm(voice)
+            audio = await self.synthesize(speech_text(text), voice)
         return voice, base64.b64decode(audio["base64"])
 
     def envelope(self, job, facts):
@@ -366,7 +419,7 @@ class Worker:
                   "expiresAt": job.expiresAt, "acceptedAt": job.acceptedAt,
                   "commentId": comment_id(job, facts), "priority": facts.priority,
                   "kind": self.kind(facts), "factIds": [self.kind(facts)],
-                  "phrasebook": PHRASEBOOK}
+                  "phrasebook": PHRASEBOOK, "ttsProvider": self.tts_provider}
         if self.settings.debug_facts:
             result["facts"] = facts.values
         return result
@@ -418,7 +471,7 @@ class Worker:
         if not facts.selected:
             return result | {"type": "silent", "reason": "quiet_position"}
         voice = self.voice_for(job.voice)
-        if voice in self.voices:
+        if voice in self.voices and self.tts_provider == "piper":
             self.ensure_warm(voice)
             # Recreate a cancelled/crashed voice before the engine works, not after the sentence is ready.
             if not self.piper_for(voice).alive:
@@ -498,7 +551,9 @@ def create_app(settings: Settings | None = None, worker: Worker | None = None):
         except (OSError, asyncio.TimeoutError, TimeoutError, chess.engine.EngineError):
             log.warning("engine unavailable; factual baseline remains available")
         worker.find_voices()
-        if DEFAULT in worker.voices:
+        if DEFAULT in worker.voices and worker.tts_provider == "vieneu":
+            await worker.nano.ensure()
+        if DEFAULT in worker.voices and worker.tts_provider == "piper":
             # The default voice is ready before the first request; the others prepare in the background.
             try:
                 await worker.piper_for(DEFAULT).ensure()
@@ -533,11 +588,13 @@ def create_app(settings: Settings | None = None, worker: Worker | None = None):
 
     @app.get("/health", dependencies=[Depends(authorize)])
     async def health():
-        speaking = DEFAULT in worker.voices and worker.piper_for(DEFAULT).alive
+        speaking = DEFAULT in worker.voices and (
+            worker.nano.alive if worker.tts_provider == "vieneu" else worker.piper_for(DEFAULT).alive)
         return {"alive": True, "ready": bool(worker.engine and speaking),
+                "ttsProvider": worker.tts_provider,
                 "engine": worker.engine_name, "voices": worker.voices,
                 "prepared": [voice for voice in worker.voices
-                             if len(worker.prepared.get(voice, ())) == len(PREPARED)],
+                             if len(worker.prepared.get(voice, ())) == len(PREPARED) + 1],
                 "phrasebook": PHRASEBOOK, "busy": worker.busy}
 
     @app.get("/sample/{voice}", dependencies=[Depends(authorize)])

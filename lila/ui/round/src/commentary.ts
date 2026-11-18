@@ -2,12 +2,9 @@ import { storedStringProp } from 'lib/storage';
 
 /** The same ids as services/commentary/voices.py and lila's controllers/Commentary.scala. */
 export const commentaryVoices: readonly { id: string; name: string }[] = [
-  { id: 'piper-vais1000', name: 'Nữ (mặc định)' },
-  { id: 'piper-vais1000-low', name: 'Nữ, giọng trầm' },
-  { id: 'piper-vais1000-high', name: 'Nữ, giọng cao' },
-  { id: 'piper-vivos-28', name: 'Nam 1 (thử nghiệm)' },
-  { id: 'piper-vivos-45', name: 'Nam 2 (thử nghiệm)' },
-  { id: 'piper-vivos-40', name: 'Nữ 2 (thử nghiệm)' },
+  { id: 'vieneu-manh-dung', name: 'Mạnh Dũng' },
+  { id: 'vieneu-huu-quan', name: 'Hữu Quân' },
+  { id: 'vieneu-anh-khoi', name: 'Anh Khôi' },
 ];
 const defaultVoice = commentaryVoices[0].id;
 
@@ -31,6 +28,7 @@ interface CommentaryResult extends CommentaryState {
   kind?: 'intro' | 'move' | 'idle' | 'finish' | 'transition';
   commentId?: string;
   text?: string;
+  ttsProvider?: string;
   audio?: SpeechAudio;
   transition?: { text: string; audio: SpeechAudio };
   /** 60 and more: a capture of a big piece, a check, a striking reading. */
@@ -72,9 +70,9 @@ const defaults: CommentaryDeps = {
 };
 
 const silence = 'UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQIAAACAgA==';
-// A comment is ready well under a second after the move (engine, then Piper); this leaves room
-// for a slow machine or network without speaking about a move the players left long ago.
+// Cloud speech has a longer deadline. Both paths still require the latest game state and revision.
 const maxArrivalAge = 4500;
+const maxCloudArrivalAge = 10000;
 // At most one "the moves come fast" bridge in this long: said every few moves it became a refrain.
 const bridgeEvery = 45000;
 // A line this important goes first: the bridge would make it late, or lose it to the next move.
@@ -132,8 +130,8 @@ export class CommentaryCtrl {
     const changed = voice !== this.voice;
     this.voice = voice;
     this.deps.voice?.(voice);
-    // A sentence being read finishes in the old voice; the stream asks for the next ones in the new one.
-    if (changed && this.enabled) this.reset(true);
+    // An explicit commentator choice starts their welcome instead of the previous voice's sentence.
+    if (changed && this.enabled) this.reset();
     this.playSample();
     this.redraw();
   };
@@ -143,7 +141,8 @@ export class CommentaryCtrl {
     this.stopSample();
     if (this.active || this.destroyed) return;
     const media = (this.sample = this.deps.audio());
-    media.src = `/commentary/voice/${this.voice}`;
+    // A provider switch must not reuse a browser-cached sample from the previous model.
+    media.src = `/commentary/voice/${this.voice}?v=${this.deps.now()}`;
     media.volume = this.volume();
     media.onended = () => this.stopSample();
     media.onerror = () => this.stopSample();
@@ -345,7 +344,11 @@ export class CommentaryCtrl {
       result.requestId === this.state.requestId &&
       result.gameRevision === this.state.gameRevision &&
       result.expiresAt > this.serverNow() &&
-      (!fresh || this.serverNow() - result.acceptedAt <= maxArrivalAge) &&
+      (!fresh ||
+        this.serverNow() - result.acceptedAt <=
+          (result.ttsProvider === 'gemini' || result.audio?.provider.startsWith('gemini:')
+            ? maxCloudArrivalAge
+            : maxArrivalAge)) &&
       current.live &&
       current.status === result.status &&
       ((current.ply === result.ply && current.fen.split(' ')[0] === result.fenAfter.split(' ')[0]) ||
