@@ -1327,10 +1327,10 @@ index d2607f5..d5f835d 100644
    else if (bestEv) {
 diff --git a/ui/lib/src/ceval/wdl.ts b/ui/lib/src/ceval/wdl.ts
 new file mode 100644
-index 0000000..e443a93
+index 0000000..02630d0
 --- /dev/null
 +++ b/ui/lib/src/ceval/wdl.ts
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,46 @@
 +export interface Wdl {
 +  white: number;
 +  draw: number;
@@ -1376,37 +1376,6 @@ index 0000000..e443a93
 +    draw: values[1] / 1000,
 +    black: values[whitePov ? 2 : 0] / 1000,
 +  };
-+}
-+
-+// Legacy cp-only evaluations: the pinned Stockfish 15.1 WDL model, not engine-emitted WDL.
-+// https://github.com/official-stockfish/Stockfish/blob/sf_15.1/src/uci.cpp
-+// Also independently checked against python-chess Cp.wdl(model="sf15.1", ply=...).
-+function sf151Wins(cp: number, ply: number): number {
-+  const m = Math.min(240, Math.max(ply, 0)) / 64;
-+  const a = ((-0.58270499 * m + 2.68512549) * m + 15.24638015) * m + 344.49745382;
-+  const b = ((-2.65734562 * m + 15.96509799) * m - 20.69040836) * m + 73.61029937;
-+  const x = Math.min(4000, Math.max((cp * 361) / 100, -4000));
-+  return Math.floor(0.5 + 1000 / (1 + Math.exp((a - x) / b)));
-+}
-+
-+export function evalWdl(
-+  score: EvalScore,
-+  ply: number,
-+): { probabilities: Wdl; source: 'engine-wdl' | 'score-wdl' } | undefined {
-+  if (score.wdl !== undefined)
-+    return validWdl(score.wdl) ? { probabilities: score.wdl, source: 'engine-wdl' } : undefined;
-+  if (!Number.isInteger(ply) || ply < 0) return undefined;
-+  let probabilities: Wdl;
-+  if (score.mate !== undefined) {
-+    if (!Number.isFinite(score.mate) || !Number.isInteger(score.mate) || !score.mate) return undefined;
-+    probabilities = { white: Number(score.mate > 0), draw: 0, black: Number(score.mate < 0) };
-+  } else {
-+    if (!Number.isFinite(score.cp)) return undefined;
-+    const white = sf151Wins(score.cp!, ply);
-+    const black = sf151Wins(-score.cp!, ply);
-+    probabilities = { white: white / 1000, draw: (1000 - white - black) / 1000, black: black / 1000 };
-+  }
-+  return { probabilities, source: 'score-wdl' };
 +}
 diff --git a/ui/lib/tests/advantageGauge.test.ts b/ui/lib/tests/advantageGauge.test.ts
 new file mode 100644
@@ -1606,121 +1575,28 @@ index 0000000..a8525cb
 +  protocol.received('info depth 1 nodes 10 time 1 score cp 20 wdl 900 100 0 pv e2e4');
 +  assert.deepEqual(emitted, []);
 +});
-diff --git a/ui/lib/tests/fixtures/sf151-wdl.json b/ui/lib/tests/fixtures/sf151-wdl.json
-new file mode 100644
-index 0000000..77f38eb
---- /dev/null
-+++ b/ui/lib/tests/fixtures/sf151-wdl.json
-@@ -0,0 +1,47 @@
-+[
-+  { "cp": -1000, "ply": 0, "wdl": [0, 0, 1000] },
-+  { "cp": -1000, "ply": 12, "wdl": [0, 0, 1000] },
-+  { "cp": -1000, "ply": 30, "wdl": [0, 0, 1000] },
-+  { "cp": -1000, "ply": 80, "wdl": [0, 0, 1000] },
-+  { "cp": -1000, "ply": 200, "wdl": [0, 0, 1000] },
-+  { "cp": -300, "ply": 0, "wdl": [0, 0, 1000] },
-+  { "cp": -300, "ply": 12, "wdl": [0, 0, 1000] },
-+  { "cp": -300, "ply": 30, "wdl": [0, 0, 1000] },
-+  { "cp": -300, "ply": 80, "wdl": [0, 0, 1000] },
-+  { "cp": -300, "ply": 200, "wdl": [0, 0, 1000] },
-+  { "cp": -100, "ply": 0, "wdl": [0, 444, 556] },
-+  { "cp": -100, "ply": 12, "wdl": [0, 452, 548] },
-+  { "cp": -100, "ply": 30, "wdl": [0, 467, 533] },
-+  { "cp": -100, "ply": 80, "wdl": [0, 521, 479] },
-+  { "cp": -100, "ply": 200, "wdl": [0, 616, 384] },
-+  { "cp": -59, "ply": 0, "wdl": [1, 856, 143] },
-+  { "cp": -59, "ply": 12, "wdl": [0, 871, 129] },
-+  { "cp": -59, "ply": 30, "wdl": [0, 888, 112] },
-+  { "cp": -59, "ply": 80, "wdl": [0, 907, 93] },
-+  { "cp": -59, "ply": 200, "wdl": [1, 903, 96] },
-+  { "cp": 0, "ply": 0, "wdl": [9, 982, 9] },
-+  { "cp": 0, "ply": 12, "wdl": [7, 986, 7] },
-+  { "cp": 0, "ply": 30, "wdl": [5, 990, 5] },
-+  { "cp": 0, "ply": 80, "wdl": [4, 992, 4] },
-+  { "cp": 0, "ply": 200, "wdl": [8, 984, 8] },
-+  { "cp": 59, "ply": 0, "wdl": [143, 856, 1] },
-+  { "cp": 59, "ply": 12, "wdl": [129, 871, 0] },
-+  { "cp": 59, "ply": 30, "wdl": [112, 888, 0] },
-+  { "cp": 59, "ply": 80, "wdl": [93, 907, 0] },
-+  { "cp": 59, "ply": 200, "wdl": [96, 903, 1] },
-+  { "cp": 100, "ply": 0, "wdl": [556, 444, 0] },
-+  { "cp": 100, "ply": 12, "wdl": [548, 452, 0] },
-+  { "cp": 100, "ply": 30, "wdl": [533, 467, 0] },
-+  { "cp": 100, "ply": 80, "wdl": [479, 521, 0] },
-+  { "cp": 100, "ply": 200, "wdl": [384, 616, 0] },
-+  { "cp": 300, "ply": 0, "wdl": [1000, 0, 0] },
-+  { "cp": 300, "ply": 12, "wdl": [1000, 0, 0] },
-+  { "cp": 300, "ply": 30, "wdl": [1000, 0, 0] },
-+  { "cp": 300, "ply": 80, "wdl": [1000, 0, 0] },
-+  { "cp": 300, "ply": 200, "wdl": [1000, 0, 0] },
-+  { "cp": 1000, "ply": 0, "wdl": [1000, 0, 0] },
-+  { "cp": 1000, "ply": 12, "wdl": [1000, 0, 0] },
-+  { "cp": 1000, "ply": 30, "wdl": [1000, 0, 0] },
-+  { "cp": 1000, "ply": 80, "wdl": [1000, 0, 0] },
-+  { "cp": 1000, "ply": 200, "wdl": [1000, 0, 0] }
-+]
 diff --git a/ui/lib/tests/wdl.test.ts b/ui/lib/tests/wdl.test.ts
 new file mode 100644
-index 0000000..280b06a
+index 0000000..0315237
 --- /dev/null
 +++ b/ui/lib/tests/wdl.test.ts
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,17 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +
-+import { evalWdl, expectedScorePercentages, uciWdl } from '../src/ceval/wdl';
-+import reference from './fixtures/sf151-wdl.json' with { type: 'json' };
++import { expectedScorePercentages, uciWdl } from '../src/ceval/wdl';
 +
-+test('legacy score conversion matches independent python-chess Stockfish 15.1 vectors', () => {
-+  for (const { cp, ply, wdl } of reference) {
-+    const result = evalWdl({ cp }, ply)!;
-+    assert.equal(result.source, 'score-wdl');
-+    assert.deepEqual(
-+      [result.probabilities.white, result.probabilities.draw, result.probabilities.black].map(v =>
-+        Math.round(v * 1000),
-+      ),
-+      wdl,
-+      `cp=${cp}, ply=${ply}`,
-+    );
-+  }
-+});
-+
-+test('native WDL is preferred over cp and never rewritten', () => {
++test('native WDL retains the White perspective and its expected points', () => {
++  assert.deepEqual(uciWdl([800, 150, 50], true), { white: 0.8, draw: 0.15, black: 0.05 });
++  assert.deepEqual(uciWdl([800, 150, 50], false), { white: 0.05, draw: 0.15, black: 0.8 });
 +  const wdl = Object.freeze({ white: 0, draw: 0.876, black: 0.124 });
-+  const result = evalWdl({ cp: 500, wdl }, 12)!;
-+  assert.equal(result.source, 'engine-wdl');
-+  assert.equal(result.probabilities, wdl);
-+  assert.deepEqual(expectedScorePercentages(result.probabilities), [43.8, 56.2]);
++  assert.deepEqual(expectedScorePercentages(wdl), [43.8, 56.2]);
 +});
 +
-+test('empty, invalid and nonfinite scores cannot create an advantage', () => {
-+  for (const score of [
-+    {},
-+    { cp: NaN },
-+    { cp: Infinity },
-+    { mate: 0 },
-+    { mate: Infinity },
-+    { mate: 1.1 },
-+    { cp: 1, wdl: { white: 2, draw: 0, black: 0 } },
-+  ])
-+    assert.equal(evalWdl(score, 12), undefined);
-+  assert.equal(evalWdl({ cp: 0 }, -1), undefined);
-+  assert.equal(evalWdl({ cp: 0 }, NaN), undefined);
++test('empty, invalid and nonfinite UCI WDL cannot create an advantage', () => {
 +  assert.equal(uciWdl([1, 998, 1], true)?.draw, 0.998);
 +  for (const raw of [[1, 998, 2], [-1, 1000, 1], [NaN, 0, 1000], [0.5, 999, 0.5], []])
 +    assert.equal(uciWdl(raw, true), undefined);
-+});
-+
-+test('mate scores retain their White perspective and old cp models are symmetric', () => {
-+  assert.deepEqual(expectedScorePercentages(evalWdl({ mate: 3 }, 8)!.probabilities), [100, 0]);
-+  assert.deepEqual(expectedScorePercentages(evalWdl({ mate: -3 }, 8)!.probabilities), [0, 100]);
-+  for (const cp of [0, 1, 59, 100, 300, 4000]) {
-+    const positive = evalWdl({ cp }, 30)!.probabilities;
-+    const negative = evalWdl({ cp: -cp }, 30)!.probabilities;
-+    assert.equal(positive.white, negative.black);
-+    assert.equal(positive.draw, negative.draw);
-+    assert.equal(positive.black, negative.white);
-+  }
 +});
 diff --git a/ui/lib/src/ceval/winningChances.ts b/ui/lib/src/ceval/winningChances.ts
 index d71db64..96b6614 100644
