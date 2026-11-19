@@ -7,7 +7,11 @@ import '../src/webmcp';
 type Ltw = {
   searchGames: (input: Record<string, unknown>) => Promise<Record<string, any>>;
   analyseGame: (input: Record<string, unknown>) => Promise<Record<string, any>>;
-  tools: { name: string }[];
+  tools: {
+    name: string;
+    description: string;
+    inputSchema: { properties: Record<string, { description?: string }> };
+  }[];
   debug: () => Record<string, string>;
   attempts: { host: string; api: string; ok: boolean; error: string | null }[];
   register: () => { host: string; api: string; ok: boolean; error: string | null }[];
@@ -112,6 +116,17 @@ describe('window.__ltw', () => {
       ltw.tools.map(tool => tool.name),
       ['lichess_search_games', 'lichess_analyse_game'],
     );
+  });
+
+  test('keeps tool and parameter descriptions within the WebMCP inspector limits', () => {
+    for (const tool of ltw.tools) {
+      assert.ok(tool.description.length <= 500, `${tool.name}: ${tool.description.length} characters`);
+      for (const [name, param] of Object.entries(tool.inputSchema.properties)) {
+        const description = param.description?.trim();
+        assert.ok(description, `${tool.name}.${name}: missing description`);
+        assert.ok(description.length <= 150, `${tool.name}.${name}: ${description.length} characters`);
+      }
+    }
   });
 
   test('exposes registration diagnostics', () => {

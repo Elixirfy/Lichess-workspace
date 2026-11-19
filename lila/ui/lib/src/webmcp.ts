@@ -473,20 +473,17 @@ const SIMPLE_FIELDS: [string, string][] = [
 ];
 
 const SEARCH_DESCRIPTION: string =
-  "Run lichess advanced game search for the user and submit the query. Use when they ask to find " +
-  "their games (or someone's) by opponent, colour, result, variant/speed, rating, date range, clock, " +
-  'number of moves, or analysis status. Fills the form, then submits it by default; pass submit=false ' +
-  'to only fill the form. If the current page has no search form, navigates to /games/search and ' +
-  'runs the saved search there automatically. Returns the query URL plus which fields were filled/skipped. ' +
-  'Dependencies handled automatically: players.white/black/winner/loser only work when the username ' +
-  'is also players.a or players.b (seats are filled from them); aiLevelMin/Max only apply when ' +
-  'hasAi is "computer" (set automatically). Top-level white/black/winner/loser are shortcuts.';
+  'Find Lichess games by player, color, result, speed, variant, rating, date, clock, moves, or analysis status. ' +
+  'Fills and submits the advanced search form by default, opening /games/search if needed. ' +
+  'Use submit=false to fill without submitting. Returns the query URL and a report of applied or skipped filters, not the matching games.';
 
 const SEARCH_SCHEMA: JsonObject = {
   type: 'object',
   properties: {
     players: {
       type: 'object',
+      description:
+        'Lichess usernames by role: a/b for the two players, or white/black/winner/loser. A free a/b slot is filled when needed.',
       properties: {
         a: { type: 'string', description: 'Player A username (one of the two required seats)' },
         b: { type: 'string', description: 'Player B username (one of the two required seats)' },
@@ -542,7 +539,10 @@ const SEARCH_SCHEMA: JsonObject = {
     turnsMin: { type: 'number', description: 'Minimum turns. The form uses fixed buckets; non-exact values are snapped to the nearest valid option.' },
     turnsMax: { type: 'number', description: 'Maximum turns. Fixed buckets; non-exact values are snapped (e.g. to a nearby upper bound).' },
     ratingMin: { type: 'number', description: 'Minimum average rating (both players). Fixed 100-point buckets; non-exact values are snapped to the nearest valid option.' },
-    ratingMax: { type: 'number', description: 'Maximum average rating (both players). Fixed 100-point buckets; non-exact values are snapped (e.g. 1999 -> 1900 for "below 2000" when 1900 is the closest valid upper bucket).' },
+    ratingMax: {
+      type: 'number',
+      description: 'Maximum average rating of both players. Rounds down to a supported 100-point step (e.g., 1999 to 1900).',
+    },
     durationMin: { type: 'number', description: 'Minimum game duration in seconds. Fixed buckets; non-exact values are snapped.' },
     durationMax: { type: 'number', description: 'Maximum game duration in seconds. Fixed buckets; non-exact values are snapped.' },
     clockInit: { type: 'number', description: 'Initial clock in seconds. Fixed options; non-exact values are snapped to the nearest option.' },
@@ -978,16 +978,10 @@ const gameMeta = (headers: Record<string, string>): JsonObject => {
 };
 
 const ANALYSE_DESCRIPTION: string =
-  'Inspect a server-analysed lichess game as structured data for answering player questions. ' +
-  'Returns the requested number of turning points (topN, default 10, max 100) with ply, SAN, ' +
-  'eval before/after, White-POV expected score, delta and kind. Each point carries importanceRank; ' +
-  'exactly one point is flagged isBiggest. `order` defaults to "chronological" (by ply) and can be ' +
-  '"importance" (|delta| descending). `mover` filters to "white" or "black". Also returns bestMove, ' +
-  'the move after which the mover had the highest expected score ("best move of the game"). ' +
-  'Requires server-side analysis stored on the server (client-side analysis-board evals are not ' +
-  'available); if none, returns error NO_EVAL with a hint about running fishnet/server analysis. ' +
-  'Does not write prose. When gameId and url are omitted it uses the game currently open in the page; ' +
-  'if there is no such game it returns status skipped.';
+  'Read saved server evaluations for a Lichess game without running an engine. ' +
+  'Returns ranked turning points with before/after evaluations and score changes for White. ' +
+  'bestMove is the played move after which its mover had the highest score. ' +
+  'Uses the open game if no ID or URL is supplied. Returns NO_EVAL if the game has no saved evaluations.';
 
 const ANALYSE_SCHEMA: JsonObject = {
   type: 'object',
