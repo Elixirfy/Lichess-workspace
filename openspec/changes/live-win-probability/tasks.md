@@ -1,5 +1,25 @@
 # Implementation and evidence
 
+## Win% source audit — 2026-11-19
+
+- [x] Verify GitHub main already contains the accepted Win% commit `9d92cdc`.
+  Both player and spectator views remain enabled for standard games.
+- [x] Remove the unused `evalWdl` / `sf151Wins` conversion and its retired
+  reference vectors. The live panel and review already use
+  `lichessWinPercentages`. Keep native UCI WDL and the required WDL-only
+  fallback and official results. Refresh the current branch report.
+- [x] Verify 27-path patch replay and reverse checks, type-aware lint,
+  formatting and 60/60 focused tests. The full main suite is 300/305 with
+  exactly the same five inherited commentary failures as before cleanup.
+  The combined local UI suite is 360/360 and the production build passes.
+- [x] Real Chromium loads `manifest.d0898e10.js` and verifies both participants,
+  spectator and review at `2% / 98%`, then the confirmed `0% / 100%`. Review
+  checks include board flip and a direct ply link. Evidence is in
+  `artifacts/win-percent-audit/`.
+
+Publication uses shared main, with voice inheriting the same change by a merge
+into `codex/vietnamese-voice-input`. No ASR changes belong to the main cleanup.
+
 ## Lichess Win% — 2026-11-19
 
 - [x] Apply Lichess Win% to the live panel and the selected review position.
@@ -57,14 +77,14 @@
   both participants and the spectator show the bounds. After `2...Qh4#`,
   the official result is exact. Review ply 3 shows the bounds after board
   flip and direct navigation. Evidence: `artifacts/advantage-boundary/`.
-- [ ] Publish after the user reviews the preview. Local only on
-  `codex/advantage-display-preview`, based on `main` at `2fe2155`.
+- [x] This preview was superseded by whole percentages, then the approved
+  Win% change published on main as `9d92cdc`.
 
 Preview: `http://localhost:8081/game/78hwxwq1/white#3`. Enable the browser engine
 to see ply 3 and press End to compare the confirmed result. Port 8081 is a
 local Compose override because 8080 is occupied on the development machine.
 
-## Analysis vertical advantage gauge — 2026-11-18 (current)
+## Analysis vertical advantage gauge — 2026-11-18 (historical WDL display)
 
 - [x] Share the live W+D/2 display helper with standard-game analysis. Prefer
   native White-oriented engine WDL; explicitly identify Stockfish 15.1 model
@@ -103,7 +123,7 @@ local Compose override because 8080 is occupied on the development machine.
   all 40 feature paths; real index and voice patch unchanged. Evidence:
   `reports/acceptance/compact-advantage/`.
 
-## Expected-score advantage display — 2026-11-18 (current)
+## Expected-score advantage display — 2026-11-18 (historical WDL display)
 
 The user replaces conditional win percentages with a two-color advantage bar,
 still totaling 100%. A draw contributes half a point to each color: W + D/2

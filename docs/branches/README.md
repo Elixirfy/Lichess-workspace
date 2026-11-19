@@ -2,7 +2,7 @@
 
 | Branch | Vai trò |
 |---|---|
-| [main](https://github.com/trantrien1/Lichess-workspace/tree/main) | Bản chung: tỷ lệ live, ưu thế review, cùng code bình luận đã có của nhóm |
+| [main](https://github.com/trantrien1/Lichess-workspace/tree/main) | Bản chung có Win% cho hai người chơi, người xem và thanh dọc khi review, cùng code bình luận của nhóm |
 | [codex/vietnamese-voice-input](https://github.com/trantrien1/Lichess-workspace/tree/codex/vietnamese-voice-input) | Nền main + riêng tính năng voice tiếng Việt; không sở hữu delta tỷ lệ |
 | [codex/live-win-probability](https://github.com/trantrien1/Lichess-workspace/tree/codex/live-win-probability) | Mốc WDL lịch sử; phần tỷ lệ hiện tại dùng main |
 | [feature/commentary](https://github.com/trantrien1/Lichess-workspace/tree/feature/commentary) | Mốc Piper |

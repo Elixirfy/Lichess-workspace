@@ -44,34 +44,3 @@ export function uciWdl(values: number[], whitePov: boolean): Wdl | undefined {
     black: values[whitePov ? 2 : 0] / 1000,
   };
 }
-
-// Legacy cp-only evaluations: the pinned Stockfish 15.1 WDL model, not engine-emitted WDL.
-// https://github.com/official-stockfish/Stockfish/blob/sf_15.1/src/uci.cpp
-// Also independently checked against python-chess Cp.wdl(model="sf15.1", ply=...).
-function sf151Wins(cp: number, ply: number): number {
-  const m = Math.min(240, Math.max(ply, 0)) / 64;
-  const a = ((-0.58270499 * m + 2.68512549) * m + 15.24638015) * m + 344.49745382;
-  const b = ((-2.65734562 * m + 15.96509799) * m - 20.69040836) * m + 73.61029937;
-  const x = Math.min(4000, Math.max((cp * 361) / 100, -4000));
-  return Math.floor(0.5 + 1000 / (1 + Math.exp((a - x) / b)));
-}
-
-export function evalWdl(
-  score: EvalScore,
-  ply: number,
-): { probabilities: Wdl; source: 'engine-wdl' | 'score-wdl' } | undefined {
-  if (score.wdl !== undefined)
-    return validWdl(score.wdl) ? { probabilities: score.wdl, source: 'engine-wdl' } : undefined;
-  if (!Number.isInteger(ply) || ply < 0) return undefined;
-  let probabilities: Wdl;
-  if (score.mate !== undefined) {
-    if (!Number.isFinite(score.mate) || !Number.isInteger(score.mate) || !score.mate) return undefined;
-    probabilities = { white: Number(score.mate > 0), draw: 0, black: Number(score.mate < 0) };
-  } else {
-    if (!Number.isFinite(score.cp)) return undefined;
-    const white = sf151Wins(score.cp!, ply);
-    const black = sf151Wins(-score.cp!, ply);
-    probabilities = { white: white / 1000, draw: (1000 - white - black) / 1000, black: black / 1000 };
-  }
-  return { probabilities, source: 'score-wdl' };
-}
