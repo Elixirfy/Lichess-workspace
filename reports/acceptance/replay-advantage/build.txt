@@ -1,0 +1,41 @@
+ Container lichess-wdl-ui-run-1041bf48d55b Creating 
+ Container lichess-wdl-ui-run-1041bf48d55b Created 
+[90m15:40:48[39m [32mbuild[39m [2m⏵[22m Parsing packages in '[36m/lila/ui[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90mvoice[39m '[36mui/voice/grammar/**[39m' -> '[36mpublic/compiled/grammar[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90mbits[39m '[36mui/bits/node_modules/cropperjs/dist/cropper.min.css[39m' -> '[36mpublic/npm[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90mlib[39m '[36mui/lib/node_modules/@lichess-org/stockfish-web/*.{js,wasm}[39m' -> '[36mpublic/npm/stockfish-web[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90mlib[39m '[36mui/lib/node_modules/@lichess-org/zerofish/dist/zerofishEngine*.{js,wasm}[39m' -> '[36mpublic/npm[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90mvoice[39m '[36mui/voice/node_modules/@lichess-org/vosk-browser/dist/*.{js,wasm}[39m' -> '[36mpublic/npm/vosk[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90manalyse[39m '[36mui/analyse/node_modules/sortablejs/modular/sortable.esm.js[39m' -> '[36mpublic/npm[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90meditor[39m '[36mui/editor/node_modules/onnxruntime-web/dist/ort.wasm.min.mjs[39m' -> '[36mpublic/npm/onnxruntime-web[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90manalyse[39m '[36mui/analyse/node_modules/@yaireo/tagify/dist/tagify.min.js[39m' -> '[36mpublic/npm[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90mlib[39m '[36mnode_modules/@lichess-org/chessground/dist/chessground.min.js[39m' -> '[36mpublic/npm[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90meditor[39m '[36mui/editor/node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.{mjs,wasm}[39m' -> '[36mpublic/npm/onnxruntime-web[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90msite[39m '[36mui/site/node_modules/dialog-polyfill/dist/dialog-polyfill.esm.js[39m' -> '[36mpublic/npm[39m'
+[90m15:40:48[39m [36msync[39m [2m⏵[22m [90mlib[39m '[36mui/lib/node_modules/stockfish*/*.{js,wasm}[39m' -> '[36mpublic/npm[39m'
+[90m15:40:50[39m [1m[36mi18n[39m[22m [2m⏵[22m Building
+[90m15:40:51[39m [36msync[39m [2m⏵[22m Done[90m (2.977s)[39m
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90meditor[39m '[36mpublic/npm/onnxruntime-web/*[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/font/*.woff2[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/images/**[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/javascripts/**[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/lifat/background/**/*.webp[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/npm/stockfish-web/*[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/npm/*[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/piece/**[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/sound/**/*.mp3[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mlib[39m '[36mpublic/video/**[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mvoice[39m '[36mpublic/compiled/grammar/*[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:51[39m [34mhash[39m [2m⏵[22m [90mvoice[39m '[36mpublic/npm/vosk/*.{js,wasm}[39m' -> '[36mpublic/hashed[39m'
+[90m15:40:53[39m [33mtsc[39m [2m⏵[22m Type checking [90mtsc --build[39m '[36mui/.build/build/tsconfig.json[39m' [90m--pretty false --locale en[39m
+[90m15:40:57[39m [34mhash[39m [2m⏵[22m Done[90m (6.231s)[39m
+[90m15:41:02[39m [33mtsc[39m [2m⏵[22m Done[90m (14.344s)[39m
+[90m15:41:07[39m [35msass[39m [2m⏵[22m Building
+[90m15:41:23[39m [35msass[39m [2m⏵[22m Compile [90m(16.025s)[39m
+[90m15:41:23[39m [35msass[39m [2m⏵[22m Lightning CSS [90m(0.601s)[39m
+[90m15:41:23[39m [35msass[39m [2m⏵[22m Generated 149 CSS files [90m(3426.9 KB)[39m
+[90m15:41:24[39m [35msass[39m [2m⏵[22m Done[90m (26.888s)[39m
+[90m15:41:25[39m [1m[34mesbuild[39m[22m [2m⏵[22m Done[90m (37.283s)[39m
+[90m15:41:30[39m [1m[36mi18n[39m[22m [2m⏵[22m Done[90m (42.112s)[39m
+[90m15:41:30[39m [32mbuild[39m [2m⏵[22m Done in [32m42.154s[39m
+[90m15:41:30[39m manifest [2m⏵[22m '[36mpublic/compiled/manifest.7a9fc54d.js[39m', '[36mpublic/compiled/manifest.json[39m' [90m28be383d[39m

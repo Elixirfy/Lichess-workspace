@@ -1,0 +1,3 @@
+PASS white i9xZZ4tb d4 d5 Nf3 Qd6
+PASS black a2Rqg4T1 e4 e5 Nf3
+Report: E:\codex\Lichess\artifacts\ai-smoke\2026-11-18T14-42-44.506Z

@@ -14,7 +14,7 @@ from chess_history import canonical_fen, replay
 from phrases import FINISH, FINISH_CLOSERS, INTRO, PRONOUNCE, pick, seed_of
 from voices import DEFAULT, VOICES
 
-PHRASEBOOK = "vi-prebuilt-1"
+PHRASEBOOK = "vi-prebuilt-2"
 PIECES = {1: "tốt", 2: "mã", 3: "tượng", 4: "xe", 5: "hậu", 6: "vua"}
 FILES = ("a", "bê", "xê", "đê", "e", "ép", "gờ", "hát")
 

@@ -1,0 +1,4 @@
+ Container lichess-wdl-ui-run-a72c635fbb41 Creating 
+ Container lichess-wdl-ui-run-a72c635fbb41 Created 
+Found 0 warnings and 0 errors.
+Finished in 10.0s on 7 files with 164 rules using 16 threads.

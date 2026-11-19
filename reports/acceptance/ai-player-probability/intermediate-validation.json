@@ -1,0 +1,17 @@
+{
+  "scope": "Intermediate AI-player-only access, superseded by the user request to allow human players too on 2026-11-18.",
+  "scala_tests": 603,
+  "frontend_tests": 338,
+  "ai_games": 4,
+  "ai_samples": 18,
+  "pvp_tests": "Prior denial behavior, archived without changing its criteria",
+  "audio": {
+    "total": 1,
+    "passed": 1,
+    "wrongMoves": 0,
+    "unexpectedQuestions": 0,
+    "botReplies": 1,
+    "confirmationAudioPlayed": 0
+  },
+  "source_patch_sha256": "16bd73e07754f07d73ce3349be1223db99f8f9b7468b50fcc367b50111ee4ba6"
+}

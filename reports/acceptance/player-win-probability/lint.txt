@@ -1,0 +1,4 @@
+ Container lichess-wdl-ui-run-00fe93fedc5f Creating 
+ Container lichess-wdl-ui-run-00fe93fedc5f Created 
+Found 0 warnings and 0 errors.
+Finished in 33.4s on 3 files with 164 rules using 16 threads.

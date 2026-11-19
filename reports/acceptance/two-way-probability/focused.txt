@@ -1,0 +1,26 @@
+ Container lichess-wdl-ui-run-f03d1098cb67 Creating 
+ Container lichess-wdl-ui-run-f03d1098cb67 Created 
+✔ conditional White/Black percentages sum to 100.0% and preserve the raw WDL (2.616953ms)
+✔ reject invalid and nonfinite probabilities (0.106862ms)
+✔ invalid human probabilities are hidden while the valid engine result remains usable (14.754674ms)
+✔ late response cannot replace a different move at the same ply (9.044871ms)
+✔ a new move immediately clears the previous estimate (2.509398ms)
+✔ official result takes precedence even when engine reply arrives later (1.455624ms)
+✔ aborted games have no invented result or engine request (0.465485ms)
+✔ service failure shows unavailable without retaining numbers (0.920149ms)
+✔ disconnect clears estimates and a reload resumes the same position (1.475122ms)
+✔ one bar shows conditional White/Black percentages from the preferred human estimate (18.745686ms)
+✔ missing or unsupported human context falls back to one clearly identified engine estimate (5.553421ms)
+✔ an official draw overrides both estimates without invented conditional percentages (0.825071ms)
+✔ official winners retain their color and override the human estimate (2.422613ms)
+✔ zero decisive probability is unavailable rather than an invented 50/50 split (1.008986ms)
+✔ two displayed values and segment widths sum to 100.0% without swapping White and Black (6.547778ms)
+✔ replay and unavailable positions never retain either source of probabilities (1.894656ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8785.326709

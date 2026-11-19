@@ -1,0 +1,102 @@
+ Container lichess-wdl-ui-run-f95565e31f2f Creating 
+ Container lichess-wdl-ui-run-f95565e31f2f Created 
+✔ expected-score percentages sum to 100.0% and preserve the raw WDL (3.378296ms)
+✔ draw-heavy, balanced and winning reference positions have intuitive expected scores (0.439129ms)
+✔ reject invalid and nonfinite probabilities (0.211458ms)
+✔ invalid human probabilities are hidden while the valid engine result remains usable (20.463898ms)
+✔ late response cannot replace a different move at the same ply (16.224108ms)
+✔ a new move immediately clears the previous estimate (3.078712ms)
+✔ official result takes precedence even when engine reply arrives later (2.172415ms)
+✔ aborted games have no invented result or engine request (0.730837ms)
+✔ service failure shows unavailable without retaining numbers (1.703888ms)
+✔ disconnect clears estimates and a reload resumes the same position (1.618091ms)
+✖ one bar shows expected-score advantage from the preferred human estimate (18.225894ms)
+✖ missing or unsupported human context falls back to one clearly identified engine estimate (2.0631ms)
+✔ an official draw shows the result without an estimated advantage bar (2.005914ms)
+✔ official winners retain their color and override the human estimate (2.28082ms)
+✖ a live all-draw estimate has equal expected points for both colors (0.992759ms)
+✔ two displayed values and segment widths sum to 100.0% without swapping White and Black (6.948095ms)
+✖ the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL (1.382231ms)
+✔ advantage distinguishes clear and near-winning positions while remaining an estimate (1.821993ms)
+✔ replay and unavailable positions never retain either source of probabilities (1.984299ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 15
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10346.325905
+
+✖ failing tests:
+
+test at round/tests/winProbabilityView.test.ts:1:706
+✖ one bar shows expected-score advantage from the preferred human estimate (18.225894ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type object (null)
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:29:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: /Ưu thế người chơi · thử nghiệm/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:2033
+✖ missing or unsupported human context falls back to one clearly identified engine estimate (2.0631ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type object (null)
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:47:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: /Ưu thế theo engine/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:4160
+✖ a live all-draw estimate has equal expected points for both colors (0.992759ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type object (null)
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:105:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: /Hòa tính nửa điểm/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:5629
+✖ the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL (1.382231ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type object (null)
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:138:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: /Ưu thế/,
+    operator: 'match',
+    diff: 'simple'
+  }
+

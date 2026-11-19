@@ -1,0 +1,223 @@
+{
+  "started": "2026-11-18T13:28:22.614Z",
+  "cases": [
+    {
+      "color": "white",
+      "aiLevel": 1,
+      "checks": [
+        {
+          "elapsedMs": 4089,
+          "moves": [
+            "d4",
+            "e6"
+          ],
+          "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/UXE04zcn\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"Anonymous\"]\n[Black \"lichess AI level 1\"]\n[Result \"*\"]\n[GameId \"UXE04zcn\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"13:29:15\"]\n[WhiteElo \"?\"]\n[BlackElo \"?\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A40\"]\n[Opening \"Horwitz Defense\"]\n[Termination \"Unterminated\"]\n\n1. d4 e6 *\n\n\n"
+        },
+        {
+          "elapsedMs": 5208,
+          "moves": [
+            "d4",
+            "e6",
+            "Nf3",
+            "d5"
+          ],
+          "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/UXE04zcn\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"Anonymous\"]\n[Black \"lichess AI level 1\"]\n[Result \"*\"]\n[GameId \"UXE04zcn\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"13:29:15\"]\n[WhiteElo \"?\"]\n[BlackElo \"?\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A40\"]\n[Opening \"Horwitz Defense\"]\n[Termination \"Unterminated\"]\n\n1. d4 e6 2. Nf3 d5 *\n\n\n"
+        }
+      ],
+      "socketMoves": [
+        {
+          "uci": "d2d4",
+          "ply": 1
+        },
+        {
+          "uci": "e7e6",
+          "ply": 2
+        },
+        {
+          "uci": "g1f3",
+          "ply": 3
+        },
+        {
+          "uci": "d7d5",
+          "ply": 4
+        }
+      ],
+      "id": "UXE04zcn",
+      "probabilities": [
+        {
+          "phase": "initial",
+          "expectedPly": 0,
+          "http": 200,
+          "revision": "UXE04zcn||20|",
+          "rawWdl": {
+            "white": 0.033,
+            "draw": 0.964,
+            "black": 0.003
+          },
+          "displayed": "Trắng 91.7%\nĐen 8.3%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "first-bot-reply",
+          "expectedPly": 2,
+          "http": 200,
+          "revision": "UXE04zcn|d4 e6|20|",
+          "rawWdl": {
+            "white": 0.044,
+            "draw": 0.954,
+            "black": 0.002
+          },
+          "displayed": "Trắng 95.7%\nĐen 4.3%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "second-bot-reply",
+          "expectedPly": 4,
+          "http": 200,
+          "revision": "UXE04zcn|d4 e6 Nf3 d5|20|",
+          "rawWdl": {
+            "white": 0.066,
+            "draw": 0.933,
+            "black": 0.001
+          },
+          "displayed": "Trắng 98.5%\nĐen 1.5%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "reload",
+          "expectedPly": 4,
+          "http": 200,
+          "revision": "UXE04zcn|d4 e6 Nf3 d5|20|",
+          "rawWdl": {
+            "white": 0.066,
+            "draw": 0.933,
+            "black": 0.001
+          },
+          "displayed": "Trắng 98.5%\nĐen 1.5%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "reconnect",
+          "expectedPly": 4,
+          "http": 200,
+          "revision": "UXE04zcn|d4 e6 Nf3 d5|20|",
+          "rawWdl": {
+            "white": 0.066,
+            "draw": 0.933,
+            "black": 0.001
+          },
+          "displayed": "Trắng 98.5%\nĐen 1.5%",
+          "source": "engine",
+          "passed": true
+        }
+      ],
+      "officialResultPassed": true,
+      "passed": true
+    },
+    {
+      "color": "black",
+      "aiLevel": 1,
+      "checks": [
+        {
+          "elapsedMs": 1584,
+          "moves": [
+            "d3"
+          ],
+          "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/IwrayOsn\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"lichess AI level 1\"]\n[Black \"Anonymous\"]\n[Result \"*\"]\n[GameId \"IwrayOsn\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"13:29:41\"]\n[WhiteElo \"?\"]\n[BlackElo \"?\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A00\"]\n[Opening \"Mieses Opening\"]\n[Termination \"Unterminated\"]\n\n1. d3 *\n\n\n"
+        },
+        {
+          "elapsedMs": 2931,
+          "moves": [
+            "d3",
+            "e5",
+            "Nf3"
+          ],
+          "pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/IwrayOsn\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"lichess AI level 1\"]\n[Black \"Anonymous\"]\n[Result \"*\"]\n[GameId \"IwrayOsn\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"13:29:41\"]\n[WhiteElo \"?\"]\n[BlackElo \"?\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"A00\"]\n[Opening \"Mieses Opening: Reversed Rat\"]\n[Termination \"Unterminated\"]\n\n1. d3 e5 2. Nf3 *\n\n\n"
+        }
+      ],
+      "socketMoves": [
+        {
+          "uci": "d2d3",
+          "ply": 1
+        },
+        {
+          "uci": "e7e5",
+          "ply": 2
+        },
+        {
+          "uci": "g1f3",
+          "ply": 3
+        }
+      ],
+      "id": "IwrayOsn",
+      "probabilities": [
+        {
+          "phase": "initial-bot-move",
+          "expectedPly": 1,
+          "http": 200,
+          "revision": "IwrayOsn|d3|20|",
+          "rawWdl": {
+            "white": 0.004,
+            "draw": 0.974,
+            "black": 0.022
+          },
+          "displayed": "Trắng 15.4%\nĐen 84.6%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "bot-reply",
+          "expectedPly": 3,
+          "http": 200,
+          "revision": "IwrayOsn|d3 e5 Nf3|20|",
+          "rawWdl": {
+            "white": 0.007,
+            "draw": 0.983,
+            "black": 0.01
+          },
+          "displayed": "Trắng 41.2%\nĐen 58.8%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "reload",
+          "expectedPly": 3,
+          "http": 200,
+          "revision": "IwrayOsn|d3 e5 Nf3|20|",
+          "rawWdl": {
+            "white": 0.007,
+            "draw": 0.983,
+            "black": 0.01
+          },
+          "displayed": "Trắng 41.2%\nĐen 58.8%",
+          "source": "engine",
+          "passed": true
+        },
+        {
+          "phase": "reconnect",
+          "expectedPly": 3,
+          "http": 200,
+          "revision": "IwrayOsn|d3 e5 Nf3|20|",
+          "rawWdl": {
+            "white": 0.007,
+            "draw": 0.983,
+            "black": 0.01
+          },
+          "displayed": "Trắng 41.2%\nĐen 58.8%",
+          "source": "engine",
+          "passed": true
+        }
+      ],
+      "officialResultPassed": true,
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "probability": true,
+  "signedIn": false,
+  "finished": "2026-11-18T13:30:03.794Z"
+}

@@ -1,0 +1,258 @@
+ Container lichess-wdl-ui-run-2bf527c2641c Creating 
+ Container lichess-wdl-ui-run-2bf527c2641c Created 
+✖ expected-score percentages sum to 100.0% and preserve the raw WDL (15.025909ms)
+✖ draw-heavy, balanced and winning reference positions have intuitive expected scores (1.790642ms)
+✔ reject invalid and nonfinite probabilities (0.193122ms)
+✔ invalid human probabilities are hidden while the valid engine result remains usable (20.405966ms)
+✔ late response cannot replace a different move at the same ply (16.100827ms)
+✔ a new move immediately clears the previous estimate (2.227443ms)
+✔ official result takes precedence even when engine reply arrives later (1.368809ms)
+✔ aborted games have no invented result or engine request (0.756754ms)
+✔ service failure shows unavailable without retaining numbers (2.160486ms)
+✔ disconnect clears estimates and a reload resumes the same position (1.753777ms)
+✖ one bar shows expected-score advantage from the preferred human estimate (17.894706ms)
+✖ missing or unsupported human context falls back to one clearly identified engine estimate (2.470931ms)
+✖ an official draw shows the result without an estimated advantage bar (0.684555ms)
+✖ official winners retain their color and override the human estimate (1.472604ms)
+✖ a live all-draw estimate has equal expected points for both colors (0.494496ms)
+✖ two displayed values and segment widths sum to 100.0% without swapping White and Black (8.11568ms)
+✖ the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL (2.355952ms)
+✖ advantage distinguishes clear and near-winning positions while remaining an estimate (1.603528ms)
+✔ replay and unavailable positions never retain either source of probabilities (3.441334ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 9
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24164.093277
+
+✖ failing tests:
+
+test at round/tests/winProbability.test.ts:1:647
+✖ expected-score percentages sum to 100.0% and preserve the raw WDL (15.025909ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Math.abs(values[0] - 100 * (white + draw / 2)) <= 0.050001)
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbability.test.ts:33:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbability.test.ts:1:1419
+✖ draw-heavy, balanced and winning reference positions have intuitive expected scores (1.790642ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   0,
+  +   100
+  -   43.8,
+  -   56.2
+    ]
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbability.test.ts:50:22)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 0, 100 ],
+    expected: [ 43.8, 56.2 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:706
+✖ one bar shows expected-score advantage from the preferred human estimate (17.894706ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'expected-score'
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:28:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'expected-score',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:1859
+✖ missing or unsupported human context falls back to one clearly identified engine estimate (2.470931ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Ưu thế theo engine/. Input:
+  
+  'Trắng 50.0%Đen 50.0%Ước tính từ thế cờ · không tính hòa'
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:44:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Trắng 50.0%Đen 50.0%Ước tính từ thế cờ · không tính hòa',
+    expected: /Ưu thế theo engine/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:2519
+✖ an official draw shows the result without an estimated advantage bar (0.684555ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'result'
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:60:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'result',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:3238
+✖ official winners retain their color and override the human estimate (1.472604ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'result'
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:79:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'result',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:3805
+✖ a live all-draw estimate has equal expected points for both colors (0.494496ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'expected-score'
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:97:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'expected-score',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:4411
+✖ two displayed values and segment widths sum to 100.0% without swapping White and Black (8.11568ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Math.abs(values[0] - expectedWhite) <= 0.050001)
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:117:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:5240
+✖ the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL (2.355952ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Trắng 0.0%Đen 100.0%'
+  - 'Trắng 43.8%Đen 56.2%'
+           ^
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:129:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Trắng 0.0%Đen 100.0%',
+    expected: 'Trắng 43.8%Đen 56.2%',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:5736
+✖ advantage distinguishes clear and near-winning positions while remaining an estimate (1.603528ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Trắng 88.9%Đen 11.1%'
+  - 'Trắng 85.0%Đen 15.0%'
+            ^
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:141:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Trắng 88.9%Đen 11.1%',
+    expected: 'Trắng 85.0%Đen 15.0%',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+

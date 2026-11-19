@@ -1,0 +1,4 @@
+ Container lichess-wdl-ui-run-7821251fe662 Creating 
+ Container lichess-wdl-ui-run-7821251fe662 Created 
+Found 0 warnings and 0 errors.
+Finished in 14.5s on 11 files with 164 rules using 16 threads.

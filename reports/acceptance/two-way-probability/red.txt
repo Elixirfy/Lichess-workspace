@@ -1,0 +1,152 @@
+ Container lichess-wdl-ui-run-6722769f62fa Creating 
+ Container lichess-wdl-ui-run-6722769f62fa Created 
+✔ all rounded WDL values sum to exactly 100.0% (3.156041ms)
+✔ reject invalid and nonfinite probabilities (0.140593ms)
+✔ invalid human probabilities are hidden while the valid engine result remains usable (15.229058ms)
+✔ late response cannot replace a different move at the same ply (12.055994ms)
+✔ a new move immediately clears the previous estimate (2.078392ms)
+✔ official result takes precedence even when engine reply arrives later (1.226215ms)
+✔ aborted games have no invented result or engine request (0.422258ms)
+✔ service failure shows unavailable without retaining numbers (1.016588ms)
+✔ disconnect clears estimates and a reload resumes the same position (1.649034ms)
+✖ one bar shows conditional White/Black percentages from the preferred human estimate (15.875293ms)
+✖ missing or unsupported human context falls back to one clearly identified engine estimate (3.774748ms)
+✖ an official draw overrides both estimates without invented conditional percentages (1.797683ms)
+✖ official winners retain their color and override the human estimate (1.241968ms)
+✖ zero decisive probability is unavailable rather than an invented 50/50 split (1.403998ms)
+✖ two displayed values and segment widths sum to 100.0% without swapping White and Black (1.676919ms)
+✔ replay and unavailable positions never retain either source of probabilities (2.269733ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 10
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9224.37286
+
+✖ failing tests:
+
+test at round/tests/winProbabilityView.test.ts:1:706
+✖ one bar shows conditional White/Black percentages from the preferred human estimate (15.875293ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  3 !== 2
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:26:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:1785
+✖ missing or unsupported human context falls back to one clearly identified engine estimate (3.774748ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Trắng 50.0%.*Đen 50.0%/. Input:
+  
+  'Trắng 10.0%Hòa 80.0%Đen 10.0%'
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:44:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Trắng 10.0%Hòa 80.0%Đen 10.0%',
+    expected: /Trắng 50.0%.*Đen 50.0%/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:2445
+✖ an official draw overrides both estimates without invented conditional percentages (1.797683ms)
+  TypeError: Cannot read properties of null (reading 'textContent')
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:60:61)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at round/tests/winProbabilityView.test.ts:1:3064
+✖ official winners retain their color and override the human estimate (1.241968ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Trắng 0.0%Hòa 0.0%Đen 100.0%'
+  - 'Trắng 0.0%Đen 100.0%'
+               ^
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:77:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Trắng 0.0%Hòa 0.0%Đen 100.0%',
+    expected: 'Trắng 0.0%Đen 100.0%',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:3588
+✖ zero decisive probability is unavailable rather than an invented 50/50 split (1.403998ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + HTMLDivElement {
+  +   Symbol(SameObject caches): [Object: null prototype] {
+  +     classList: DOMTokenList {}
+  +   }
+  + }
+  - null
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:95:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: {},
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/winProbabilityView.test.ts:1:4150
+✖ two displayed values and segment widths sum to 100.0% without swapping White and Black (1.676919ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  3 !== 2
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/winProbabilityView.test.ts:111:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+

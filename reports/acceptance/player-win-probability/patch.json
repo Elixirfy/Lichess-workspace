@@ -1,0 +1,20 @@
+{
+  "upstream": "4eea97abce686a1cc6b07abe54cce9e10c223227",
+  "changed_paths": [
+    "app/controllers/Round.scala",
+    "ui/round/src/ctrl.ts"
+  ],
+  "combined_paths": 40,
+  "replay_matches_working_source": true,
+  "reverse_checks": true,
+  "applied_source_whitespace": true,
+  "real_index_unchanged": true,
+  "voice_patch_unchanged": true,
+  "old_wdl_patch_sha256": "16bd73e07754f07d73ce3349be1223db99f8f9b7468b50fcc367b50111ee4ba6",
+  "wdl_patch_sha256": "f1056db945d020559088aadd3f241327c8bc63c16b992e0358d9363d64351745",
+  "voice_patch_sha256": "92bda6c2ea1be33b41391e375a1e30afd89509e64a65fa263286c147d6b1b88c",
+  "source_sha256": {
+    "app/controllers/Round.scala": "0f580653d44a0d0053652469c8481c58a7f06d8007e2394566f3b9473c1454e5",
+    "ui/round/src/ctrl.ts": "c1a72c8ea4c3ac8807c876e6123766a425b3d20d0ecda5ae5a6095f59741b062"
+  }
+}

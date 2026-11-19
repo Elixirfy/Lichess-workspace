@@ -1,5 +1,44 @@
 # Human outcome pilot — implementation and evidence
 
+Current display update (2026-11-18): the user replaces conditional win
+percentages with expected-score advantage W+D/2, B+D/2, totaling 100%.
+Raw WDL, model and calibration are unchanged. Current evidence is in
+`reports/acceptance/expected-score-advantage/`; the conditional section below
+is historical. Engine task list records the implementation and checks.
+
+Current access update (2026-11-18): the user enables the same panel on both
+participant boards, including human games. Final scope and fresh checks are in
+`openspec/changes/live-win-probability/tasks.md` and
+`reports/acceptance/player-win-probability/`. No model/data/calibration change.
+
+## Two displayed win percentages — 2026-11-18
+
+- [x] User chose conditional probabilities: White + Black = 100% given a
+  decisive result. Normalize W/(W+B), B/(W+B); keep raw WDL, model and API intact.
+- [x] Remove the draw segment/value and its CSS; identify the selected source
+  and conditional meaning. Preserve human preference and engine fallback.
+- [x] An official draw shows the result without invented percentages. A zero
+  decisive probability has an explicit unavailable message. Official winners,
+  stale responses, replay, disconnect and aborted games retain their guards.
+- [x] Six changed-behavior tests fail on the old UI; all 16 focused probability
+  tests pass after implementation, including rounding and unchanged input WDL.
+- [x] Full production UI build, type-aware lint, stylelint and formatting pass.
+- [x] Full upstream frontend suite: 338/338, 34 suites, no fail/skip. Browser
+  acceptance: anonymous 137 assertions, registered 113; no JS exceptions.
+  Actual selected human/engine responses match the conditional display at 22
+  positions per run. Mobile, reconnect, takeback and official results pass.
+- [x] Refresh the WDL patch and verify replay alongside the unchanged voice
+  patch: all 40 paths match pinned upstream plus both patches; reverse checks
+  and applied-source whitespace pass, real Git index untouched. Model unchanged.
+- [x] Document the reviewed update and prepare it for the separate branch
+  `codex/vietnamese-voice-input`; publication is checked with `git ls-remote`.
+
+Evidence and reproduction: `reports/acceptance/two-way-probability/`. No model
+training or calibration change; the conditional display is not a newly evaluated
+two-class model. Voice snapshot `9363d20` was already published separately.
+The local server serves the checked production bundle `round.EFXWY5YN.js`.
+To inspect: open `http://localhost:8080`, enter a game as a spectator, Ctrl+F5.
+
 - [x] Add bounded PGN sampling with provenance, prefix-only features and regression tests.
 - [x] Extract a shared training/serving feature schema with no result or future-state leakage.
 - [x] Train on August 2026, calibrate on September, evaluate on October; disclose the repeated evaluation after a sampling defect was fixed.

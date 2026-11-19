@@ -1,0 +1,543 @@
+ Container lichess-wdl-ui-run-c1c97f517422 Creating 
+ Container lichess-wdl-ui-run-c1c97f517422 Created 
+✔ only the original endpoint receives the recorded game result (2.559917ms)
+✔ official draws, black wins, aborts and active games are distinct (0.442402ms)
+✔ nonstandard variants retain the original gauge (0.18543ms)
+✔ Pin: Absolute (12.342015ms)
+✔ Pin: Relative (3.348511ms)
+✔ Pin: Trade (3.398781ms)
+✔ Checkable: Castling (1.770192ms)
+✔ Checkable: En passant (1.039434ms)
+✔ Checkable: Promotion (1.692984ms)
+✔ Checkable: Underpromotion (1.708492ms)
+✔ Trapped: Piece with no safe squares (4.886219ms)
+✔ Trapped: Escaping allows mate (2.418635ms)
+✔ Trapped: Ignore piece that escapes by trading material (1.398591ms)
+✔ Trapped: Ignore piece that escapes by winning material (2.141283ms)
+✔ Trapped: Ignore mate threat the piece cannot affect (1.699682ms)
+✔ Trapped: Ignore piece that can only answer a check (0.7318ms)
+✔ Trapped: Ignore piece that escapes by a favourable trade (2.457673ms)
+✔ Trapped: Ignore piece that has no good squares but cannot be attacked (4.939475ms)
+✔ Trapped: Ignore pawns that can only promote into capture (0.430579ms)
+✔ Trapped: Ignore pawns with only losing moves (0.265991ms)
+✔ Undefended: Fork (1.254143ms)
+✔ Undefended: Underdefended (1.146548ms)
+✔ Undefended: Losing trade (1.142789ms)
+✔ Undefended: Order of trades (1.927351ms)
+✔ Undefended: Absolute pin (1.231838ms)
+✔ Undefended: Pawn hanging directly and via en passant (0.762121ms)
+✔ Undefended: Pawn hanging directly but protected from en passant (1.699311ms)
+✔ Undefended: Pawn hanging via en passant but not directly (2.231426ms)
+✔ Undefended: En passant rook xray (1.414292ms)
+✔ Undefended: Attacker also pins defender (1.551977ms)
+✔ Undefended: Using more valuable attacker first (0.578293ms)
+✔ Undefended: Not using attacker that does necessary pin (26.047128ms)
+✔ Undefended: Not using attacker that blocks multiple defenders (9.681395ms)
+✔ Undefended: Not using a certain defender (41.495029ms)
+✔ Crazyhouse (4.153958ms)
+✔ Three-Check (4.686259ms)
+✔ Multiple tests (1) (7.28286ms)
+✔ Multiple tests (2) (8.661242ms)
+✔ creates deep link from URL (1.860938ms)
+✔ throws on invalid URL (1.157249ms)
+Error: no indexedDB
+    at <anonymous> (/lila/ui/lib/src/objectStorage.ts:252:75)
+    at new Promise (<anonymous>)
+    at dbConnect (/lila/ui/lib/src/objectStorage.ts:251:10)
+    at objectStorage (/lila/ui/lib/src/objectStorage.ts:60:20)
+    at makeLog (/lila/ui/lib/src/permalog.ts:31:3)
+    at <anonymous> (/lila/ui/lib/src/permalog.ts:9:30)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+▶ renderNodesPgn
+  ✔ renders the main line without variations (2.428704ms)
+  ✔ appends the sub-variations branching off the last node (0.459503ms)
+  ✔ leaves the line leading up to the last node linear (0.402009ms)
+  ✔ renders the whole main line for an empty path (0.351819ms)
+  ✔ renders nothing when there are no moves (0.419053ms)
+  ✔ renders the game tags (0.321058ms)
+  ▶ black to move from the initial fen
+    ✔ numbers the first move when the path contributes none (0.484052ms)
+    ✔ the empty path and the full path render the same moves (0.6801ms)
+  ✔ black to move from the initial fen (1.7467ms)
+  ▶ forced variations
+    ✔ the main line stops before a forced variation (0.733908ms)
+    ✔ a variation copy runs through a forced variation (0.620402ms)
+  ✔ forced variations (2.213988ms)
+✔ renderNodesPgn (11.509742ms)
+✔ counts only finished relay team matches (0.952191ms)
+▶ parseYoutubeUrl - realistic URLs & edge cases
+  ✔ youtube.com standard watch URL with video ID (8.520399ms)
+  ✔ youtube.com watch URL with t=90 seconds (0.49112ms)
+  ✔ youtube.com watch URL with t=1h2m3s format (0.315259ms)
+  ✔ youtube.com shorts URL (0.207163ms)
+  ✔ youtube.com embed URL (0.266522ms)
+  ✔ youtube.com live URL (0.324838ms)
+  ✔ Youtube short channel URL ignored (0.396832ms)
+  ✔ Youtube long channel URL ignored (0.232554ms)
+  ✔ youtube link without protocol (0.478305ms)
+  ✔ youtu.be URL (0.659846ms)
+  ✔ youtu.be URL with t=1m30s (0.577923ms)
+  ✔ invalid video ID too short (0.256442ms)
+  ✔ unsupported domain (0.276752ms)
+  ✔ malformed URL (0.305981ms)
+  ✔ youtube.com watch URL with trailing slash (0.482803ms)
+  ✔ youtube.com watch URL with extra params (0.415579ms)
+  ✔ youtube.com playlist url (0.357814ms)
+✔ parseYoutubeUrl - realistic URLs & edge cases (18.201455ms)
+▶ embedYoutubeUrl
+  ✔ generates correct embed URL with start time (0.507813ms)
+  ✔ omits start parameter when startTime is 0 (0.218877ms)
+  ✔ embedYoutubeUrl with playlist (0.262734ms)
+✔ embedYoutubeUrl (1.432548ms)
+▶ castling rooks from board
+  ✔ standard back rank uses the corner rooks (3.981088ms)
+  ✔ a rook off the corner is still a castling rook (0.57441ms)
+  ✔ the outermost rook on each side is picked (0.266479ms)
+  ✔ rooks on one side only grant that side (0.496687ms)
+  ✔ a king off the back rank has no castling rooks (0.734869ms)
+  ✔ rooks off the back rank are ignored (0.580163ms)
+✔ castling rooks from board (9.23822ms)
+▶ keyboardSubmit
+  ✔ resigns game (5.10901ms)
+  ✔ draws game (1.218991ms)
+  ✔ goes to next puzzle (0.678878ms)
+  ✔ up votes puzzle (1.583877ms)
+  ✔ down votes puzzle (0.660923ms)
+  ✔ reads out clock (0.740491ms)
+  ✔ berserks a game (0.613338ms)
+  ✔ speaks opponent name (1.034512ms)
+  ✔ opens help modal with ? (0.966991ms)
+  ▶ from starting position
+    ✔ plays e4 via SAN (1.280735ms)
+    ✔ selects e2 via UCI (0.793046ms)
+    ✔ with e2 selected, plays e4 via UCI (1.48963ms)
+    ✔ selects e2 via ICCF (1.355413ms)
+    ✔ with e2 selected, plays e4 via ICCF (0.916069ms)
+  ✔ from starting position (6.552697ms)
+  ▶ from a position where a b-file pawn or bishop can capture
+    ✔ does pawn capture (0.980123ms)
+    ✔ does bishop capture (0.543088ms)
+  ✔ from a position where a b-file pawn or bishop can capture (1.897055ms)
+  ▶ from an ambiguous castling position
+    ✔ does not castle short (0.90626ms)
+    ✔ does castle long (0.586005ms)
+  ✔ from an ambiguous castling position (1.696781ms)
+  ▶ from a position where a pawn can promote multiple ways
+    ✔ with no piece specified does not promote by advancing (0.813927ms)
+    ✔ with piece specified does promote by advancing (0.649981ms)
+    ✔ with no piece specified does not promote by capturing (0.393041ms)
+    ✔ with piece specified does promote by capturing (0.368131ms)
+    ▶ with pawn selected
+      ✔ with no piece specified does not promote by advancing (0.545253ms)
+      ✔ with piece specified does promote by advancing (0.542668ms)
+      ✔ with no piece specified does not promote by capturing (0.641314ms)
+      ✔ with piece specified does promote by capturing (0.580847ms)
+    ✔ with pawn selected (2.646941ms)
+  ✔ from a position where a pawn can promote multiple ways (5.336685ms)
+  ▶ in crazyhouse variant
+    ✔ with incomplete crazyhouse entry does nothing (0.559561ms)
+    ✔ with complete crazyhouse entry does a drop (0.496486ms)
+  ✔ in crazyhouse variant (1.23308ms)
+  ✔ with incorrect entry marks it wrong (4.679377ms)
+✔ keyboardSubmit (37.59719ms)
+Error: no indexedDB
+    at <anonymous> (/lila/ui/lib/src/objectStorage.ts:252:75)
+    at new Promise (<anonymous>)
+    at dbConnect (/lila/ui/lib/src/objectStorage.ts:251:10)
+    at objectStorage (/lila/ui/lib/src/objectStorage.ts:60:20)
+    at makeLog (/lila/ui/lib/src/permalog.ts:31:3)
+    at <anonymous> (/lila/ui/lib/src/permalog.ts:9:30)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+✔ review gauge uses the same half-draw projection as the live panel (48.25383ms)
+✔ reversing the board preserves color values and reverses the gauge (9.976201ms)
+✔ a node without evaluation clears the preceding gauge and its percentages (9.273855ms)
+✔ live all-draw WDL is equal expected points, not a conditional win division (8.331142ms)
+✔ official win and draw results override cached evaluations at the selected final node (12.118677ms)
+✔ proven position outcomes work without an engine evaluation (7.622444ms)
+✔ legacy cp-only evaluations are identified as a WDL model conversion (3.242191ms)
+✔ other gauge callers keep the existing display without the review percentages (3.167413ms)
+✔ only engines advertising WDL are asked to emit it (2.427041ms)
+✔ UCI WDL is normalized to White at both sides to move and in threat mode (1.752501ms)
+✔ invalid and missing WDL never reuse the previous search WDL (0.554562ms)
+✔ a stopped search cannot deliver WDL for the newly selected position (0.249135ms)
+Error: no indexedDB
+    at <anonymous> (/lila/ui/lib/src/objectStorage.ts:252:75)
+    at new Promise (<anonymous>)
+    at dbConnect (/lila/ui/lib/src/objectStorage.ts:251:10)
+    at objectStorage (/lila/ui/lib/src/objectStorage.ts:60:20)
+    at makeLog (/lila/ui/lib/src/permalog.ts:31:3)
+    at <anonymous> (/lila/ui/lib/src/permalog.ts:9:30)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+✔ piece command (14.612984ms)
+✔ scan command (0.736653ms)
+▶ test isVersionCompatible
+  ✔ isVersionCompatible (0.919956ms)
+✔ test isVersionCompatible (2.004009ms)
+✔ glyph goes on the king when there is one (4.866239ms)
+✔ glyph falls back to the strongest piece without a king (0.926188ms)
+✔ draw glyphs show for a side without a king (0.285811ms)
+✔ no glyph for a side without pieces (0.212033ms)
+✔ no glyph if only valid move is a drop move in crazyhouse (0.352313ms)
+▶ roundToCurrency
+  ✔ USD (12.655469ms)
+  ✔ EUR (1.578165ms)
+  ✔ JPY - a currency that does not use decimals (0.79048ms)
+✔ roundToCurrency (16.948166ms)
+▶ dateParsing
+  ✔ string: day only (5.442189ms)
+  ✔ string: iso full (0.670742ms)
+  ✔ string: utc (2.343947ms)
+  ✔ string: epoch timestamp (0.561916ms)
+  ✔ string: date toString (0.50853ms)
+  ✔ number: epoch timestamp (0.378472ms)
+  ✔ date (0.355335ms)
+  ✔ invalid date: random string (2.43139ms)
+  ✔ invalid date: infinity (0.321539ms)
+  ✔ invalid date: NaN (0.40764ms)
+✔ dateParsing (15.217879ms)
+▶ renderNodesTxt
+  ✔ includes variations by default (2.011595ms)
+  ✔ omits variations when asked to (0.281379ms)
+  ✔ stops before a forced variation only when omitting variations (0.325035ms)
+  ✔ numbers a black move only when a variation precedes it (0.381969ms)
+  ✔ returns nothing for a leaf (0.299244ms)
+✔ renderNodesTxt (5.798166ms)
+Error: no indexedDB
+    at <anonymous> (/lila/ui/lib/src/objectStorage.ts:252:75)
+    at new Promise (<anonymous>)
+    at dbConnect (/lila/ui/lib/src/objectStorage.ts:251:10)
+    at objectStorage (/lila/ui/lib/src/objectStorage.ts:60:20)
+    at makeLog (/lila/ui/lib/src/permalog.ts:31:3)
+    at <anonymous> (/lila/ui/lib/src/permalog.ts:9:30)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+▶ nvui move inputs
+  ✔ mixed case bishop or pawn takes (46.083686ms)
+  ✔ mixed case promotions (6.397918ms)
+  ✔ mixed case crazyhouse drops (8.432122ms)
+✔ nvui move inputs (63.077478ms)
+▶ test once
+  ✔ once (4.352065ms)
+✔ test once (6.430663ms)
+Error: no indexedDB
+    at <anonymous> (/lila/ui/lib/src/objectStorage.ts:252:75)
+    at new Promise (<anonymous>)
+    at dbConnect (/lila/ui/lib/src/objectStorage.ts:251:10)
+    at objectStorage (/lila/ui/lib/src/objectStorage.ts:60:20)
+    at makeLog (/lila/ui/lib/src/permalog.ts:31:3)
+    at <anonymous> (/lila/ui/lib/src/permalog.ts:9:30)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+▶ promotion control
+  ✔ dismiss clears a visible promotion choice without running the cancel hook (4.977673ms)
+  ✔ dismiss ignores stale promotion choices fired during hook cleanup (1.028924ms)
+  ✔ cancel keeps the existing cancel hook behavior (0.844669ms)
+  ✔ dismiss clears a stored premove promotion role (0.80988ms)
+✔ promotion control (10.267046ms)
+▶ site.pubsub 'after' and 'complete' methods
+  ✔ after then complete (1.450431ms)
+  ✔ complete then after (0.330597ms)
+  ✔ one completion is never enough (0.274174ms)
+✔ site.pubsub 'after' and 'complete' methods (3.702406ms)
+▶ test regex patterns
+  ✔ username mentions (3.907578ms)
+  ✔ moves: 1.e4 (0.672988ms)
+  ✔ moves: 1. e4 (0.305217ms)
+  ✔ moves: 5...Nf6 (0.348563ms)
+  ✔ moves: 5... Nf6 (0.291289ms)
+  ✔ moves: 12.♔d1 (0.715722ms)
+  ✔ moves: 10.O-O-O (0.387741ms)
+  ✔ moves: 10.o-o-o (0.310266ms)
+  ✔ moves: 10.0-0-0 (0.53309ms)
+  ✔ move with comment (0.754459ms)
+  ✔ not a move (0.483952ms)
+  ✔ board links (2.109793ms)
+  ✔ boards out of range should not be linked (0.923516ms)
+  ✔ urls containing *, $, or apostrophes: https://lichess.org/study/aa*bb (1.182561ms)
+  ✔ urls containing *, $, or apostrophes: https://lichess.org/study/aa$bb (0.485535ms)
+  ✔ urls containing *, $, or apostrophes: https://lichess.org/study/aa'bb (0.687517ms)
+  ✔ urls containing *, $, or apostrophes: https://lichess.org/study/aa*bb$cc'dd (0.299415ms)
+  ✔ urls containing *, $, or apostrophes: https://example.com/aa*bb (0.743718ms)
+  ✔ urls containing *, $, or apostrophes: lichess.org/@/thibault?q=a'b*c$dd (0.758207ms)
+  ✔ urls containing *, $, or apostrophes: https://lichess.org/analysis/pgn/1.d4+Nf6+2.c4+g6+3.Nc3+Bg7+4.e4+d6+5.Nf3+O-O+6.Be2+e5+7.d5+a5+8.Bg5+(8.O-O+Na6+9.a3+Nc5)%20?color=black#.%3EaP-%3DYQ%245%60Y%2F%3FVN)8_b(%2FWG%3EFSC'*%5CK%2B3KE (0.193224ms)
+  ✔ enhanced lichess links keep *, $, and apostrophes: lichess.org/study/aa*bb (0.509343ms)
+  ✔ enhanced lichess links keep *, $, and apostrophes: lichess.org/study/aa$bb (0.17086ms)
+  ✔ enhanced lichess links keep *, $, and apostrophes: lichess.org/study/aa*bb$cc'dd (0.183925ms)
+✔ test regex patterns (22.19757ms)
+▶ self report
+  ✔ self report (387.117367ms)
+✔ self report (1715.957167ms)
+▶ expand fen
+  ✔ starting position (2.278867ms)
+  ✔ middlegame position (0.629109ms)
+✔ expand fen (7.159472ms)
+▶ bishop on color
+  ✔ bishop on square (0.885268ms)
+  ✔ no bishops on black squares (0.571275ms)
+✔ bishop on color (1.939252ms)
+▶ test insufficient material
+  ✔ K vs K (1.489669ms)
+  ✔ KB vs K (0.633257ms)
+  ✔ KBB vs K (same color bishops) (0.464934ms)
+  ✔ KB vs KB (same color bishops) (0.298012ms)
+✔ test insufficient material (3.893326ms)
+▶ should not be insufficient material
+  ✔ variant %s: horde (0.704659ms)
+  ✔ variant %s: kingOfTheHill (0.413431ms)
+  ✔ variant %s: racingKings (0.156882ms)
+  ✔ variant %s: crazyhouse (0.087283ms)
+  ✔ variant %s: atomic (0.147914ms)
+  ✔ variant %s: antichess (0.086191ms)
+  ✔ variant %s: threeCheck (0.117503ms)
+  ✔ pawn is never insufficient material (0.218153ms)
+  ✔ rook is never insufficient material (0.174547ms)
+  ✔ queen is never insufficient material (0.191811ms)
+  ✔ KBB vs K (diff color bishops) (0.265126ms)
+  ✔ KB vs KN (0.227662ms)
+  ✔ KB vs KB (diff color bishops) (0.214005ms)
+✔ should not be insufficient material (3.882983ms)
+▶ knight rules
+  ✔ KN vs K (0.263554ms)
+  ✔ KNN vs K (0.190068ms)
+✔ knight rules (0.692696ms)
+▶ scalachess fens from AutodrawTest.scala
+  ✔ should detect insufficient material: 5K2/8/8/1B6/8/k7/6b1/8 w - - 0 39 (0.603689ms)
+  ✔ should not detect insufficient material: 1n2k1n1/8/8/8/8/8/8/4K3 w - - 0 1 (0.344845ms)
+  ✔ should not detect insufficient material: 7K/5k2/7P/6n1/8/8/8/8 b - - 0 40 (0.132163ms)
+  ✔ should not detect insufficient material: 1b1b3K/8/5k1P/8/8/8/8/8 b - - 0 40 (0.104317ms)
+  ✔ should not detect insufficient material: b2b3K/8/5k1Q/8/8/8/8/8 b - - (0.197513ms)
+  ✔ should not detect insufficient material: 1b1b3K/8/5k1Q/8/8/8/8/8 b - - (0.098646ms)
+  ✔ should not detect insufficient material: 8/8/5N2/8/6p1/8/5K1p/7k w - - 0 37 (0.089177ms)
+  ✔ should not detect insufficient material: 8/8/8/4N3/4k1p1/6K1/8/3b4 w - - 5 59 (0.197512ms)
+  ✔ should not detect insufficient material: 8/8/3Q4/2bK4/B7/8/8/k7 b - - 0 67 (0.101922ms)
+✔ scalachess fens from AutodrawTest.scala (2.64808ms)
+▶ test formatter
+  ✔ lang code formatting (142.737946ms)
+  ✔ arabic lang code uses the gregorian calendar (87.104254ms)
+✔ test formatter (232.438278ms)
+✔ legacy score conversion matches independent python-chess Stockfish 15.1 vectors (4.775128ms)
+✔ native WDL is preferred over cp and never rewritten (0.841693ms)
+✔ empty, invalid and nonfinite scores cannot create an advantage (0.574241ms)
+✔ mate scores retain their White perspective and old cp models are symmetric (0.473571ms)
+▶ similarEvals
+  ✔ be similar: black | -9600 | -3500 (4.386352ms)
+  ✔ be similar: white | 400 | 350 (0.37791ms)
+  ✔ be similar: black | -650 | -630 (0.323138ms)
+  ✔ be similar: black | -560 | -460 (0.249576ms)
+  ✔ be similar: black | -850 | -640 (0.329799ms)
+  ✔ be similar: black | -6500 | -600 (0.289515ms)
+  ✔ be similar: white | 400 | 350 (0.195168ms)
+  ✔ be similar: black | -6500 | -6300 (0.227071ms)
+  ✔ be similar: black | -560 | -460 (0.453621ms)
+  ✔ be similar: black | -850 | -640 (0.421979ms)
+  ✔ be similar: black | -6510 | -600 (0.234957ms)
+  ✔ be different: white | 265 | -3 (0.403842ms)
+  ✔ be different: white | 269 | 0 (0.242081ms)
+  ✔ be different: white | 322 | -6 (0.199236ms)
+  ✔ be different: white | 778 | 169 (0.116501ms)
+  ✔ be different: black | -293 | -9 (0.219256ms)
+  ✔ be different: black | -179 | 61 (0.327571ms)
+  ✔ be different: black | -816 | -357 (0.127263ms)
+  ✔ be different: black | -225 | -51 (0.136301ms)
+  ✔ be different mate/cp: black | [object Object] | [object Object] (0.25648ms)
+✔ similarEvals (13.545506ms)
+▶ hasMultipleSolutions
+  ✔ be true: black | #-16 | -420 (0.268934ms)
+  ✔ be true: white | 100000 | 200 (0.120519ms)
+✔ hasMultipleSolutions (0.663147ms)
+▶ autolinks
+  ✔ dont match external hosts (2.641238ms)
+  ✔ inside parentheses] (0.415275ms)
+  ✔ after colon (0.348061ms)
+  ✔ dont match after equals (0.34686ms)
+  ✔ dont match in quotes (0.209506ms)
+  ✔ dont match when preceded by a word char (0.220909ms)
+  ✔ bare path inside of string (0.386137ms)
+  ✔ hostname without scheme in parens (0.268363ms)
+  ✔ game id path, 8 chars (0.415796ms)
+  ✔ game id path, 12 chars (0.386398ms)
+  ✔ preceded by comma (0.240248ms)
+  ✔ preceded by semicolon (0.237922ms)
+  ✔ multi games already linked (0.172783ms)
+  ✔ grab bag (0.248945ms)
+  ✔ path params (0.406898ms)
+✔ autolinks (143.345613ms)
+▶ imgur matching
+  ✔ embed individual images: https://i.imgur.com/HFn4lkh.jpeg | https://i.imgur.com/HFn4lkh.jpg (2.728953ms)
+  ✔ embed individual images: http://imgur.com/HFn4lkh.png | https://i.imgur.com/HFn4lkh.jpg (0.547898ms)
+  ✔ albums and galleries should not be embedded: https://imgur.com/a/this-inUquB9 | imgur.com/a/this-inUquB9 (0.695852ms)
+  ✔ albums and galleries should not be embedded: https://imgur.com/gallery/lichess-is-down-404-image-HFn4lkh | imgur.com/gallery/lichess-is-down-404-image-HFn4lkh (0.410235ms)
+✔ imgur matching (6.867025ms)
+✔ bulk message ids should have a text class (0.474081ms)
+✔ regular game links should not have a text class (0.384675ms)
+✔ external urls are turned into links (0.364504ms)
+✔ urls in parentheses should be enhanced (0.54345ms)
+✔ singular and plural time units (2.598726ms)
+Error: no indexedDB
+    at <anonymous> (/lila/ui/lib/src/objectStorage.ts:252:75)
+    at new Promise (<anonymous>)
+    at dbConnect (/lila/ui/lib/src/objectStorage.ts:251:10)
+    at objectStorage (/lila/ui/lib/src/objectStorage.ts:60:20)
+    at makeLog (/lila/ui/lib/src/permalog.ts:31:3)
+    at <anonymous> (/lila/ui/lib/src/permalog.ts:9:30)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+✔ the sentence being read is shown, then stays dimmed after it ends (40.202233ms)
+✔ a sentence whose end is never reported does not silence the next ones (15.022628ms)
+✔ after skipped moves the bridge goes first only before a minor line (priority 30) (3.633127ms)
+✔ after skipped moves the bridge goes first only before a minor line (priority 80) (35.975136ms)
+✔ without a voice the verified text is still shown (3.85622ms)
+✔ a wrong player clock neither drops nor accepts late comments (9.27953ms)
+✔ playback follows the site volume (3.702374ms)
+✔ a stream the browser gave up on is reported as an error (0.875539ms)
+✔ the panel shows the status and subtitle only while enabled (51.81094ms)
+✖ the stream asks for the chosen voice; a new choice reconnects without cutting the sentence (4.869362ms)
+✖ choosing a voice plays its sample, which a comment cuts short (2.154359ms)
+✖ the status says while a sample plays, and once the game is over (2.212405ms)
+✖ an unknown voice is neither used nor remembered (1.08721ms)
+✖ the voice picker shows while enabled, with the chosen voice selected (16.047133ms)
+✔ a remark while nobody moves is spoken without a working status (12.843581ms)
+▶ premoves
+  ✔ premoves are trimmed appropriately (27.800468ms)
+  ✔ anticipate all en passant captures if no last move (5.687291ms)
+  ✔ horde no en passant for first to third rank (2.16937ms)
+  ✔ prod bug report lichess-org/lila#18224 (1.54527ms)
+  ✔ promotion premove allowed (2.928529ms)
+  ✔ king and rooks in different variants (6.716316ms)
+  ✔ castled king cannot premove castling onto rook in standard chess (2.790635ms)
+✔ premoves (52.42625ms)
+✔ expected-score percentages sum to 100.0% and preserve the raw WDL (7.433642ms)
+✔ draw-heavy, balanced and winning reference positions have intuitive expected scores (0.439545ms)
+✔ reject invalid and nonfinite probabilities (0.382321ms)
+✔ invalid human probabilities are hidden while the valid engine result remains usable (26.187026ms)
+✔ late response cannot replace a different move at the same ply (8.171665ms)
+✔ a new move immediately clears the previous estimate (26.089291ms)
+✔ official result takes precedence even when engine reply arrives later (4.500872ms)
+✔ aborted games have no invented result or engine request (1.405088ms)
+✔ service failure shows unavailable without retaining numbers (2.795537ms)
+✔ disconnect clears estimates and a reload resumes the same position (5.341016ms)
+✔ one bar shows expected-score advantage from the preferred human estimate (36.374444ms)
+✔ missing or unsupported human context falls back to one clearly identified engine estimate (8.027165ms)
+✔ an official draw shows the result without an estimated advantage bar (1.687985ms)
+✔ official winners retain their color and override the human estimate (3.955822ms)
+✔ a live all-draw estimate has equal expected points for both colors (5.80023ms)
+✔ two displayed values and segment widths sum to 100.0% without swapping White and Black (9.367549ms)
+✔ the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL (1.683737ms)
+✔ advantage distinguishes clear and near-winning positions while remaining an estimate (4.133878ms)
+✔ replay and unavailable positions never retain either source of probabilities (2.995976ms)
+ℹ tests 305
+ℹ suites 34
+ℹ pass 300
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 210551.68358
+
+✖ failing tests:
+
+test at round/tests/commentary.test.ts:1:7706
+✖ the stream asks for the chosen voice; a new choice reconnects without cutting the sentence (4.869362ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^\/commentary\/test1234\?voice=piper-vais1000-low$/. Input:
+  
+  '/commentary/test1234?voice=vieneu-manh-dung'
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/commentary.test.ts:300:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/commentary/test1234?voice=vieneu-manh-dung',
+    expected: /^\/commentary\/test1234\?voice=piper-vais1000-low$/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at round/tests/commentary.test.ts:1:8451
+✖ choosing a voice plays its sample, which a comment cuts short (2.154359ms)
+  TypeError: Cannot read properties of undefined (reading 'src')
+      at TestContext.<anonymous> (/lila/ui/round/tests/commentary.test.ts:318:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at round/tests/commentary.test.ts:1:8961
+✖ the status says while a sample plays, and once the game is over (2.212405ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Đang kết nối…'
+  - 'Đang phát giọng mẫu…'
+          ^
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/commentary.test.ts:332:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Đang kết nối…',
+    expected: 'Đang phát giọng mẫu…',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/commentary.test.ts:1:9773
+✖ an unknown voice is neither used nor remembered (1.08721ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'vieneu-manh-dung'
+  - 'piper-vais1000'
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/commentary.test.ts:353:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'vieneu-manh-dung',
+    expected: 'piper-vais1000',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at round/tests/commentary.test.ts:1:10109
+✖ the voice picker shows while enabled, with the chosen voice selected (16.047133ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  3 !== 6
+  
+      at TestContext.<anonymous> (/lila/ui/round/tests/commentary.test.ts:367:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 6,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+

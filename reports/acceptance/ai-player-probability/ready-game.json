@@ -1,0 +1,36 @@
+{
+  "player": "VoiceTestVN",
+  "voice_language": "vi",
+  "voice_ready": true,
+  "execution": "direct",
+  "move_confirmation": false,
+  "game_id": "ROwDDu2g",
+  "url": "http://localhost:8080/game/ROwDDu2g",
+  "online": true,
+  "status": "ready",
+  "source": "engine",
+  "revision": "ROwDDu2g|e4 Nc6|20|",
+  "raw_wdl": {
+    "white": 0.156,
+    "draw": 0.844,
+    "black": 0
+  },
+  "displayed_values": [
+    100,
+    0
+  ],
+  "displayed_text": "Trắng 100.0%Đen 0.0%",
+  "caption": "Ước tính từ thế cờ · không tính hòa",
+  "draw_segment": false,
+  "conditional_values_match": true,
+  "verified_at": "2026-11-18T13:29:14.192Z",
+  "verification": "Actual in-app signed-in AI player DOM, voice readiness and same-origin prediction response. No agent moves made.",
+  "independent_pgn": "[Event \"casual correspondence game\"]\n[Site \"http://localhost:8080/game/ROwDDu2g\"]\n[Date \"2026.11.18\"]\n[Round \"-\"]\n[White \"VoiceTestVN\"]\n[Black \"lichess AI level 1\"]\n[Result \"*\"]\n[GameId \"ROwDDu2g\"]\n[UTCDate \"2026.11.18\"]\n[UTCTime \"12:52:35\"]\n[WhiteElo \"1500\"]\n[BlackElo \"?\"]\n[Variant \"Standard\"]\n[TimeControl \"-\"]\n[ECO \"B00\"]\n[Opening \"Nimzowitsch Defense\"]\n[Termination \"Unterminated\"]\n\n1. e4 Nc6 *\n\n\n",
+  "no_agent_moves": true,
+  "helper_stopped": true,
+  "temporary_helper_assets_removed": true,
+  "obsolete_guest_viewer_assets_removed": [
+    "voice-combined-guest-ready-277faebbfdf5229dcc9eedc4.html",
+    "voice-combined-guest-ready-277faebbfdf5229dcc9eedc4.js"
+  ]
+}
