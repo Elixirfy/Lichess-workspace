@@ -17,8 +17,9 @@
   checks include board flip and a direct ply link. Evidence is in
   `artifacts/win-percent-audit/`.
 
-Publication uses shared main, with voice inheriting the same change by a merge
-into `codex/vietnamese-voice-input`. No ASR changes belong to the main cleanup.
+The cleanup is published on shared main as `85d9705`. The voice branch is
+managed separately at `7e11058`; the local synchronization merge was cancelled
+before commit or publication following the user's scope clarification.
 
 ## Lichess Win% — 2026-11-19
 
