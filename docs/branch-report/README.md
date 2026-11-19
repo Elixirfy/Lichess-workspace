@@ -6,7 +6,7 @@ Phần ưu thế lúc chơi và xem lại thuộc bản dùng chung của nhóm 
 Từ commit `9d92cdc` ngày 19/11/2026, cả hai giao diện dùng Win% của Lichess.
 Người chơi ở cả hai phía và người xem đều được xem ưu thế trong ván standard
 trên bản tự host, theo lựa chọn phục vụ luyện tập và demo của nhóm. Nhánh
-giọng nói kế thừa cùng mã Win% từ `main`. Revision upstream và đường dựng
+giọng nói được quản lý riêng. Revision upstream và đường dựng
 Docker nằm trong `upstream-lock.json`.
 
 ## Chức năng và kiến trúc
