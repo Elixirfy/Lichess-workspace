@@ -1,0 +1,291 @@
+diff --git a/app/controllers/Commentary.scala b/app/controllers/Commentary.scala
+index b04c565..37b1000 100644
+--- a/app/controllers/Commentary.scala
++++ b/app/controllers/Commentary.scala
+@@ -24,12 +24,11 @@ final class Commentary(env: Env, ws: StandaloneWSClient)
+   private val superseded = Json.obj("type" -> "superseded")
+   // The same ids as services/commentary/voices.py and ui/round/src/commentary.ts.
+   private val voices = Set(
+-    "piper-vais1000",
+-    "piper-vais1000-low",
+-    "piper-vais1000-high",
+-    "piper-vivos-28",
+-    "piper-vivos-45",
+-    "piper-vivos-40"
++    "vieneu-my-duyen",
++    "vieneu-duc-tri",
++    "vieneu-huu-quan",
++    "vieneu-anh-khoi",
++    "vieneu-manh-dung"
+   )
+ 
+   private val requests = new lila.round.CommentaryRequests(
+diff --git a/ui/round/src/commentary.ts b/ui/round/src/commentary.ts
+index 02603a2..5662a0c 100644
+--- a/ui/round/src/commentary.ts
++++ b/ui/round/src/commentary.ts
+@@ -2,12 +2,11 @@ import { storedStringProp } from 'lib/storage';
+ 
+ /** The same ids as services/commentary/voices.py and lila's controllers/Commentary.scala. */
+ export const commentaryVoices: readonly { id: string; name: string }[] = [
+-  { id: 'piper-vais1000', name: 'Nữ (mặc định)' },
+-  { id: 'piper-vais1000-low', name: 'Nữ, giọng trầm' },
+-  { id: 'piper-vais1000-high', name: 'Nữ, giọng cao' },
+-  { id: 'piper-vivos-28', name: 'Nam 1 (thử nghiệm)' },
+-  { id: 'piper-vivos-45', name: 'Nam 2 (thử nghiệm)' },
+-  { id: 'piper-vivos-40', name: 'Nữ 2 (thử nghiệm)' },
++  { id: 'vieneu-my-duyen', name: 'Mỹ Duyên' },
++  { id: 'vieneu-duc-tri', name: 'Đức Trí' },
++  { id: 'vieneu-huu-quan', name: 'Hữu Quân' },
++  { id: 'vieneu-anh-khoi', name: 'Anh Khôi' },
++  { id: 'vieneu-manh-dung', name: 'Mạnh Dũng' },
+ ];
+ const defaultVoice = commentaryVoices[0].id;
+ 
+@@ -31,6 +30,7 @@ interface CommentaryResult extends CommentaryState {
+   kind?: 'intro' | 'move' | 'idle' | 'finish' | 'transition';
+   commentId?: string;
+   text?: string;
++  ttsProvider?: string;
+   audio?: SpeechAudio;
+   transition?: { text: string; audio: SpeechAudio };
+   /** 60 and more: a capture of a big piece, a check, a striking reading. */
+@@ -72,9 +72,9 @@ const defaults: CommentaryDeps = {
+ };
+ 
+ const silence = 'UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQIAAACAgA==';
+-// A comment is ready well under a second after the move (engine, then Piper); this leaves room
+-// for a slow machine or network without speaking about a move the players left long ago.
++// Cloud speech has a longer deadline. Both paths still require the latest game state and revision.
+ const maxArrivalAge = 4500;
++const maxCloudArrivalAge = 10000;
+ // At most one "the moves come fast" bridge in this long: said every few moves it became a refrain.
+ const bridgeEvery = 45000;
+ // A line this important goes first: the bridge would make it late, or lose it to the next move.
+@@ -132,8 +132,8 @@ export class CommentaryCtrl {
+     const changed = voice !== this.voice;
+     this.voice = voice;
+     this.deps.voice?.(voice);
+-    // A sentence being read finishes in the old voice; the stream asks for the next ones in the new one.
+-    if (changed && this.enabled) this.reset(true);
++    // An explicit commentator choice starts their welcome instead of the previous voice's sentence.
++    if (changed && this.enabled) this.reset();
+     this.playSample();
+     this.redraw();
+   };
+@@ -143,7 +143,8 @@ export class CommentaryCtrl {
+     this.stopSample();
+     if (this.active || this.destroyed) return;
+     const media = (this.sample = this.deps.audio());
+-    media.src = `/commentary/voice/${this.voice}`;
++    // A provider switch must not reuse a browser-cached sample from the previous model.
++    media.src = `/commentary/voice/${this.voice}?v=${this.deps.now()}`;
+     media.volume = this.volume();
+     media.onended = () => this.stopSample();
+     media.onerror = () => this.stopSample();
+@@ -345,7 +346,11 @@ export class CommentaryCtrl {
+       result.requestId === this.state.requestId &&
+       result.gameRevision === this.state.gameRevision &&
+       result.expiresAt > this.serverNow() &&
+-      (!fresh || this.serverNow() - result.acceptedAt <= maxArrivalAge) &&
++      (!fresh ||
++        this.serverNow() - result.acceptedAt <=
++          (result.ttsProvider === 'gemini' || result.audio?.provider.startsWith('gemini:')
++            ? maxCloudArrivalAge
++            : maxArrivalAge)) &&
+       current.live &&
+       current.status === result.status &&
+       ((current.ply === result.ply && current.fen.split(' ')[0] === result.fenAfter.split(' ')[0]) ||
+diff --git a/ui/round/tests/commentary.test.ts b/ui/round/tests/commentary.test.ts
+index 834a3b1..89af238 100644
+--- a/ui/round/tests/commentary.test.ts
++++ b/ui/round/tests/commentary.test.ts
+@@ -31,6 +31,7 @@ interface CommentMessage extends StateMessage {
+   kind: string;
+   commentId: string;
+   text: string;
++  ttsProvider?: string;
+   audio?: { mime: string; base64: string; voice: string; provider: string };
+ }
+ 
+@@ -73,7 +74,7 @@ function setup(options: { skew?: number; volume?: number; voice?: string } = {})
+   const sources: FakeSource[] = [];
+   const media: FakeAudio[] = [];
+   const stored: string[] = [];
+-  let voice = options.voice ?? 'piper-vais1000';
++  let voice = options.voice ?? 'vieneu-my-duyen';
+   const board = { ply: 0, fen: START, status: 'started', live: true };
+   const deps: CommentaryDeps = {
+     stream: url => {
+@@ -261,6 +262,62 @@ test('playback follows the site volume', async () => {
+   t.ctrl.destroy();
+ });
+ 
++test('cloud audio may arrive after six seconds while the same position is current', async () => {
++  const t = setup();
++  t.ctrl.toggle();
++  const move = t.state('s:1', 1, NF3);
++  t.sources[0].send(move);
++  t.board.ply = 1;
++  t.board.fen = NF3;
++  t.tick(6000);
++  const result = t.comment(move, 'Trắng đưa mã lên f3.');
++  result.audio!.provider = 'gemini:gemini-3.1-flash-tts-preview';
++  t.sources[0].send(result);
++  await setImmediate();
++  assert.equal(t.ctrl.phase, 'speaking');
++  assert.equal(t.ctrl.subtitle, result.text);
++  t.ctrl.destroy();
++});
++
++test('cloud audio still expires and is dropped after a newer move', async () => {
++  for (const newerMove of [false, true]) {
++    const t = setup();
++    t.ctrl.toggle();
++    const move = t.state('s:1', 1, NF3);
++    t.sources[0].send(move);
++    t.board.ply = 1;
++    t.board.fen = NF3;
++    if (newerMove) {
++      t.sources[0].send(t.state('s:2', 2, NF6));
++      t.board.ply = 2;
++      t.board.fen = NF6;
++    }
++    t.tick(newerMove ? 6000 : 10500);
++    const result = t.comment(move, 'Lời bình cũ.');
++    result.audio!.provider = 'gemini:gemini-3.1-flash-tts-preview';
++    t.sources[0].send(result);
++    await setImmediate();
++    assert.notEqual(t.ctrl.phase, 'speaking');
++    assert.notEqual(t.ctrl.subtitle, result.text);
++    t.ctrl.destroy();
++  }
++});
++
++test('a cloud timeout still shows subtitles after six seconds', async () => {
++  const t = setup();
++  t.ctrl.toggle();
++  const move = t.state('s:1', 1, NF3);
++  t.sources[0].send(move);
++  t.board.ply = 1;
++  t.board.fen = NF3;
++  t.tick(6000);
++  t.sources[0].send({ ...t.comment(move, 'Trắng đưa mã lên f3.', false), ttsProvider: 'gemini' });
++  await setImmediate();
++  assert.equal(t.ctrl.subtitle, 'Trắng đưa mã lên f3.');
++  assert.match(t.ctrl.status, /chỉ có phụ đề/);
++  t.ctrl.destroy();
++});
++
+ test('a stream the browser gave up on is reported as an error', () => {
+   const t = setup();
+   t.ctrl.toggle();
+@@ -294,28 +351,28 @@ test('the panel shows the status and subtitle only while enabled', async () => {
+   t.ctrl.destroy();
+ });
+ 
+-test('the stream asks for the chosen voice; a new choice reconnects without cutting the sentence', async () => {
+-  const t = setup({ voice: 'piper-vais1000-low' });
++test('choosing a commentator replaces current speech with their welcome', async () => {
++  const t = setup({ voice: 'vieneu-duc-tri' });
+   const first = await moveAndComment(t, 'Trắng đưa mã từ g1 đến f3.');
+-  assert.match(first.url, /^\/commentary\/test1234\?voice=piper-vais1000-low$/);
++  assert.match(first.url, /^\/commentary\/test1234\?voice=vieneu-duc-tri$/);
+   assert.equal(t.ctrl.phase, 'speaking');
+   const players = t.media.length;
+-  t.ctrl.setVoice('piper-vivos-28');
+-  assert.deepEqual(t.stored, ['piper-vivos-28']);
++  t.ctrl.setVoice('vieneu-manh-dung');
++  assert.deepEqual(t.stored, ['vieneu-manh-dung']);
+   assert.ok(first.closed);
+-  assert.match(t.sources.at(-1)!.url, /\?voice=piper-vivos-28$/);
+-  // No sample over the sentence being read, which goes on.
+-  assert.equal(t.media.length, players);
++  assert.match(t.sources.at(-1)!.url, /\?voice=vieneu-manh-dung$/);
++  assert.equal(t.media.length, players + 1);
++  assert.match(t.media.at(-1)!.src, /voice\/vieneu-manh-dung\?v=/);
+   assert.equal(t.ctrl.phase, 'speaking');
+-  assert.equal(t.ctrl.subtitle, 'Trắng đưa mã từ g1 đến f3.');
++  assert.equal(t.ctrl.subtitle, '');
+   t.ctrl.destroy();
+ });
+ 
+ test('choosing a voice plays its sample, which a comment cuts short', async () => {
+   const t = setup();
+-  t.ctrl.setVoice('piper-vais1000-high');
++  t.ctrl.setVoice('vieneu-huu-quan');
+   const sample = t.media.at(-1)!;
+-  assert.equal(sample.src, '/commentary/voice/piper-vais1000-high');
++  assert.match(sample.src, /^\/commentary\/voice\/vieneu-huu-quan\?v=\d+$/);
+   assert.equal(sample.volume, 0.5);
+   assert.equal(sample.paused, false);
+   await moveAndComment(t, 'Trắng đưa mã từ g1 đến f3.');
+@@ -328,7 +385,7 @@ test('choosing a voice plays its sample, which a comment cuts short', async () =
+ test('the status says while a sample plays, and once the game is over', () => {
+   const t = setup();
+   t.ctrl.toggle();
+-  t.ctrl.setVoice('piper-vais1000-high');
++  t.ctrl.setVoice('vieneu-huu-quan');
+   assert.equal(t.ctrl.status, 'Đang phát giọng mẫu…');
+   // The new stream's snapshot arrives while the sample plays.
+   t.sources.at(-1)!.send(t.state('s:1', 0, START, { snapshot: true }));
+@@ -336,13 +393,13 @@ test('the status says while a sample plays, and once the game is over', () => {
+   t.media.at(-1)!.onended!();
+   assert.equal(t.ctrl.status, 'Sẵn sàng, chờ nước mới');
+   t.board.live = false;
+-  t.ctrl.setVoice('piper-vais1000');
++  t.ctrl.setVoice('vieneu-my-duyen');
+   t.media.at(-1)!.onended!();
+   assert.equal(t.ctrl.status, 'Đang xem lại nước cũ');
+   // The game ended on the board the player is looking at: no "waiting for a move".
+   t.board.live = true;
+   t.board.status = 'draw';
+-  t.ctrl.setVoice('piper-vais1000-low');
++  t.ctrl.setVoice('vieneu-duc-tri');
+   t.media.at(-1)!.onended!();
+   assert.equal(t.ctrl.status, 'Ván cờ đã kết thúc');
+   t.ctrl.destroy();
+@@ -350,24 +407,28 @@ test('the status says while a sample plays, and once the game is over', () => {
+ 
+ test('an unknown voice is neither used nor remembered', () => {
+   const t = setup({ voice: 'piper-gone' });
+-  assert.equal(t.ctrl.voice, 'piper-vais1000');
++  assert.equal(t.ctrl.voice, 'vieneu-my-duyen');
+   t.ctrl.setVoice('piper-nope');
+-  assert.equal(t.ctrl.voice, 'piper-vais1000');
++  assert.equal(t.ctrl.voice, 'vieneu-my-duyen');
+   assert.deepEqual(t.stored, []);
+   t.ctrl.toggle();
+-  assert.match(t.sources[0].url, /\?voice=piper-vais1000$/);
++  assert.match(t.sources[0].url, /\?voice=vieneu-my-duyen$/);
+   t.ctrl.destroy();
+ });
+ 
+ test('the voice picker shows while enabled, with the chosen voice selected', () => {
+-  const t = setup({ voice: 'piper-vivos-45' });
++  const t = setup({ voice: 'vieneu-manh-dung' });
+   assert.equal(render(t.ctrl).querySelector('select'), null);
+   t.ctrl.toggle();
+   const options = [...render(t.ctrl).querySelectorAll('.commentary__voice option')] as HTMLOptionElement[];
+-  assert.equal(options.length, 6);
++  assert.deepEqual(
++    options.map(option => option.textContent),
++    ['Mỹ Duyên', 'Đức Trí', 'Hữu Quân', 'Anh Khôi', 'Mạnh Dũng'],
++  );
++  assert.equal(options.length, 5);
+   assert.deepEqual(
+     options.filter(option => option.selected).map(option => option.value),
+-    ['piper-vivos-45'],
++    ['vieneu-manh-dung'],
+   );
+   t.ctrl.destroy();
+ });
+@@ -380,7 +441,7 @@ test('a remark while nobody moves is spoken without a working status', async ()
+   const idle = t.state('s:3', 1, NF3, { idle: true });
+   source.send(idle);
+   assert.equal(t.ctrl.phase, 'idle');
+-  source.send({ ...idle, type: 'unavailable' } as unknown as StateMessage);
++  source.send({ ...idle, type: 'unavailable' });
+   assert.equal(t.ctrl.phase, 'idle', 'an optional remark failing is not an error');
+   t.tick(1500);
+   source.send({ ...t.comment(idle, 'Đen đang suy nghĩ khá lâu ở nước này.'), kind: 'idle' });

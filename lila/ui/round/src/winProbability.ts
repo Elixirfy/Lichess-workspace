@@ -1,10 +1,8 @@
+import { validWdl, type Wdl } from 'lib/ceval/wdl';
+
 import type { RoundData } from './interfaces';
 
-export interface Wdl {
-  white: number;
-  draw: number;
-  black: number;
-}
+export { expectedScorePercentages, validWdl, type Wdl } from 'lib/ceval/wdl';
 
 export interface Prediction {
   game_id: string;
@@ -33,25 +31,6 @@ export const wdlRevision = (d: RoundData): string =>
     .map(s => s.san)
     .filter(Boolean)
     .join(' ')}|${d.game.status.id}|${d.game.winner ?? ''}`;
-
-export function validWdl(p?: Wdl): p is Wdl {
-  if (!p) return false;
-  const values = [p.white, p.draw, p.black];
-  return (
-    values.every(x => Number.isFinite(x) && x >= 0 && x <= 1) &&
-    Math.abs(values.reduce((a, b) => a + b, 0) - 1) < 0.00001
-  );
-}
-
-// Largest-remainder rounding keeps the three displayed percentages at exactly 100.0%.
-export function wdlPercentages(p: Wdl): number[] {
-  const raw = [p.white, p.draw, p.black].map(x => x * 1000);
-  const rounded = raw.map(Math.floor);
-  const order = [0, 1, 2].sort((a, b) => raw[b] - rounded[b] - (raw[a] - rounded[a]));
-  const missing = 1000 - rounded.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < missing; i++) rounded[order[i]]++;
-  return rounded.map(x => x / 10);
-}
 
 export default class WinProbability {
   data?: Prediction;

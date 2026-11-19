@@ -20,6 +20,10 @@ $analyse-gauge-gap: 4px;
 
   &.gauge-on {
     ---analyse-gauge-col: calc(#{$block-gap} + #{$analyse-gauge-gap} * 2);
+
+    &:has(> .eval-gauge.expected-score) {
+      ---analyse-gauge-col: calc(3.2rem + #{$analyse-gauge-gap} * 2);
+    }
   }
 
   &__side {
