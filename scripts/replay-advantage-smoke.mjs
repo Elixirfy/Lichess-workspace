@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { expectedWhiteWinPercent } from './win-percent-reference.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const lila = resolve(root, 'infra/lila-docker/repos/lila');
@@ -14,14 +15,15 @@ const { Chess } = await import(pathToFileURL(resolve(lila, 'node_modules/chessop
 const { makeFen } = await import(pathToFileURL(resolve(lila, 'node_modules/chessops/dist/esm/fen.js')));
 const { parseSan } = await import(pathToFileURL(resolve(lila, 'node_modules/chessops/dist/esm/san.js')));
 const { parseUci } = await import(pathToFileURL(resolve(lila, 'node_modules/chessops/dist/esm/util.js')));
-const base = 'http://localhost:8080';
+const base = process.env.BASE_URL ?? 'http://localhost:8080';
 const out = resolve(root, 'artifacts/replay-advantage', new Date().toISOString().replaceAll(':', '-'));
 await mkdir(out, { recursive: true });
 const arg = name => process.argv[process.argv.indexOf(name) + 1];
 assert.ok(process.argv.includes('--ai-report'), 'Pass the fresh ai-smoke report.json');
 const ai = JSON.parse(await readFile(resolve(arg('--ai-report')), 'utf8'));
 assert.ok(!ai.failure && ai.cases.length === 2 && ai.cases.every(c => c.passed && c.officialResultPassed));
-const pvp = JSON.parse(await readFile(resolve(root, 'artifacts/human-browser-smoke.json'), 'utf8'));
+const pvpReport = process.argv.includes('--pvp-report') ? arg('--pvp-report') : 'artifacts/human-browser-smoke.json';
+const pvp = JSON.parse(await readFile(resolve(root, pvpReport), 'utf8'));
 const fixtures = [
   ...ai.cases.map(c => ({ id: c.id, kind: `bot-${c.color}-resignation`, variation: true })),
   { id: pvp.endingGames.checkmate, kind: 'checkmate' },
@@ -30,7 +32,7 @@ const fixtures = [
 const browser = await chromium.launch({ headless: true });
 // Lila intentionally serves static crawler HTML to HeadlessChrome.
 const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36`;
-const report = { started: new Date().toISOString(), metric: 'expected-score', realBrowserEngine: 'Stockfish 19 smallnet', cases: [], errors: [], noServerMoves: true };
+const report = { started: new Date().toISOString(), metric: 'lichess-win-percent', realBrowserEngine: 'Stockfish 19 smallnet', cases: [], errors: [], noServerMoves: true };
 
 function positionList(pgn) {
   assert.ok(!pgn.includes('[SetUp '), 'These fixtures start at the normal chess position');
@@ -58,25 +60,28 @@ async function sample(page, result, phase, source) {
   await page.waitForFunction(expected => document.querySelector('.eval-gauge')?.getAttribute('data-source') === expected, source);
   const data = await page.locator('.eval-gauge').evaluate(el => ({
     source: el.dataset.source, metric: el.dataset.metric, tooltip: el.title,
-    white: Number.parseFloat(el.querySelector('.eval-gauge__white .eval-gauge__value').textContent),
-    black: Number.parseFloat(el.querySelector('.eval-gauge__black .eval-gauge__value').textContent),
+    whiteText: el.querySelector('.eval-gauge__white .eval-gauge__value').textContent,
+    blackText: el.querySelector('.eval-gauge__black .eval-gauge__value').textContent,
     style: el.getAttribute('style'), reverse: el.classList.contains('reverse'),
     fen: window.lichess.chessground().getFen(),
     nodeFen: window.site.analysis.getNode().fen,
     ply: window.site.analysis.getNode().ply,
     path: window.site.analysis.path,
+    cp: window.site.analysis.getNode().ceval?.cp,
+    mate: window.site.analysis.getNode().ceval?.mate,
     rawWdl: window.site.analysis.getNode().ceval?.wdl,
   }));
-  assert.ok(Number.isFinite(data.white) && Number.isFinite(data.black));
-  assert.ok(Math.abs(data.white + data.black - 100) < 1e-8);
+  assert.match(data.whiteText, /^\d+%$/);
+  assert.match(data.blackText, /^\d+%$/);
+  data.white = Number.parseInt(data.whiteText, 10);
+  data.black = Number.parseInt(data.blackText, 10);
+  assert.equal(data.white + data.black, 100);
   assert.equal(data.style, `--eval-percent: ${data.black}%`);
-  assert.match(data.tooltip, /Hòa tính nửa điểm/);
-  if (source === 'engine-wdl') {
-    assert.ok(data.rawWdl, 'Compare with the actual browser engine result, not an injected evaluation');
-    const p = data.rawWdl;
-    const total = p.white + p.draw + p.black;
-    assert.ok(Math.abs(data.white - 100 * (p.white + p.draw / 2) / total) <= .050001);
-    assert.ok(Math.abs(data.black - 100 * (p.black + p.draw / 2) / total) <= .050001);
+  if (source === 'engine-score') {
+    assert.equal(data.metric, 'lichess-win-percent');
+    assert.match(data.tooltip, /Win% của Lichess/);
+    const white = expectedWhiteWinPercent(data.cp, data.mate);
+    assert.deepEqual([data.white, data.black], [white, 100 - white]);
   }
   result.samples.push({ phase, ...data });
   return data;
@@ -110,30 +115,29 @@ try {
     assert.equal(final.white, positions.result === '1-0' ? 100 : positions.result === '0-1' ? 0 : 50);
 
     await page.keyboard.press('Home');
-    await page.waitForFunction(() => document.querySelector('.eval-gauge')?.dataset.source === 'engine-wdl');
+    await page.waitForFunction(() => document.querySelector('.eval-gauge')?.dataset.source === 'engine-score');
     await engine(page, false);
-    const initial = await sample(page, result, 'initial', 'engine-wdl');
+    const initial = await sample(page, result, 'initial', 'engine-score');
     assert.equal(initial.fen, positions.placements[0]);
-    assert.equal(initial.metric, 'expected-score');
     await page.keyboard.press('ArrowRight');
     // With the engine stopped, an uncached node cannot keep the previous percentages.
     await page.waitForFunction(() => !document.querySelector('.eval-gauge__value'));
     result.missingEvaluationCleared = true;
     assert.equal(await page.evaluate(() => window.lichess.chessground().getFen()), positions.placements[1]);
     await engine(page, true);
-    await page.waitForFunction(() => document.querySelector('.eval-gauge')?.dataset.source === 'engine-wdl');
+    await page.waitForFunction(() => document.querySelector('.eval-gauge')?.dataset.source === 'engine-score');
     await engine(page, false);
-    const first = await sample(page, result, 'first-ply-black-to-move', 'engine-wdl');
+    const first = await sample(page, result, 'first-ply-black-to-move', 'engine-score');
     assert.equal(first.fen, positions.placements[1]);
     await page.keyboard.press('f');
     await page.waitForSelector('.eval-gauge.reverse');
-    const flipped = await sample(page, result, 'flipped', 'engine-wdl');
+    const flipped = await sample(page, result, 'flipped', 'engine-score');
     assert.equal(flipped.fen, first.fen);
     assert.equal(flipped.path, first.path);
-    if (JSON.stringify(flipped.rawWdl) === JSON.stringify(first.rawWdl))
+    if (flipped.cp === first.cp && flipped.mate === first.mate)
       assert.deepEqual([flipped.white, flipped.black], [first.white, first.black]);
     // A final in-flight engine update may arrive after stop. Both snapshots must
-    // match their own White-oriented WDL; static input flip equality is unit tested.
+    // match their own White-oriented engine score; static input flip equality is unit tested.
     const labelPositions = await page.evaluate(() => ({
       white: document.querySelector('.eval-gauge__white').getBoundingClientRect().top,
       black: document.querySelector('.eval-gauge__black').getBoundingClientRect().top,
@@ -154,19 +158,18 @@ try {
       }
       assert.equal(await page.evaluate(() => window.lichess.chessground().getFen()), makeFen(variation.toSetup()).split(' ')[0]);
       await engine(page, true);
-      await page.waitForFunction(() => document.querySelector('.eval-gauge')?.dataset.source === 'engine-wdl');
+      await page.waitForFunction(() => document.querySelector('.eval-gauge')?.dataset.source === 'engine-score');
       await engine(page, false);
-      const varied = await sample(page, result, 'variation-at-same-final-ply', 'engine-wdl');
-      assert.equal(varied.metric, 'expected-score');
+      await sample(page, result, 'variation-at-same-final-ply', 'engine-score');
       result.variationDoesNotInheritFinalResult = true;
     }
     await engine(page, true);
     await page.reload();
     await page.waitForFunction(() => typeof window.site?.analysis?.getNode === 'function');
     await page.keyboard.press('Home');
-    await page.waitForFunction(() => document.querySelector('.eval-gauge')?.dataset.source === 'engine-wdl');
+    await page.waitForFunction(() => document.querySelector('.eval-gauge')?.dataset.source === 'engine-score');
     await engine(page, false);
-    await sample(page, result, 'reload-initial', 'engine-wdl');
+    await sample(page, result, 'reload-initial', 'engine-score');
     await page.waitForTimeout(1100);
     await page.screenshot({ path: resolve(out, `${fixture.kind}-white.png`), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });

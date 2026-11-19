@@ -19,38 +19,38 @@ function panel(data: unknown = prediction, replay = false): HTMLElement {
   return init([attributesModule])(document.createElement('div'), render(ctrl) as VNode).elm as HTMLElement;
 }
 
-test('one bar shows expected-score advantage from the preferred human estimate', () => {
-  const view = panel();
+test('one bar shows Lichess Win% from the engine score when both WDL estimates disagree', () => {
+  const view = panel({ ...prediction, evaluation_cp: 300 });
   assert.equal(view.querySelectorAll('.win-probability__bar').length, 1);
   assert.equal(view.querySelectorAll('.win-probability__values').length, 1);
-  assert.equal(view.textContent.match(/\d+\.\d%/g)?.length, 2);
-  assert.equal(view.dataset.source, 'human');
-  assert.equal(view.dataset.metric, 'expected-score');
-  assert.match(view.getAttribute('title')!, /Ưu thế người chơi · thử nghiệm/);
-  assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 65.0%.*Đen 35.0%/);
-  assert.equal(view.querySelector('.win-probability__white')!.getAttribute('style'), 'width:65%');
-  assert.equal(view.querySelector('.win-probability__black')!.getAttribute('style'), 'width:35%');
+  assert.equal(view.textContent.match(/\b\d+%/g)?.length, 2);
+  assert.equal(view.dataset.source, 'engine');
+  assert.equal(view.dataset.metric, 'lichess-win-percent');
+  assert.match(view.getAttribute('title')!, /Win% của Lichess/);
+  assert.equal(view.querySelector('.win-probability__white')!.getAttribute('style'), 'width:75%');
+  assert.equal(view.querySelector('.win-probability__black')!.getAttribute('style'), 'width:25%');
   assert.equal(view.querySelector('.win-probability__draw'), null);
   assert.equal(view.querySelector('.win-probability__source'), null);
   assert.equal(view.querySelector('.win-probability__explanation'), null);
-  assert.equal(view.textContent, 'Trắng 65.0%Đen 35.0%');
-  assert.match(view.getAttribute('title')!, /50% = cân bằng.*Hòa tính nửa điểm/);
-  assert.match(view.getAttribute('aria-label')!, /Ưu thế Trắng\/Đen.*điểm kỳ vọng/);
+  assert.equal(view.textContent, 'Trắng 75%Đen 25%');
+  assert.doesNotMatch(view.getAttribute('title')!, /Hòa tính nửa điểm/);
+  assert.match(view.getAttribute('aria-label')!, /Ưu thế Trắng\/Đen.*Win% của Lichess/);
   assert.deepEqual(prediction.human.probabilities, { white: 0.6, draw: 0.1, black: 0.3 });
   assert.doesNotMatch(view.textContent, /Theo engine|Stockfish|d17/);
 });
 
-test('missing or unsupported human context falls back to one clearly identified engine estimate', () => {
-  for (const reason of ['missing_context', 'outside_scope', 'model_unavailable']) {
-    const view = panel({ ...prediction, human: { status: 'unavailable', reason } });
+test('missing or invalid scores fall back to engine WDL with its own label', () => {
+  for (const evaluation_cp of [undefined, NaN]) {
+    const view = panel({ ...prediction, evaluation_cp });
     assert.equal(view.dataset.source, 'engine');
-    assert.match(view.getAttribute('title')!, /Ưu thế theo engine/);
-    assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 50.0%.*Đen 50.0%/);
+    assert.equal(view.dataset.metric, 'expected-score');
+    assert.match(view.getAttribute('title')!, /WDL/);
+    assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 50%.*Đen 50%/);
     assert.equal(view.querySelector('.win-probability__source'), null);
     assert.equal(view.querySelector('.win-probability__explanation'), null);
-    assert.equal(view.textContent, 'Trắng 50.0%Đen 50.0%');
-    assert.match(view.getAttribute('title')!, /engine.*cấp độ bot/);
-    assert.equal(view.textContent.match(/\d+\.\d%/g)?.length, 2);
+    assert.equal(view.textContent, 'Trắng 50%Đen 50%');
+    assert.match(view.getAttribute('title')!, /Stockfish.*cấp độ bot/);
+    assert.equal(view.textContent.match(/\b\d+%/g)?.length, 2);
     assert.equal(view.querySelector('.win-probability__draw'), null);
   }
 });
@@ -86,7 +86,7 @@ test('official winners retain their color and override the human estimate', () =
     assert.equal(view.dataset.model, undefined);
     assert.equal(
       view.querySelector('.win-probability__values')!.textContent,
-      `Trắng ${(white * 100).toFixed(1)}%Đen ${((1 - white) * 100).toFixed(1)}%`,
+      `Trắng ${white * 100}%Đen ${(1 - white) * 100}%`,
     );
     assert.doesNotMatch(view.textContent, /thử nghiệm|không tính hòa/);
   }
@@ -101,27 +101,27 @@ test('a live all-draw estimate has equal expected points for both colors', () =>
       human: human ? { status: 'ready', model_id: 'pilot-v1', probabilities } : { status: 'unavailable' },
     });
     assert.equal(view.dataset.metric, 'expected-score');
-    assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 50.0%.*Đen 50.0%/);
+    assert.match(view.querySelector('.win-probability__values')!.textContent, /Trắng 50%.*Đen 50%/);
     assert.match(view.getAttribute('title')!, /Hòa tính nửa điểm/);
     assert.equal(view.querySelector('.win-probability__explanation'), null);
     assert.doesNotMatch(view.textContent, /NaN|Infinity|kết thúc hòa/);
   }
 });
 
-test('two displayed values and segment widths sum to 100.0% without swapping White and Black', () => {
-  for (const probabilities of [
-    { white: 0.1, draw: 0.2, black: 0.7 },
-    { white: 0, draw: 0.9, black: 0.1 },
-    { white: 1e-12, draw: 1 - 4e-12, black: 3e-12 },
-    { white: 0.5005, draw: 0, black: 0.4995 },
-  ]) {
+test('the two labels and bar segments use whole percentages that sum to 100', () => {
+  for (const [probabilities, values] of [
+    [{ white: 0.1, draw: 0.2, black: 0.7 }, [20, 80]],
+    [{ white: 0, draw: 0.9, black: 0.1 }, [45, 55]],
+    [{ white: 1e-12, draw: 1 - 4e-12, black: 3e-12 }, [50, 50]],
+    [{ white: 0.5049, draw: 0, black: 0.4951 }, [50, 50]],
+    [{ white: 0.5051, draw: 0, black: 0.4949 }, [51, 49]],
+  ] as const) {
     const view = panel({ ...prediction, human: undefined, probabilities });
     const nodes = [...view.querySelectorAll('.win-probability__values span')];
-    assert.equal(nodes.length, 2);
-    const values = nodes.map(node => Number(node.textContent.match(/(\d+\.\d)%/)![1]));
-    assert.equal(Math.round((values[0] + values[1]) * 10), 1000);
-    const expectedWhite = (probabilities.white + probabilities.draw / 2) * 100;
-    assert.ok(Math.abs(values[0] - expectedWhite) <= 0.050001);
+    assert.deepEqual(
+      nodes.map(node => node.textContent),
+      [`Trắng ${values[0]}%`, `Đen ${values[1]}%`],
+    );
     for (const [i, color] of ['white', 'black'].entries())
       assert.equal(
         view.querySelector(`.win-probability__${color}`)!.getAttribute('style'),
@@ -130,19 +130,19 @@ test('two displayed values and segment widths sum to 100.0% without swapping Whi
   }
 });
 
-test('the reported 0/87.6/12.4 case becomes 43.8/56.2 advantage without changing its WDL', () => {
+test('a draw-heavy estimate rounds to 44/56 advantage', () => {
   const probabilities = Object.freeze({ white: 0, draw: 0.876, black: 0.124 });
   const view = panel({ ...prediction, human: undefined, probabilities });
-  assert.equal(view.querySelector('.win-probability__values')!.textContent, 'Trắng 43.8%Đen 56.2%');
+  assert.equal(view.querySelector('.win-probability__values')!.textContent, 'Trắng 44%Đen 56%');
   assert.equal(view.dataset.metric, 'expected-score');
   assert.match(view.getAttribute('title')!, /Ưu thế/);
-  assert.doesNotMatch(view.textContent, /không tính hòa|có bên thắng|100.0%/);
+  assert.doesNotMatch(view.textContent, /không tính hòa|có bên thắng|100%/);
 });
 
 test('advantage distinguishes clear and near-winning positions while remaining an estimate', () => {
   for (const [probabilities, text] of [
-    [{ white: 0.8, draw: 0.1, black: 0.1 }, 'Trắng 85.0%Đen 15.0%'],
-    [{ white: 0.98, draw: 0.02, black: 0 }, 'Trắng 99.0%Đen 1.0%'],
+    [{ white: 0.8, draw: 0.1, black: 0.1 }, 'Trắng 85%Đen 15%'],
+    [{ white: 0.98, draw: 0.02, black: 0 }, 'Trắng 99%Đen 1%'],
   ] as const) {
     const view = panel({ ...prediction, human: undefined, probabilities });
     assert.equal(view.querySelector('.win-probability__values')!.textContent, text);
@@ -150,6 +150,19 @@ test('advantage distinguishes clear and near-winning positions while remaining a
     assert.equal(view.dataset.metric, 'expected-score');
     assert.doesNotMatch(view.textContent, /Kết quả chính thức|không tính hòa/);
   }
+});
+
+test('a mate score takes precedence over cp and saturated WDL', () => {
+  const blackWin = Object.freeze({ white: 0, draw: 0, black: 1 });
+  const almostWhiteWin = Object.freeze({ white: 0.9997, draw: 0.0002, black: 0.0001 });
+  const engine = panel({ ...prediction, probabilities: blackWin, evaluation_cp: 0, mate: -1 });
+  const saturated = panel({ ...prediction, probabilities: almostWhiteWin, evaluation_cp: 1400 });
+  assert.equal(engine.querySelector('.win-probability__values')!.textContent, 'Trắng 2%Đen 98%');
+  assert.equal(saturated.querySelector('.win-probability__values')!.textContent, 'Trắng 98%Đen 2%');
+  assert.equal(engine.querySelector('.win-probability__white')!.getAttribute('style'), 'width:2%');
+  assert.equal(engine.querySelector('.win-probability__black')!.getAttribute('style'), 'width:98%');
+  assert.equal(engine.dataset.metric, 'lichess-win-percent');
+  assert.equal(saturated.dataset.source, 'engine');
 });
 
 test('replay and unavailable positions never retain either source of probabilities', () => {
