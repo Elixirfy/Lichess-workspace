@@ -5,9 +5,10 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { expectedWhiteWinPercent } from './win-percent-reference.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const base = 'http://localhost:8080';
+const base = process.env.BASE_URL ?? 'http://localhost:8080';
 const out = resolve(root, 'artifacts/ai-smoke', new Date().toISOString().replaceAll(':', '-'));
 await mkdir(out, { recursive: true });
 const pnpm = resolve(root, 'infra/lila-docker/repos/lila/node_modules/.pnpm');
@@ -15,8 +16,9 @@ const core = (await readdir(pnpm)).find(n => /^playwright-core@\d/.test(n));
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= resolve(root, '.cache/playwright');
 const { chromium } = await import(pathToFileURL(resolve(pnpm, core, 'node_modules/playwright-core/index.mjs')));
 const report = { started: new Date().toISOString(), cases: [], errors: [] };
-report.metric = 'expected-score';
+report.metric = 'lichess-win-percent';
 const browser = await chromium.launch({ headless: true });
+const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36`;
 const argument = name => process.argv[process.argv.indexOf(name) + 1];
 const timeoutMs = process.argv.includes('--timeout-ms') ? Number(argument('--timeout-ms')) : 25000;
 const withProbability = process.argv.includes('--probability');
@@ -58,21 +60,22 @@ async function probability(page, context, result, ply, phase) {
   assert.equal(prediction.status, 'ready');
   assert.equal(prediction.ply, ply);
   const p = prediction.probabilities;
-  assert.ok(p.white + p.draw + p.black > 0);
-  await page.waitForFunction(({ p }) => {
+  const total = p.white + p.draw + p.black;
+  assert.ok(total > 0);
+  const white = expectedWhiteWinPercent(prediction.evaluation_cp, prediction.mate);
+  await page.waitForFunction(white => {
     const panel = document.querySelector('.win-probability');
-    const values = [...(panel?.querySelector('.win-probability__values')?.textContent ?? '').matchAll(/(\d+\.\d)%/g)]
-      .map(m => Number(m[1]));
-    return panel?.getAttribute('data-source') === 'engine' && panel?.getAttribute('data-metric') === 'expected-score' && values.length === 2 &&
-      Math.abs(values[0] + values[1] - 100) < 0.00001 &&
-      [p.white + p.draw / 2, p.black + p.draw / 2].every((x, i) => Math.abs(values[i] - 100 * x) <= 0.050001);
-  }, { p });
+    const values = [...(panel?.querySelectorAll('.win-probability__values span') ?? [])].map(n => n.textContent);
+    return panel?.getAttribute('data-source') === 'engine' && panel?.getAttribute('data-metric') === 'lichess-win-percent' && values.length === 2 &&
+      values[0] === `Trắng ${white}%` && values[1] === `Đen ${100 - white}%`;
+  }, white);
   const panel = page.locator('.win-probability');
   assert.equal(await panel.locator('.win-probability__bar > span').count(), 2);
   assert.equal(await panel.locator('.win-probability__draw').count(), 0);
   assert.equal(await panel.locator('.win-probability__source, .win-probability__explanation').count(), 0);
-  assert.match(await panel.getAttribute('title'), /Ưu thế.*50% = cân bằng.*Hòa tính nửa điểm/);
+  assert.match(await panel.getAttribute('title'), /Win% của Lichess/);
   Object.assign(sample, { revision: prediction.revision, rawWdl: p,
+    cp: prediction.evaluation_cp, mate: prediction.mate,
     displayed: await panel.locator('.win-probability__values').innerText(), source: 'engine', passed: true });
 }
 
@@ -125,7 +128,7 @@ try {
     console.log('PASS existing game AI reply', id, result.moves.join(' '));
   } else {
     for (const color of ['white', 'black']) {
-      const context = await browser.newContext({ baseURL: base, viewport: { width: 1280, height: 900 } });
+      const context = await browser.newContext({ baseURL: base, userAgent, viewport: { width: 1280, height: 900 } });
       const page = await context.newPage();
       page.on('pageerror', e => report.errors.push(e.message));
       const result = { color, aiLevel: 1, checks: [], socketMoves: [] };
@@ -188,7 +191,7 @@ try {
         if (await confirm.isVisible()) await confirm.click();
         await page.waitForFunction(() => document.querySelector('.win-probability')?.dataset.source === 'official');
         assert.match(await page.locator('.win-probability__values').innerText(),
-          color === 'white' ? /Trắng 0.0%.*Đen 100.0%/s : /Trắng 100.0%.*Đen 0.0%/s);
+          color === 'white' ? /Trắng 0%.*Đen 100%/s : /Trắng 100%.*Đen 0%/s);
         result.officialResultPassed = true;
       }
       result.passed = true;
@@ -197,7 +200,7 @@ try {
     }
   }
   if (withProbability && !process.argv.includes('--observe')) {
-    const context = await browser.newContext({ baseURL: base });
+    const context = await browser.newContext({ baseURL: base, userAgent });
     const page = await context.newPage();
     page.on('pageerror', e => report.errors.push(e.message));
     const created = await context.request.post('/setup/ai', {

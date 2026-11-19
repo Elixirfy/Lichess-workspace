@@ -12,6 +12,9 @@ export interface Prediction {
   source: 'engine' | 'official';
   engine?: string;
   depth?: number;
+  // Both scores are from White's point of view. A mate takes precedence over its cp sentinel.
+  evaluation_cp?: number;
+  mate?: number;
   human?: {
     status: 'ready' | 'unavailable';
     probabilities?: Wdl;

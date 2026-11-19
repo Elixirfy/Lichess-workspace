@@ -1,5 +1,69 @@
 # Implementation and evidence
 
+## Lichess Win% — 2026-11-19
+
+- [x] Apply Lichess Win% to the live panel and the selected review position.
+  Use the White-oriented cp ceiling of ±1000 and whole numbers summing to
+  100%. Use native WDL expected points when a usable score is missing. Exact
+  official or settled results take precedence.
+- [x] Compare on 118 unfinished positions chosen from 24 archived games.
+  Stockfish 15.1 supplies cp/mate and WDL in the same 250 ms search per
+  position. WDL versus Win% yields 44 versus 0 positions at 99%, 4 versus 3 at
+  98%, and 49 versus 5 at or above 95%. See
+  `artifacts/lichess-win-percent/comparison.md` and `engine-samples.json`.
+- [x] Seven relevant tests failed before implementation. Afterward 62/62
+  focused and 302/307 full frontend tests passed. The five inherited
+  commentary voice-selector failures remain. Type-aware lint, formatting,
+  production build and replay of the pinned patch with voice passed.
+- [x] Real Chromium live and review fixture at ply 3 of `1. f3 e5 2. g4` shows
+  `2% / 98%` for both participants, spectator and review, including board
+  flip and direct link. `2...Qh4#` shows `0% / 100%`. Evidence is in
+  `artifacts/advantage-boundary/lichess/result.json`.
+- [x] Browser acceptance also passed on both sides against Stockfish and in
+  an anonymous PvP match with takeback, reconnect and official endings. PvP
+  move-to-display p95 was 505 ms over the first 20 plies. Four reviews passed
+  official results, flips, reloads and alternate lines where applicable. See
+  `artifacts/lichess-win-percent/{ai,pvp,replay}-smoke.log` and
+  `artifacts/advantage-boundary/lichess/review-gradient.json`.
+- [x] User approved the local preview at
+  `http://localhost:8081/game/W56AVSVB/white#3` for integration into shared main.
+
+## Whole percentages — 2026-11-19 (superseded)
+
+- [x] Round the expected score directly to whole percentages, using the
+  complement so the two labels and bar segments total 100%. Hold estimates
+  at 1–99% and show exact scores for official or settled results.
+- [x] Frontend: 15 view regressions red before the change, 40/40 focused after.
+  Full UI 302/307, with the same five commentary failures. Production build,
+  type-aware lint, formatting and pinned patch replay with voice pass.
+- [x] Chromium: `1. f3 e5 2. g4` shows `Trắng 1% / Đen 99%` for both players,
+  spectator and review. `2...Qh4#` shows the confirmed `0% / 100%`. Evidence:
+  `artifacts/advantage-boundary/rounded/result.json` and rounded check logs.
+
+## Earlier bounds preview — 2026-11-19 (superseded)
+
+- [x] Reproduce saturation in both views. After `1. f3 e5 2. g4` in the local
+  fixture, Stockfish returns WDL 0/0/100 for White/draw/Black and the old UI
+  shows 100.0% for Black. Two view regressions fail before the change.
+- [x] Apply the same display rule to live engine/human estimates and review
+  engine/legacy estimates whose expected score rounds to an endpoint. Display
+  `>99.9%` and `<0.1%`. Official wins and settled positions show exact scores.
+  Keep the WDL, formula and model separate from display formatting.
+- [x] Verify focused frontend (40/40), all frontend (302/307, the same five
+  commentary voice-picker failures as main), type-aware lint, formatting and
+  production build. The updated Docker patch replays on `4eea97a`, reverses
+  cleanly, and accepts the existing voice patch on top.
+- [x] Verify with Chromium before and after using real Stockfish. At ply 3
+  both participants and the spectator show the bounds. After `2...Qh4#`,
+  the official result is exact. Review ply 3 shows the bounds after board
+  flip and direct navigation. Evidence: `artifacts/advantage-boundary/`.
+- [ ] Publish after the user reviews the preview. Local only on
+  `codex/advantage-display-preview`, based on `main` at `2fe2155`.
+
+Preview: `http://localhost:8081/game/78hwxwq1/white#3`. Enable the browser engine
+to see ply 3 and press End to compare the confirmed result. Port 8081 is a
+local Compose override because 8080 is occupied on the development machine.
+
 ## Analysis vertical advantage gauge — 2026-11-18 (current)
 
 - [x] Share the live W+D/2 display helper with standard-game analysis. Prefer

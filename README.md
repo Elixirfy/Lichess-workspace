@@ -1,10 +1,10 @@
 # Lichess workspace — bản dùng chung của nhóm
 
-`main` chứa phần **tỷ lệ/ưu thế Trắng–Đen** dùng chung: panel live trên bàn
-người chơi/người xem và thanh dọc khi xem lại ván standard. Cả hai dùng
-`Trắng = W + D/2`, `Đen = B + D/2`, làm tròn cộng đúng 100%. Raw WDL được giữ
-nguyên; tooltip ghi nguồn và cách tính. Đây là điểm kỳ vọng, chưa phải xác suất
-thắng cá nhân đã hiệu chỉnh cho cộng đồng local.
+Phần **ưu thế Trắng–Đen** dùng chung của nhóm có thanh ngang lúc chơi và thanh
+dọc khi xem lại ván standard. Cả hai dùng [Win% của Lichess](https://lichess.org/page/accuracy),
+làm tròn số nguyên với tổng đúng 100%. Tooltip ghi nguồn của số hiển thị.
+Đây là ưu thế từ thế cờ. Độ chính xác dự đoán kết quả theo trình độ người chơi
+chưa được kiểm chứng cho cộng đồng local.
 
 Phần **giọng nói tiếng Việt Vosk + PhoWhisper, recorder và đi ngay** nằm ở
 [nhánh voice riêng](https://github.com/trantrien1/Lichess-workspace/tree/codex/vietnamese-voice-input).
@@ -57,17 +57,21 @@ hình riêng theo README dịch vụ; chạy Docker prediction không tự bật
 
 ## Cách tính và dữ liệu
 
-Live nhận lịch sử, trạng thái, rating/clock authoritative từ Lila. Worker
-Stockfish có giới hạn CPU/queue/cache, dùng chung công việc theo vị trí. Human
-model thử nghiệm được chọn khi đủ ngữ cảnh; nếu không, dùng engine. Không tự
-gán rating cho khách. Phản hồi cũ bị loại sau nước mới, takeback/reconnect.
-Kết quả chính thức ghi đè dự đoán; ván hủy không bị gán người thắng.
+Live nhận lịch sử, trạng thái, rating và đồng hồ từ Lila. Worker Stockfish có
+giới hạn CPU, hàng đợi và cache, dùng chung công việc theo vị trí. Giao diện
+lấy điểm Stockfish theo góc nhìn Trắng và giới hạn ở ±1.000 cp, kể cả dự báo
+chiếu hết. Công thức là `100 / (1 + exp(-0.00368208 × cp))`. Sau khi làm tròn
+Trắng, Đen bằng 100 trừ phần Trắng. [Mã WinPercent của Lichess](https://github.com/lichess-org/scalachess/blob/master/core/src/main/scala/eval.scala).
 
-Khi xem lại, thanh dọc đọc **node đang chọn**, ưu tiên WDL của engine client;
-cp-only dùng quy đổi Stockfish 15.1 có nhãn. Chỉ endpoint của mainline gốc nhận
-kết quả chính thức; nhánh phân tích cùng ply không nhận nhầm kết quả cuối ván.
-Flip giữ đúng màu. Mobile một cột tiếp tục ẩn thanh dọc theo upstream.
-Khác engine/độ sâu hoặc human model có thể cho WDL khác dù cùng phép tính.
+API giữ WDL và dự báo thử nghiệm theo trình độ ở các trường riêng. Khi thiếu
+điểm engine hợp lệ, giao diện dùng `W + D/2`, `B + D/2` từ engine WDL và ghi
+nguồn trong tooltip. Phản hồi cũ bị loại sau nước mới, takeback và reconnect.
+Kết quả chính thức được ưu tiên. Ván hủy có trạng thái riêng.
+
+Khi xem lại, thanh dọc áp dụng cùng công thức cho **nước đang chọn**. Engine
+và độ sâu khác nhau có thể cho điểm khác ngay trên cùng một thế. Chỉ điểm cuối
+ván của nhánh chính gốc lấy kết quả chính thức. Lật bàn giữ đúng tỷ lệ của từng
+màu. Giao diện mobile một cột ẩn thanh dọc theo upstream.
 
 [Model card và giới hạn](reports/human-v1/model-card.md),
 [thanh dọc review](reports/acceptance/replay-advantage/README.md),
