@@ -117,6 +117,7 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
       });
     if ((panel === 'computer-analysis' || ctrl.opts.hunter) && $('#acpl-chart-container').length)
       setTimeout(startAdvantageChart, 200);
+    if (panel === 'ai-coach') site.asset.loadEsm('analyse.aiCoach', { init: ctrl });
   };
   $menu.on('click', 'button', function (this: HTMLElement) {
     const panel = this.dataset.panel!;

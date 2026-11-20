@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% macro rating() %}
+<label>{{ tilt_item }} <input name="tilt_score" type="number" min="0" max="10" step="1" required> (0 = không tilt; 10 = rất mạnh)</label>
+{% for key,text in questionnaire.items() %}<label>{{ text }} <select name="{{ key }}"><option value="">Bỏ qua</option>{% for n in range(1,6) %}<option value="{{ n }}">{{ n }}</option>{% endfor %}</select></label>{% endfor %}
+<small>1 = hoàn toàn không đồng ý; 5 = hoàn toàn đồng ý. Mục tập trung không được tự động đảo điểm.</small>{% endmacro %}
+{% block content %}<p>Người chơi: {{ user }} · Nguồn đánh giá: {{ mode }} · <a href="/identity">Đổi tài khoản</a></p>
+{% if saved %}<p role="status">Đã lưu đánh giá của bạn.</p>{% endif %}
+{% for game in games %}<article><h2>{{ game.game_id }} · {{ game.speed }}</h2><p>Đối thủ: {{ game.opponent }} · Kết quả (Trắng–Đen): {{ game.result }} · {{ game.plies }} ply</p>
+{{ game.eval_chart }}{% for svg in game.clock_charts %}{{ svg }}{% endfor %}
+<p>Chỗ thiếu dữ liệu không biểu thị đánh giá trung tính; biểu đồ chỉ nối những điểm có dữ liệu.</p>
+<form method="post" action="/rate"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="game_id" value="{{ game.game_id }}">
+<label>Phạm vi <select name="scope"><option value="game">Cả ván</option><option value="moment">Một khoảnh khắc (điền khoảng ply)</option></select></label>
+<label>Ply bắt đầu (chỉ khi chọn khoảnh khắc) <input name="ply_start" type="number" min="1" max="{{ game.plies }}"></label>
+<label>Ply kết thúc <input name="ply_end" type="number" min="1" max="{{ game.plies }}"></label>
+{{ rating() }}<button>Lưu đánh giá cho phạm vi đã chọn</button></form><small>Có thể gửi riêng đánh giá cả ván và đánh giá khoảnh khắc; mỗi lần gửi là một nhãn con người độc lập.</small></article>{% endfor %}
+{% for session in sessions %}<article><h2>Phiên {{ session.session_id }} · {{ session.game_count }} ván</h2>
+<form method="post" action="/rate"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="scope" value="session"><input type="hidden" name="session_id" value="{{ session.session_id }}">{{ rating() }}<button>Lưu đánh giá phiên (tùy chọn)</button></form></article>{% endfor %}
+{% endblock %}

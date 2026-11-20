@@ -54,6 +54,7 @@ final class Analyse(
             roundC.getWatcherChat(pov.game),
             ctx.noBlind.so(env.game.crosstableApi.withMatchup(pov.game)),
             env.bookmark.api.exists(pov.game, ctx.me),
+            ctx.me.so(me => env.tilt.api.forGame(pov.gameId, me.userId)),
             env.api.pgnDump(
               pov.game,
               initialFen,
@@ -61,7 +62,7 @@ final class Analyse(
               opening = opening,
               pgnFlags
             )
-          ).flatMapN: (analysis, analysisInProgress, simul, chat, crosstable, bookmarked, pgn) =>
+          ).flatMapN: (analysis, analysisInProgress, simul, chat, crosstable, bookmarked, tilt, pgn) =>
             env.api.roundApi
               .review(
                 pov,
@@ -93,7 +94,8 @@ final class Analyse(
                     crosstable,
                     userTv,
                     chat,
-                    bookmarked = bookmarked
+                    bookmarked = bookmarked,
+                    tilt = tilt
                   )
                 ).map(_.enforceCrossSiteIsolation)
       yield res

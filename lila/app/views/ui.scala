@@ -55,6 +55,8 @@ object account:
 
 val dailyGoal = lila.dailyGoal.ui.DailyGoalUi(helpers)(account.ui.AccountPage)
 
+val tilt = lila.tilt.ui.TiltUi(helpers)(account.ui.AccountPage)
+
 val practice = lila.practice.ui.PracticeUi(helpers)(
   csp = analyse.ui.bits.cspExternalEngine,
   views.analyse.ui.explorerAndCevalConfig

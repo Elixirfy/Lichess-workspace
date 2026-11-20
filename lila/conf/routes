@@ -404,6 +404,8 @@ GET   /game/$gameId<\w{8}>/$color<white|black>/sides controllers.Round.sides(gam
 GET   /game/$gameId<\w{8}>/continue/:mode           controllers.Round.continue(gameId: GameId, mode)
 GET   /game/$gameId<\w{8}>/note                     controllers.Round.readNote(gameId: GameId)
 POST  /game/$gameId<\w{8}>/note                     controllers.Round.writeNote(gameId: GameId)
+GET   /game/$gameId<\w{8}>/ai-coach                 controllers.AiCoach.show(gameId: GameId)
+POST  /game/$gameId<\w{8}>/ai-coach                 controllers.AiCoach.ask(gameId: GameId)
 GET   /game/$gameId<\w{8}>/mini                     controllers.Round.mini(gameId: GameId, color: Color = Color.white)
 GET   /game/$gameId<\w{8}>/$color<white|black>/mini controllers.Round.mini(gameId: GameId, color: Color)
 GET   /game/$fullId<\w{12}>/mini                    controllers.Round.miniFullId(fullId: GameFullId)
@@ -868,6 +870,9 @@ POST  /account/reopen/send             controllers.Account.reopenApply
 GET   /account/reopen/sent             controllers.Account.reopenSent
 GET   /account/reopen/login/:token     controllers.Account.reopenLogin(token)
 GET   /account/personal-data           controllers.Account.data
+GET   /account/tilt                    controllers.Tilt.index
+POST  /account/tilt/banner             controllers.Tilt.bannerSetting
+POST  /account/tilt/banner/dismiss     controllers.Tilt.dismissBanner
 
 # App BC
 GET   /account/security                controllers.Account.security

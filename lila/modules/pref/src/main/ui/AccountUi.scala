@@ -117,6 +117,7 @@ final class AccountUi(helpers: Helpers):
           a(activeCls("security"), href := routes.Account.security)(
             trans.site.security()
           ),
+          a(activeCls("tilt"), href := routes.Tilt.index)("Tilt"),
           div(cls := "sep"),
           a(activeCls("network"), href := routes.Pref.network)(
             trans.preferences.network()

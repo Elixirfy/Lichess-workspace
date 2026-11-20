@@ -60,6 +60,7 @@ object home:
           )
         )(
           div(cls := "lobby__side")(
+            tiltBanner.map(reason => views.tilt.banner(reason)),
             (ctx.isAuth && ctx.noBot).option(views.dailyGoal.home(dailyGoal)),
             ctx.blind.option(h2(trans.nvui.featuredEvents())),
             ctx.kid.no.option(views.streamer.bits.liveStreams(streams)),

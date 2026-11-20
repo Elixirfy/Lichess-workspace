@@ -40,7 +40,8 @@ object replay:
       cross: Option[lila.game.Crosstable.WithMatchup],
       userTv: Option[User],
       chatOption: Option[lila.chat.UserChat.Mine],
-      bookmarked: Boolean
+      bookmarked: Boolean,
+      tilt: Option[lila.tilt.TiltGame.WithRun] = None
   )(using ctx: Context) =
 
     val chatOpt = chatOption.map: c =>
@@ -66,8 +67,17 @@ object replay:
       gameSide = side,
       crosstable = cross.map: c =>
         views.game.ui.crosstable(pov.player.userId.fold(c)(c.fromPov), pov.gameId.some),
-      chatOption = chatOpt
+      chatOption = chatOpt,
+      extraTabs = aiCoachTab(pov).toList ::: tilt.map(t => views.tilt.game(t)).toList
     )
+
+  private def aiCoachTab(pov: Pov)(using ctx: Context): Option[(Frag, Frag)] =
+    ctx.me
+      .exists(me => env.aiCoach.api.canAsk(pov.game, me.userId))
+      .option:
+        val t = lila.aiCoach.CoachText(ctx.lang)
+        lila.aiCoach.ui.AiCoachUi
+          .tab(t) -> lila.aiCoach.ui.AiCoachUi.panel(pov.gameId, t)
 
 object embed:
 

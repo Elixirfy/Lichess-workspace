@@ -11,3 +11,8 @@ include "version"
 user.password.bpass.secret = "9qEYN0ThHer1KWLNekA76Q=="
 
 # override additional values from base.conf here
+
+# serve ES modules (e.g. onnxruntime-web for the board editor's "From image") with a JS mime type in dev
+play.http.fileMimeTypes = ${play.http.fileMimeTypes} """
+  mjs=text/javascript
+"""

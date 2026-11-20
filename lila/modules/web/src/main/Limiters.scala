@@ -116,6 +116,8 @@ final class Limiters(using Executor, lila.core.config.RateLimit):
 
   val preview = RateLimit[UserId](30, 3.minutes, "preview.user")
 
+  val aiCoach = RateLimit[UserId](50, 1.day, "ai.coach.user")
+
   val oauthTokenTest = RateLimit[IpAddress](10_000, 10.minutes, "api.token.test")
 
   val planCheckout = RateLimit.composite[lila.core.net.IpAddress](

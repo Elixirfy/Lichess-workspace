@@ -349,6 +349,8 @@ db.kaladin_queue.createIndex(
   { 'response.at': 1, 'response.read': 1 },
   { partialFilterExpression: { 'response.at': { $exists: true } } },
 );
+db.tilt_queue.createIndex({ userId: 1, queuedAt: -1 });
+db.tilt_queue.createIndex({ queuedAt: 1 });
 db.tutor_queue.createIndex({ requestedAt: 1 });
 db.tutor_report.createIndex({ 'config.user': 1, at: -1 });
 db.tutor_report.createIndex({ at: -1 }); // for duration estimation

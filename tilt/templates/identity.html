@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block content %}
+{% if players is not none %}
+<p>Chuyên gia đã đăng nhập: {{ account }}.</p>
+<form method="post" action="/identity" class="panel"><input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Người chơi đã đồng ý <select name="player" required>{% for player in players %}<option value="{{ player }}">{{ player }}</option>{% endfor %}</select></label>
+<button>Xem các ván đã nhập</button></form>
+{% endif %}
+<form method="post" action="/oauth/login" class="panel"><input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Vai trò <select name="mode"><option value="self_report">Người chơi tự báo cáo</option><option value="expert">Chuyên gia</option></select></label>
+<button>Đăng nhập bằng Lichess</button></form>
+<p>Lichess xác minh chủ tài khoản. Token được thu hồi ngay sau khi đọc danh tính.</p>
+{% endblock %}

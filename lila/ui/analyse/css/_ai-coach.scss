@@ -1,0 +1,183 @@
+// AI Coach tab of a finished game (ui/analyse/src/aiCoach)
+// Taller than the other underboard panels (240px): it is a conversation to read.
+.analyse__underboard .ai-coach {
+  flex-flow: column;
+  height: clamp(380px, 68vh, 680px);
+  max-height: none;
+
+  &.active {
+    display: flex;
+  }
+
+  &__log {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1em 1.2em;
+    border-bottom: $border;
+    font-size: 1.1em;
+    line-height: 1.6;
+  }
+
+  &__intro,
+  &__notice {
+    color: $c-font-dim;
+    margin: 0 0 0.8em;
+  }
+
+  &__notice {
+    font-style: italic;
+  }
+
+  // the student's question, as a bubble on the right
+  &__q {
+    width: fit-content;
+    max-width: 85%;
+    margin: 1.2em 0 0.6em auto;
+    padding: 0.45em 0.9em;
+    border-radius: 1em 1em 0.25em;
+    background: rgb(from $c-primary r g b / 0.16);
+    font-weight: 500;
+    white-space: pre-wrap;
+
+    &[data-viewing]::after {
+      content: ' · ' attr(data-viewing);
+      font-weight: normal;
+      color: $c-font-dim;
+    }
+  }
+
+  &__a {
+    margin: 0 0 1em;
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-size: 1em;
+      font-weight: bold;
+      margin: 0.8em 0 0.3em;
+    }
+
+    p,
+    ul,
+    ol {
+      margin: 0.5em 0;
+    }
+
+    ul,
+    ol {
+      padding-inline-start: 1.5em;
+    }
+
+    // lila sets `li { list-style: none }`
+    ul > li {
+      list-style: disc;
+    }
+
+    ol > li {
+      list-style: decimal;
+    }
+
+    li {
+      margin: 0.2em 0;
+    }
+
+    strong {
+      color: $c-font-clear;
+    }
+  }
+
+  &__pending {
+    color: $c-font-dim;
+    font-style: italic;
+  }
+
+  // the answer while it is written, as plain text until the server sends its rendering
+  &__draft {
+    white-space: pre-wrap;
+
+    &::after {
+      content: '▍';
+      color: $c-font-dim;
+      animation: ai-coach-caret 1s steps(2) infinite;
+    }
+  }
+
+  &__error {
+    color: $c-error;
+  }
+
+  &__move {
+    cursor: pointer;
+    font-weight: bold;
+    color: $c-link;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // suggested questions, until the first one is asked
+  &__suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    padding: 0.8em 1.2em 0;
+  }
+
+  &.ai-coach--started .ai-coach__suggestions {
+    display: none;
+  }
+
+  &__chip {
+    font-size: 1em;
+    line-height: 1.3;
+    padding: 0.45em 1em;
+    border: $border;
+    border-radius: 999px;
+    background: $c-bg-zebra;
+    color: $c-font;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: $c-primary;
+      color: $c-primary;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  &__form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6em;
+    padding: 0.8em 1.2em;
+
+    textarea {
+      flex: 1 1 auto;
+      resize: none;
+      field-sizing: content;
+      min-height: 2.6em;
+      max-height: 8em;
+      padding: 0.5em 0.8em;
+      font-size: 1.05em;
+      line-height: 1.5;
+      border-radius: 0.5em;
+    }
+  }
+
+  &__send {
+    flex: 0 0 auto;
+    padding: 0.6em 1.4em;
+  }
+}
+
+@keyframes ai-coach-caret {
+  50% {
+    opacity: 0;
+  }
+}

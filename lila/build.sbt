@@ -93,7 +93,7 @@ lazy val modules = Seq(
   // and then the smaller ones
   pool, lobby, relation, tv, coordinate, feed, history, recap,
   shutup, appeal, irc, explorer, learn, event, coach, dailyGoal,
-  practice, evalCache, irwin, bot, racer, cms, i18n, jsBot,
+  practice, evalCache, irwin, bot, racer, cms, i18n, jsBot, tilt, aiCoach,
   socket, bookmark, studySearch, gameSearch, forumSearch, teamSearch, irc
 )
 
@@ -202,6 +202,16 @@ lazy val coordinate = module("coordinate",
 lazy val feed = module("feed",
   Seq(memo, ui),
   Seq()
+)
+
+lazy val tilt = module("tilt",
+  Seq(db, ui),
+  tests.bundle
+)
+
+lazy val aiCoach = module("aiCoach",
+  Seq(analyse),
+  Seq(anthropic) ++ tests.bundle
 )
 
 lazy val ublog = module("ublog",

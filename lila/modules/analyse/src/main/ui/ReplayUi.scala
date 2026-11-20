@@ -53,7 +53,8 @@ final class ReplayUi(helpers: Helpers)(analyseUi: AnalyseUi):
       graph: OpenGraph,
       gameSide: Option[Frag],
       crosstable: Option[Tag],
-      chatOption: Option[(JsObject, Frag)]
+      chatOption: Option[(JsObject, Frag)],
+      extraTabs: List[(Frag, Frag)] = Nil // (tab, panel)
   )(using ctx: Context) =
 
     import pov.*
@@ -119,6 +120,7 @@ final class ReplayUi(helpers: Helpers)(analyseUi: AnalyseUi):
                         textAndTitle(trans.site.computerAnalysis)
                       )
                     ),
+                    extraTabs.map(_._1),
                     (!game.isPgnImport).option(
                       frag(
                         (game.ply > 1).option(
@@ -196,7 +198,8 @@ final class ReplayUi(helpers: Helpers)(analyseUi: AnalyseUi):
                       ),
                       div(cls := "pgn")(pgn)
                     ),
-                    crosstable.map(div(cls := "ctable")(_))
+                    crosstable.map(div(cls := "ctable")(_)),
+                    extraTabs.map(_._2)
                   )
                 )
               )

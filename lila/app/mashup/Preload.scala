@@ -37,7 +37,8 @@ final class Preload(
     relayHome: lila.relay.RelayHomeApi,
     notifyApi: lila.notify.NotifyApi,
     clasApi: lila.clas.ClasApi,
-    dailyGoalApi: lila.dailyGoal.DailyGoalApi
+    dailyGoalApi: lila.dailyGoal.DailyGoalApi,
+    tiltApi: lila.tilt.TiltApi
 )(using Executor):
 
   import Preload.*
@@ -98,6 +99,8 @@ final class Preload(
     (classes, dailyGoal) <- ctx.myId
       .so(me => clasApi.isStudent(me).so(clasApi.clas.ofStudent(me, 4)))
       .zip(ctx.myId.ifTrue(ctx.noBot).so(me => dailyGoalApi.get(me.userId)))
+    // the break suggestion (modules/tilt), never while a game is in progress
+    tiltBanner <- ctx.myId.ifTrue(ctx.noBot).so(me => tiltApi.banner(me.userId, currentGame.isDefined))
     relaySpotlights = relayHome.spotlight.getForContinent(HTTPRequest.continent(ctx.req))
   yield Homepage(
     data,
@@ -118,6 +121,7 @@ final class Preload(
     ublogPosts,
     classes,
     dailyGoal,
+    tiltBanner,
     withPerfs,
     hasUnreadLichessMessage = lichessMsg
   )
@@ -158,6 +162,7 @@ object Preload:
       ublogPosts: List[UblogPost.PreviewPost],
       classes: List[lila.clas.Clas],
       dailyGoal: Option[lila.dailyGoal.DailyGoal],
+      tiltBanner: Option[lila.tilt.TiltBanner.Reason],
       me: Option[UserWithPerfs],
       hasUnreadLichessMessage: Boolean
   )

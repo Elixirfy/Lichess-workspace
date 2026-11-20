@@ -33,6 +33,7 @@ object Dependencies:
   val probabilisticDataStructures =
     "com.github.lenguyenthanh" % "scala-probabilistic-data-structures" % "0.0.2"
   val kittens = "org.typelevel" %% "kittens" % "3.5.0"
+  val anthropic = "com.anthropic" % "anthropic-java" % "3.7.0"
 
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.20.0" % Test
   val munitCheck = "org.scalameta" %% "munit-scalacheck" % "1.3.1" % Test

@@ -1,0 +1,155 @@
+// Tilt score (modules/tilt): the game page tab, /account/tilt and the home page break suggestion
+.tilt-warning {
+  margin: 0 0 1em;
+  padding: 0.6em 1em;
+  border-inline-start: 4px solid $c-warn;
+  background: $c-bg-zebra;
+}
+
+.tilt-level {
+  &--low {
+    color: $c-good;
+  }
+
+  &--attention {
+    color: $c-brag;
+  }
+
+  &--high {
+    color: $c-warn;
+  }
+}
+
+.analyse__underboard .tilt-game {
+  padding: 1em;
+
+  h3 {
+    margin: 1em 0 0.3em;
+    font-size: 1.1em;
+  }
+
+  ul {
+    margin: 0 0 0.5em;
+    padding-inline-start: 1.5em;
+
+    // the base stylesheet sets list-style: none on li
+    li {
+      list-style: disc;
+    }
+  }
+
+  &__score {
+    font-size: 1.2em;
+
+    > strong:first-child {
+      font-size: 1.5em;
+    }
+  }
+
+  &__flag {
+    color: $c-warn;
+  }
+
+  &__meter {
+    height: 6px;
+    margin: 0.4em 0 1em;
+    border-radius: 3px;
+    background: $c-border;
+    overflow: hidden;
+
+    span {
+      display: block;
+      height: 100%;
+      background: $c-warn;
+    }
+
+    &.tilt-level--low span {
+      background: $c-good;
+    }
+
+    &.tilt-level--attention span {
+      background: $c-brag;
+    }
+  }
+
+  &__pending,
+  &__note {
+    color: $c-font-dim;
+  }
+
+  &__all {
+    display: inline-block;
+    margin-top: 1em;
+  }
+}
+
+.tilt-stats {
+  margin-bottom: 1.5em;
+
+  &__cols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2em;
+  }
+
+  &__block {
+    flex: 1 1 18em;
+
+    ul {
+      padding-inline-start: 1.5em;
+
+      li {
+        list-style: disc;
+      }
+    }
+  }
+
+  &__level {
+    display: grid;
+    grid-template-columns: 8em 1fr 3em;
+    align-items: center;
+    gap: 0.6em;
+    margin-bottom: 0.3em;
+
+    strong {
+      text-align: end;
+    }
+  }
+
+  &__bar {
+    height: 8px;
+    border-radius: 4px;
+    background: $c-border;
+    overflow: hidden;
+
+    span {
+      display: block;
+      height: 100%;
+      background: currentcolor;
+    }
+  }
+}
+
+.tilt-banner {
+  margin-bottom: 1em;
+  padding: 0.8em 1em;
+  border-inline-start: 4px solid $c-warn;
+  border-radius: 3px;
+  background: $c-bg-box;
+
+  &__title {
+    display: block;
+    margin-bottom: 0.3em;
+  }
+
+  p {
+    margin: 0 0 0.6em;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6em;
+    align-items: center;
+  }
+}

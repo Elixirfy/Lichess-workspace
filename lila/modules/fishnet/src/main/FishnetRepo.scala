@@ -75,6 +75,8 @@ final private class FishnetRepo(
       system = Monitor.StatusFor(acquired = systemAcquired, queued = systemQueued, oldest = systemOldest)
     )
 
+  def analysisQueued(gameId: GameId): Fu[Boolean] = analysisColl.exists(bdoc("game.id" -> gameId.value))
+
   def getSimilarAnalysis(work: Work.Analysis): Fu[Option[Work.Analysis]] =
     analysisColl.one[Work.Analysis](bdoc("game.id" -> work.game.id))
 

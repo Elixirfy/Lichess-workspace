@@ -78,6 +78,9 @@ final class Analyser(
               .inject(result)
           }
 
+  /** Whether a request for this game waits in the queue or is being analysed (AI Coach). */
+  def queued(gameId: GameId): Fu[Boolean] = repo.analysisQueued(gameId)
+
   def apply(gameId: GameId, sender: Sender): Fu[Analyser.Result] =
     gameRepo
       .game(gameId)

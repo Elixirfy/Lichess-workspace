@@ -162,6 +162,8 @@ final class LilaComponents(
   lazy val study: Study = wire[Study]
   lazy val teamC: team.Team = wire[team.Team]
   lazy val teamApi: TeamApi = wire[TeamApi]
+  lazy val tilt: Tilt = wire[Tilt]
+  lazy val aiCoach: AiCoach = wire[AiCoach]
   lazy val timeline: Timeline = wire[Timeline]
   lazy val tournament: Tournament = wire[Tournament]
   lazy val tournamentCrud: TournamentCrud = wire[TournamentCrud]

@@ -1,0 +1,7 @@
+Tilt dataset pipeline, section 2.3.
+
+Formula ports are derived from lichess-org/lila and lichess-org/scalachess,
+licensed under GNU Affero General Public License v3 or later. See LICENSE.
+Source paths and formula-specific attribution are in formulas.py and API_SEMANTICS.md.
+The clock compression bound is based on lichess-org/compression (AGPL-3.0-or-later),
+src/main/scala/clock/LowBitTruncator.scala; its code is not vendored.

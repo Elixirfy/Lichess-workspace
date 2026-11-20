@@ -1,0 +1,45 @@
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/fixture1"]
+[White "alice"]
+[Black "bob"]
+[WhiteElo "1200"]
+[BlackElo "1400"]
+[UTCDate "2025.01.01"]
+[UTCTime "10:00:00"]
+[EndDate "2025.01.01"]
+[EndTime "10:01:00"]
+[TimeControl "180+2"]
+[Result "1-0"]
+
+1. e4 { [%clk 0:03:00] [%eval 0.20] } e5 { [%clk 0:03:00] [%eval 0.15] }
+2. Qh5 { [%clk 0:02:58] [%eval -0.40] } Nc6 { [%clk 0:02:59] [%eval 0.20] }
+3. Bc4 { [%clk 0:02:56] [%eval 0.00] } Nf6 { [%clk 0:02:57] [%eval #1] }
+4. Qxf7# { [%clk 0:02:54] [%eval #0] } 1-0
+
+[Event "Rated Rapid game"]
+[Site "https://lichess.org/fixture2"]
+[White "bob"]
+[Black "alice"]
+[WhiteElo "1410"]
+[BlackElo "1210"]
+[UTCDate "2025.01.01"]
+[UTCTime "10:05:00"]
+[TimeControl "600+0"]
+[Result "0-1"]
+
+1. d4 { [%clk 0:10:00] } d5 { [%clk 0:10:00] }
+2. c4 { [%clk 0:09:58] } e6 { [%clk 0:09:57] } 0-1
+
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/fixture3"]
+[White "alice"]
+[Black "carol"]
+[WhiteElo "1205"]
+[BlackElo "1800"]
+[UTCDate "2025.01.01"]
+[UTCTime "11:00:00"]
+[TimeControl "180+2"]
+[Result "1/2-1/2"]
+
+1. e4 { [%clk 0:03:00] [%eval 0.15] } e5 { [%clk 0:03:00] [%eval 0.15] }
+2. Nf3 { [%clk 0:02:59] [%eval 0.15] } Nc6 { [%clk 0:02:58] [%eval 0.15] } 1/2-1/2
