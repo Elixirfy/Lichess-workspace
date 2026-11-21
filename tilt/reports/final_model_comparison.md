@@ -168,7 +168,7 @@ này để người dùng quyết định.
 
 - `processed/models/deployed.json` trỏ tới bản chép của bundle ở `processed/models/phase5/by_player__P3-B.joblib`, kèm sha256
   `cbd7a3f9…`. File này nằm trong `tilt/data` nên không có trong git.
-- `core/deployment.py` từ chối nạp mô hình khi:
+- `service/deployment.py` từ chối nạp mô hình khi:
   - bundle khác hash;
   - danh sách feature không khớp;
   - có feature bị cấm, hoặc feature nằm trong input của LF.

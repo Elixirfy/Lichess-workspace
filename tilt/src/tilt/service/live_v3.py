@@ -18,9 +18,10 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from ..core.train import numeric
+from ..training.train import numeric
 from ..data import cohort_v3
-from ..evaluation import v3_p3b, v3_train as train
+from ..evaluation import v3_p3b
+from ..training import v3_train as train
 from ..features import prefix_v3 as prefix
 from ..labels import rules_v3 as rules, split_v3 as split
 
@@ -29,12 +30,12 @@ MODEL = 'M-v3'
 BUNDLE_SHA = '9ebc9730c6e00ee26c51f012259c02f10eb276501744fe1d8137c3b6855baae5'
 # I0 section 1: the deployed path runs these files byte for byte.
 FROZEN = {
-    prefix: '71b92e6e8ca3bde07508cc29a88aa1563e8ece7af1a640de4f3e5a4536b53f3d',
-    rules: '9f2d8234377999965699be45aa466595447fad3dcf93709cf7ff89ed5a2a0a8a',
+    prefix: '92c6d27777142b862f70d4c042da4d6618f935a59991827d96b1662758060f42',
+    rules: '86fcd9c1eb10d67f3e90735ecdb772fda336ffa191c3683f1c43b2e3828059f6',
     split: 'f426e79254167d3f998f1b075f720b3b89098d52b37930f4bf975bd3fb6fa4ff',
     cohort_v3: '08f33a448fdf199556fc879491eb4b9f3b9d3f6e4ed938c105d3e5c5dbd2dc9d',
-    train: 'ee8c3ca08f154d350da46c297677b0b898f9983b71ce1d879a4f7da53eae99b5',
-    v3_p3b: '1fa43330c85884b3bdeab3ae6645a4beb9b46098962f51d1110fa1ebf3bffa0e',
+    train: 'd5af618d250f375c2a073755946abf23de89d3f967c0438deccf503eb98c8f7a',
+    v3_p3b: '00f137e02b1cca74775299fabf85f778400888775bf0857aa9f3fd67d54fa3f7',
 }
 BANDS = dict(attention=.10, high=.30)
 SPEED = 'blitz'

@@ -20,8 +20,8 @@ import pyarrow.parquet as pq
 
 from ..labels import rules_v3 as rules
 from ..labels import split_v3 as split
-from ..core.formulas import win_percent
-from ..core.score import dynamics
+from ..common.formulas import win_percent
+from ..service.score import dynamics
 
 IDS = split.KEYS
 HISTORY = ('rematch_streak_before', 'losing_streak_before', 'rest_gap_seconds', 'recent_form')

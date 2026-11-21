@@ -4,7 +4,7 @@ import chess
 import chess.pgn
 import pytest
 
-from tilt.core.formulas import (chances, win_percent, move_accuracy, game_accuracy, judgement, division, speed)
+from tilt.common.formulas import (chances, win_percent, move_accuracy, game_accuracy, judgement, division, speed)
 
 
 def test_known_winning_chances_and_clamping():

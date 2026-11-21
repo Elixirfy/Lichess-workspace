@@ -4,7 +4,5 @@ __pycache__/
 *.egg-info/
 .env
 .install.log
-# Private data stays local; only the empty raw/processed/external skeleton is tracked.
-data/**
-!data/*/
-!data/*/.gitkeep
+# Private data stays local; code creates the folders it needs.
+/data/

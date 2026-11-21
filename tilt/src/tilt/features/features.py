@@ -16,8 +16,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from ..data import storage
-from ..core.engine import load_cache
-from ..core.formulas import as_cp, chances, game_accuracy, judgement, move_accuracy, win_percent
+from ..common.engine import load_cache
+from ..common.formulas import as_cp, chances, game_accuracy, judgement, move_accuracy, win_percent
 
 PIECE_VALUES = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9, chess.KING: 0}
 MOVE_BASELINES = {'cpl': 1.0, 'think_seconds': .1, 'accuracy': 1.0, 'risk': .05, 'wc_loss': .01}

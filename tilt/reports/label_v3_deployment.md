@@ -185,3 +185,20 @@ Notes:
   worker data rows of those accounts.
 - **Switch:** write `deployed_v3.json`, restart the worker, keep the P3-B shadow for 14 days, and record the date
   in CLAUDE.md. Nothing is committed unless the user asks.
+
+## Code layout update (2026-11-22)
+
+The package was reorganised by role. Only import lines and path strings changed; scoring all 122 local games
+(60 M-v3, 62 P3-B) before and after gave byte-identical results.
+
+| Before | After |
+|---|---|
+| `core/formulas.py`, `core/engine.py` | `common/` |
+| `core/train.py`, `core/sequence.py`, `evaluation/v3_train.py` | `training/` |
+| `core/score.py`, `core/deployment.py`, `core/live_v3.py`, `workers/lila_worker.py` | `service/` |
+
+New frozen hashes (`FROZEN` in `service/live_v3.py`; the first three also in `evaluation/v3_p3b.py`):
+`features/prefix_v3.py` `92c6d277…`, `labels/rules_v3.py` `86fcd9c1…`, `labels/split_v3.py` `f426e792…`
+(unchanged), `data/cohort_v3.py` `08f33a44…` (unchanged), `training/v3_train.py` `d5af618d…`,
+`evaluation/v3_p3b.py` `00f137e0…`. The hashes above in this document and in the pre-registration describe the
+code as evaluated, before the move.

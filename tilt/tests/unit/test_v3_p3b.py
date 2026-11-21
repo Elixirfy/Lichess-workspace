@@ -128,7 +128,9 @@ def test_current_and_snapshot_append_only_guards(tmp_path, monkeypatch):
 def test_frozen_s3_files_and_real_document_are_unchanged():
     root = Path(__file__).resolve().parents[2]
     document = (root/'reports/label_v3_preregistration.md').read_bytes()
-    assert hashlib.sha256(document).hexdigest() == p.CURRENT_SHA
+    # S5 appended to the document after S4; p.CURRENT_SHA locks the text as it stood at S4.
+    at_s4 = document.split(b'\n## Addendum S5', 1)[0]
+    assert hashlib.sha256(at_s4).hexdigest() == p.CURRENT_SHA
     snapshot = document.split(b'\n## Addendum S4', 1)[0]
     assert hashlib.sha256(snapshot).hexdigest() == split_v3.PREREG_SHA
     for name, expected in p.FROZEN.items():

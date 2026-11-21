@@ -11,6 +11,9 @@ docs/
 │   └── human-model-v1/        Model card và số liệu của mô hình thử nghiệm
 ├── commentary/                Bình luận viên tiếng Việt
 │   └── README.md
+├── ai-coach/                  Huấn luyện viên AI hỏi đáp về ván cờ
+│   ├── README.md
+│   └── images/
 ├── daily-goal/                Mục tiêu hằng ngày và chuỗi ngày
 │   ├── README.md
 │   ├── kien-truc.md
@@ -33,6 +36,17 @@ docs/
 |---|---|
 | [README](commentary/README.md) | Trải nghiệm người dùng, kiến trúc, cách tạo lời bình, tổng hợp giọng, hàng chờ, quyền truy cập, các tệp chính |
 | [Cài đặt dịch vụ](../services/commentary/README.md) | Cài worker và model, cấu hình, chạy, kiểm thử |
+
+## AI Coach
+
+| Tài liệu | Nội dung |
+|---|---|
+| [README](ai-coach/README.md) | Chức năng, bản tóm tắt ván, quy tắc trả lời, giao diện, cấu hình mô hình, giới hạn, các tệp chính |
+
+## Tilt
+
+Tài liệu Tilt nằm cạnh gói Python, ở [`tilt/docs/`](../tilt/docs/README.md): tổng quan, xây dựng mô hình,
+vận hành, kết quả, mã nguồn và ghi chú dữ liệu Lichess.
 
 ## Mục tiêu hằng ngày và chuỗi ngày
 

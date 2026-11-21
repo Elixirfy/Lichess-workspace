@@ -7,7 +7,7 @@ analysis[i] evaluates the position AFTER ply i+1; `eval` is cp, `mate` signed
 moves-to-mate, `best` is the alternative to the move just played (Advice/Info).
 division.middle/end are zero-based indices of BEFORE-move boards (ply boundary).
 createdAt/lastMoveAt are epoch milliseconds. lastMoveAt is NOT necessarily end:
-GameExt.finish doesn't update movedAt. See docs/architecture/API_SEMANTICS.md for end bounds.
+GameExt.finish doesn't update movedAt. See docs/du-lieu-lichess.md for end bounds.
 """
 from datetime import datetime, timezone
 import hashlib
@@ -15,7 +15,7 @@ import time
 
 import chess
 
-from ..core.formulas import division, speed
+from ..common.formulas import division, speed
 
 
 def _stamp(date, clock):

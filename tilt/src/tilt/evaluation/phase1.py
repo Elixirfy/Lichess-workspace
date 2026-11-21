@@ -19,7 +19,7 @@ from sklearn.metrics import (average_precision_score, balanced_accuracy_score, b
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_sample_weight
 
-from ..core.train import choose_threshold, numeric, tree_models
+from ..training.train import choose_threshold, numeric, tree_models
 
 SPLITS = ('by_player', 'by_time')
 SPEED = ['speed_blitz', 'speed_bullet', 'speed_rapid', 'speed_classical', 'speed_correspondence']

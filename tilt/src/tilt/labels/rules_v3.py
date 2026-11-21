@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import cohen_kappa_score, roc_auc_score
 
-from ..core.formulas import win_percent
+from ..common.formulas import win_percent
 from ..features.features import GAME_BASELINES
 
 

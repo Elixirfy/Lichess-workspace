@@ -426,14 +426,14 @@ Mã nguồn chính:
 | Phần | File |
 |---|---|
 | Thu thập, chuẩn hóa | `tilt/src/tilt/data/collect.py`, `normalize.py`, `cohort_v3.py` |
-| Stockfish, công thức | `tilt/src/tilt/core/engine.py`, `formulas.py` |
+| Stockfish, công thức | `tilt/src/tilt/common/engine.py`, `formulas.py` |
 | Đặc trưng | `tilt/src/tilt/features/features.py`, `prefix_v3.py` |
 | Luật gán nhãn, chia dữ liệu | `tilt/src/tilt/labels/rules_v3.py`, `split_v3.py` |
-| Huấn luyện, đánh giá | `tilt/src/tilt/evaluation/v3_train.py`, `v3_holdout.py` |
-| Chấm trực tiếp, worker | `tilt/src/tilt/core/live_v3.py`, `tilt/src/tilt/workers/lila_worker.py` |
+| Huấn luyện, đánh giá | `tilt/src/tilt/training/v3_train.py`, `tilt/src/tilt/evaluation/v3_holdout.py` |
+| Chấm trực tiếp, worker | `tilt/src/tilt/service/live_v3.py`, `lila_worker.py` |
 | lila | `lila/modules/tilt/` (`TiltGame`, `TiltBanner`, `TiltText`, `TiltApi`, `ui/TiltUi`), `lila/app/controllers/Tilt.scala` |
 
-Tài liệu chi tiết trong `tilt/reports/`:
+Tài liệu tiếng Việt theo từng chủ đề ở `tilt/docs/`. Tài liệu chi tiết trong `tilt/reports/`:
 - `label_v3_preregistration.md`: định nghĩa luật và quy tắc đánh giá;
 - `label_v3_deployment.md`: đặc tả triển khai;
 - `final_model_comparison.md`: so sánh các mô hình trước v3, gồm P3-B đang chạy ẩn.

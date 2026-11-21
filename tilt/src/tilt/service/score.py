@@ -15,7 +15,7 @@ from ..features.model_features import prepare, assert_no_lf_inputs, passes_audit
 from ..features.behavior import DYNAMICS, FLAGS, game_dynamics
 from ..labels.weak_labels import WEAK_VERSION
 from . import deployment
-from .train import predict_bundle
+from ..training.train import predict_bundle
 
 
 def dynamics(moves):

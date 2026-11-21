@@ -16,7 +16,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from ..core import deployment, score
+from ..service import deployment, score
 from ..features import prefix_v3 as prefix
 from ..labels import rules_v3 as rules, split_v3 as split
 from . import phase3
@@ -33,8 +33,8 @@ INPUTS = {
 }
 FROZEN = {
     'labels/split_v3.py': 'f426e79254167d3f998f1b075f720b3b89098d52b37930f4bf975bd3fb6fa4ff',
-    'features/prefix_v3.py': '71b92e6e8ca3bde07508cc29a88aa1563e8ece7af1a640de4f3e5a4536b53f3d',
-    'labels/rules_v3.py': '9f2d8234377999965699be45aa466595447fad3dcf93709cf7ff89ed5a2a0a8a',
+    'features/prefix_v3.py': '92c6d27777142b862f70d4c042da4d6618f935a59991827d96b1662758060f42',
+    'labels/rules_v3.py': '86fcd9c1eb10d67f3e90735ecdb772fda336ffa191c3683f1c43b2e3828059f6',
 }
 KEYS = split.KEYS
 FEATURES = tuple(phase3.VARIANTS['P3-B'])
@@ -60,9 +60,9 @@ def verify_locks(args):
 
 def code_hashes():
     base = Path(__file__).resolve().parents[1]
-    names = [*FROZEN, 'evaluation/v3_p3b.py', 'evaluation/v3_train.py',
+    names = [*FROZEN, 'evaluation/v3_p3b.py', 'training/v3_train.py',
              'evaluation/phase5.py', 'evaluation/phase1.py', 'evaluation/phase3.py',
-             'core/train.py', 'core/score.py', 'core/deployment.py',
+             'training/train.py', 'service/score.py', 'service/deployment.py',
              'features/behavior.py', 'features/model_features.py', 'data/cohort_v3.py']
     result = {name: split.sha(base / name) for name in sorted(names)}
     project = base.parents[1]

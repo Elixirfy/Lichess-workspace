@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from tilt.core.engine import analyze, load_cache
+from tilt.common.engine import analyze, load_cache
 
 
 @pytest.mark.skipif(not Path('/usr/games/stockfish').exists(), reason='Local Stockfish binary unavailable')

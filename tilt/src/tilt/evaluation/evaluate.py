@@ -9,7 +9,7 @@ from sklearn.metrics import (average_precision_score, brier_score_loss, f1_score
                              mean_absolute_error, precision_score, recall_score, roc_auc_score)
 
 from ..data import storage
-from ..core.train import aligned, predict_bundle
+from ..training.train import aligned, predict_bundle
 from ..labels.weak_labels import outcome_gate, partition_balance, SPLIT_POLICY, WEAK_VERSION
 from ..features.model_features import passes_audits
 
@@ -191,7 +191,7 @@ def run(data, bootstrap_repetitions=100):
              'Real-data sampling: October 2026 monthly dump, 200-point blitz rating strata from 400 to 3000; bots and ToS-flagged accounts removed. Sampling favours active players (at least 12 blitz games in the first approximately 600,000 monthly games), so results do not represent all Lichess players.',
              'The cohort description applies to the intended real dataset; a scratch smoke run is only an implementation check. Inspect cohort counts before interpreting any results.', '',
              '## Weak label construction', '',
-             'Train-only symmetric Dawid–Skene EM conditional on non-abstain votes. Abstentions contribute zero evidence. Fixed balanced prior = .5; Beta(6,2) accuracy pseudocounts and accuracy clipped to [.500001, .999999] preserve LF polarity. No-vote rows stay unlabelled. Estimated LF accuracies are latent model assumptions, not measured accuracy; zero-vote LF estimates are prior-only. Correlation, outcome selection and nonidentifiability can cause overconfidence. Thresholds and input provenance are in WEAK_LABELS.md.']
+             'Train-only symmetric Dawid–Skene EM conditional on non-abstain votes. Abstentions contribute zero evidence. Fixed balanced prior = .5; Beta(6,2) accuracy pseudocounts and accuracy clipped to [.500001, .999999] preserve LF polarity. No-vote rows stay unlabelled. Estimated LF accuracies are latent model assumptions, not measured accuracy; zero-vote LF estimates are prior-only. Correlation, outcome selection and nonidentifiability can cause overconfidence. Thresholds and input provenance are in labels/weak_labels.py.']
     if any(stats['outcome_gate']['failed'] for stats in weak['splits'].values()):
         lines[4:4] = ['**FAILED: label ≈ outcome — the train-label gate failed. Weak-model utility is unproven.**', '']
     for name, stats in weak['splits'].items():

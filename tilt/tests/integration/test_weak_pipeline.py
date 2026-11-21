@@ -15,10 +15,10 @@ from tilt.labels.labels import pseudonym, private_id
 from tilt.labels.weak_labels import (ABSTAIN, LFS, LabelModel, attach_labels, build,
                               contexts, load_cohort, split_rows, vote, outcome_gate, _split_player)
 from tilt.features.model_features import assert_no_lf_inputs, feature_list, prepare, audit_outcome_proxies, audit_lf_proxies, passes_audits
-from tilt.core.sequence import fit, materialize, predict, prior_indices
-from tilt.core.train import aligned, calibrate, calibrated, choose_threshold, run as train, predict_bundle
+from tilt.training.sequence import fit, materialize, predict, prior_indices
+from tilt.training.train import aligned, calibrate, calibrated, choose_threshold, run as train, predict_bundle
 from tilt.evaluation.evaluate import metrics, bootstrap, reliability, outcome_metrics, beats_baselines, run as evaluate
-from tilt.core.score import band, prefix_snapshot, run as score
+from tilt.service.score import band, prefix_snapshot, run as score
 
 
 @pytest.fixture

@@ -15,7 +15,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_sample_weight
 
-from ..core.train import choose_threshold, numeric, tree_models
+from ..training.train import choose_threshold, numeric, tree_models
 from . import phase1
 
 SPLITS = phase1.SPLITS

@@ -22,7 +22,8 @@ from threadpoolctl import threadpool_limits
 from ..data import cohort_v3
 from ..features import prefix_v3 as prefix
 from ..labels import rules_v3 as rules, split_v3 as split
-from . import v3_p3b as whole, v3_train as train
+from . import v3_p3b as whole
+from ..training import v3_train as train
 
 KEYS = split.KEYS
 PARTS = ('A_prime', 'B_prime')

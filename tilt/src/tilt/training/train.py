@@ -125,7 +125,7 @@ def tree_models(name, seed=42, threads=2, trees=100):
 
 def predict_bundle(bundle, frame, sequence_indices=None):
     if bundle.get('format') == 'phase5':
-        # Phase 5 bundle (core/deployment.py): imputer + kept columns + scaler + XGBoost, no regressor.
+        # Phase 5 bundle (service/deployment.py): imputer + kept columns + scaler + XGBoost, no regressor.
         x = bundle['imputer'].transform(numeric(frame, bundle['features']))[:, bundle['keep']]
         raw = bundle['classifier'].predict_proba(bundle['scaler'].transform(x).astype(np.float32))[:, 1]
         return calibrated(bundle['calibration'], raw), np.full(len(raw), np.nan), raw

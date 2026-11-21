@@ -18,8 +18,8 @@ from pathlib import Path
 import requests
 
 from ..data import collect
-from ..core import live_v3, score
-from ..core.engine import analyze
+from . import live_v3, score
+from ..common.engine import analyze
 from ..data.cohort_v3 import KEY as TRAINED_SETTINGS_KEY
 from ..features.features import compute
 

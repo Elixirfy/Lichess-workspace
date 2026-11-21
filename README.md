@@ -53,10 +53,8 @@ mốc so sánh tốt nhất 0,267 / 0,253.
 phải đo cảm xúc thật. Mô hình chỉ chấm ván blitz và kém tin cậy hơn với ván
 dưới 20 nửa nước.
 
-Tài liệu: [báo cáo tổng kết](tilt/reports/tilt_final_report.md) ·
-[đặc tả triển khai](tilt/reports/label_v3_deployment.md) ·
-[bộ luật nhãn v3](tilt/reports/label_v3_preregistration.md) ·
-[gói Python và pipeline dữ liệu](tilt/README.md)
+Tài liệu: [tilt/docs](tilt/docs/README.md) (tổng quan, xây dựng mô hình,
+vận hành, kết quả, mã nguồn) · báo cáo gốc trong [tilt/reports](tilt/reports/)
 
 ### 2. AI Coach
 
@@ -80,8 +78,8 @@ Câu hỏi tiếng Việt được trả lời bằng tiếng Việt, theo bản
 đặt sẵn trong prompt. Chữ trên giao diện có cả tiếng Việt và tiếng Anh, theo
 ngôn ngữ của trang.
 
-Tài liệu: [script đánh giá các model](lila/bin/ai-coach-eval.mjs) (bộ câu hỏi
-cố định, đối chiếu câu trả lời với phân tích Stockfish, đo độ trễ và chi phí)
+Tài liệu: [docs/ai-coach](docs/ai-coach/README.md) (chức năng, thiết kế,
+cấu hình, giới hạn) · [script đánh giá các model](lila/bin/ai-coach-eval.mjs)
 
 ## Cấu trúc thư mục
 
@@ -96,12 +94,20 @@ Chỉ liệt kê phần thuộc hai module này; phần còn lại giống `main
 │   ├── ui/analyse/src/aiCoach/       Frontend tab AI Coach
 │   ├── ui/lib/css/component/_tilt.scss
 │   └── bin/ai-coach-eval.mjs         Đánh giá và so sánh model cho AI Coach
+├── docs/ai-coach/                    Tài liệu AI Coach
 └── tilt/                             Gói Python của Tilt
-    ├── src/tilt/                     Thu thập ván, feature, bộ luật nhãn, huấn luyện, worker cho lila
+    ├── src/tilt/
+    │   ├── common/                   Công thức Lichess, Stockfish
+    │   ├── data/                     Thu thập, chuẩn hóa, lưu trữ ván
+    │   ├── features/                 Đặc trưng
+    │   ├── labels/                   Bộ luật nhãn v3, nhãn yếu
+    │   ├── training/                 Huấn luyện
+    │   ├── evaluation/               Đánh giá
+    │   └── service/                  Worker và chấm điểm trực tiếp cho lila
     ├── scripts/                      start-lichess.sh (chạy cả hệ thống), fishnet-local.py
-    ├── tests/                        Test unit, integration, regression
-    ├── reports/                      Báo cáo từng giai đoạn nghiên cứu
-    └── docs/                         Tài liệu kỹ thuật và nghiên cứu
+    ├── tests/                        Test unit, integration
+    ├── reports/                      Báo cáo gốc: tổng kết, đặc tả triển khai, bộ luật v3
+    └── docs/                         Tài liệu Tilt (tiếng Việt)
 ```
 
 ## Công nghệ
@@ -124,7 +130,7 @@ Cần mọi thứ để chạy lila như ở [README của main](https://github.
 ```sh
 python3.12 -m venv tilt/.venv
 tilt/.venv/bin/pip install -r tilt/requirements-lock.txt
-tilt/.venv/bin/pip install -e 'tilt[test]'
+tilt/.venv/bin/pip install -e 'tilt[test,lila]'
 ```
 
 Venv này cũng chạy fishnet local cho AI Coach.
@@ -133,7 +139,7 @@ Venv này cũng chạy fishnet local cho AI Coach.
 
 Worker cần mô hình đã huấn luyện trong `tilt/data/processed/models/` và chuỗi
 salt dùng để ẩn danh tên người chơi trong `~/.tilt-salt`. Dữ liệu và mô hình
-không nằm trong repo. Cách thu thập và huấn luyện ở [tilt/README.md](tilt/README.md).
+không nằm trong repo. Cách thu thập và huấn luyện ở [tilt/docs/ma-nguon.md](tilt/docs/ma-nguon.md).
 
 **3. Khóa API cho AI Coach**
 

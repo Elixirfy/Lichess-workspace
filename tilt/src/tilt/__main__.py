@@ -98,7 +98,7 @@ def main(argv=None):
                     args.per_stratum, args.rating_band_width, args.seed,
                     set(args.speeds.split(',')) if args.speeds else None, args.limit, args.since, args.until, args.max_staging_gb)
             case 'analyze':
-                from .core.engine import analyze
+                from .common.engine import analyze
                 result = analyze(args.data, args.engine, args.nodes, args.depth, args.processes, args.hash_mb)
             case 'features':
                 from .features.features import compute
@@ -110,7 +110,7 @@ def main(argv=None):
                 from .labels.weak_labels import build
                 result = build(args.data, args.users_file)
             case 'train':
-                from .core.train import run
+                from .training.train import run
                 if min(args.epochs, args.trees, args.threads) < 1:
                     raise ValueError('Epochs, trees and threads must be positive')
                 result = run(args.data, args.epochs, args.trees, args.threads)
@@ -120,10 +120,10 @@ def main(argv=None):
                     raise ValueError('Use at least two bootstrap repetitions')
                 result = run(args.data, args.bootstrap_repetitions)
             case 'score':
-                from .core.score import run
+                from .service.score import run
                 result = run(args.data, args.player, args.game, args.every_plies)
             case 'lila-worker':
-                from .workers.lila_worker import serve
+                from .service.lila_worker import serve
                 result = serve(args.mongo, args.db, args.lila_data, args.data, args.lila_url, args.engine,
                                args.interval, args.once, data_v3=args.lila_data_v3)
         print(json.dumps(result, ensure_ascii=False, indent=2))

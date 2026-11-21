@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tilt.core import deployment, score
-from tilt.core.train import calibrate, calibrated, predict_bundle
+from tilt.service import deployment, score
+from tilt.training.train import calibrate, calibrated, predict_bundle
 from tilt.evaluation import phase3, phase5
 from tilt.evaluation.evaluate import contributions
 

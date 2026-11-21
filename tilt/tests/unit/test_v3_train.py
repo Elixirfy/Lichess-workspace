@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tilt.evaluation import v3_train as t, v3_p3b as p, phase5
+from tilt.training import v3_train as t
+from tilt.evaluation import v3_p3b as p, phase5
 from tilt.features import prefix_v3
 
 

@@ -15,10 +15,10 @@ import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score, brier_score_loss
 from threadpoolctl import threadpool_limits
 
-from ..core.train import calibrate, calibrated, predict_bundle
+from .train import calibrate, calibrated, predict_bundle
 from ..features import prefix_v3 as prefix
 from ..labels import split_v3 as split
-from . import phase1, phase3, phase5, v3_p3b as whole
+from ..evaluation import phase1, phase3, phase5, v3_p3b as whole
 
 FITTED = ('M-v3', 'M-v3-ns', 'B-skill', 'P3-B/v3', 'P3-B@20/v3')
 ADOPTION = ('P3-B/v3', 'R-pre', 'B-streak', 'B-skill')

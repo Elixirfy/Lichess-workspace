@@ -183,7 +183,7 @@ def test_feature_dictionary_covers_all_emitted_columns(corpus):
     data,add=corpus
     add(1)
     compute(data,min_prior_games=1)
-    dictionary=(Path(__file__).parents[2]/'docs'/'guides'/'FEATURES.md').read_text()
+    dictionary=(Path(__file__).parents[2]/'docs'/'phu-luc-cot-dac-trung.md').read_text()
     for path in (data/'processed' / 'features').glob('*.parquet'):
         for col in pd.read_parquet(path).columns:
             assert f'`{col}`' in dictionary, (path.name,col)

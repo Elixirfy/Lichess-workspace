@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from tilt.workers import lila_worker
+from tilt.service import lila_worker
 
 
 class FakeCursor(list):

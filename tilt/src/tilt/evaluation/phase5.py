@@ -21,7 +21,7 @@ from sklearn.metrics import (average_precision_score, brier_score_loss, f1_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_sample_weight
 
-from ..core.train import calibrate, calibrated, choose_threshold, numeric, tree_models
+from ..training.train import calibrate, calibrated, choose_threshold, numeric, tree_models
 from ..features.behavior import DEVIATIONS
 from ..features.model_features import forbidden
 from . import phase1, phase3
@@ -66,7 +66,7 @@ PHASE0_TEST_SEEN = {'by_player lf_ablated xgboost (~E0)': .509, 'by_time lf_abla
                     'class prior': .140, 'losing_streak': .246, 'result_only': .183}
 RATING_BANDS = (('<1200', -np.inf, 1200), ('1200-1599', 1200, 1600), ('1600-1999', 1600, 2000), ('>=2000', 2000, np.inf))
 IGNORED = {'elapsed_seconds', 'bundle_sha256', 'created_utc', 'paths'}
-CODE = ('evaluation/phase5.py', 'evaluation/phase1.py', 'evaluation/phase3.py', 'core/train.py')
+CODE = ('evaluation/phase5.py', 'evaluation/phase1.py', 'evaluation/phase3.py', 'training/train.py')
 
 
 def sha256_file(path):

@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tilt.core import live_v3 as live
-from tilt.evaluation import v3_train as train
+from tilt.service import live_v3 as live
+from tilt.training import v3_train as train
 from tilt.features import prefix_v3 as prefix
 from test_prefix_v3 import fixture
 from test_v3_holdout import bundle as fake_head

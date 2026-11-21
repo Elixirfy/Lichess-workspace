@@ -1,57 +1,27 @@
-# Behavioural feature dictionary (section 2.3)
+# Phụ lục: từ điển cột đặc trưng
 
-All feature outputs are deterministic, contain no label columns, and retain missingness.
-The separate [weak-label model](../research/WEAK_LABELS.md) consumes a conservative predictor
-allowlist and writes only separate weak-label artifacts. It never changes these
-feature tables or the human label store. LF inputs and their raw-quantity relatives
-are excluded; the original mixed BDS is displayed but not used as a predictor.
-Groups: **1** move quality; **2** time management; **3** style/risk; **4** response to adverse events;
-**5** cross-game/session; **6** personal baseline; **7** context/audit metadata.
-Table `games` has one row per player–game; `moves` one per ply for known players;
-`windows` one trailing N-board-ply window per target move; `events` one player/event anchor;
-`sessions` one player/session. Identifiers and timestamps are metadata, not predictors.
+Bảng dưới đây liệt kê mọi cột mà lệnh `python -m tilt features` ghi ra trong
+`tilt/data/processed/features/*.parquet` (bảng `moves`, `windows`, `events`,
+`games`, `sessions`). Test `tests/integration/test_features.py` kiểm tra mỗi cột
+sinh ra đều có tên trong bảng này, nên thêm cột mới thì phải thêm một dòng ở đây.
 
-`N=12`, minimum prior games `=5`, session inactivity gap `=30 min` by default; all configurable.
-Only same-player games with **end_upper_ms < current game start_ms** enter history.
-Game baselines match speed. Move baselines also match clock_pressure and advantage_state.
-`--max-history-games K` defaults to **200**, must be positive, and selects the K most recent
-eligible same-player/speed games ordered by `(end_upper_ms, game_id)` **before** filtering
-move contexts or missing values. The same cap applies to normal-CPL recovery thresholds
-and dataset session baselines (strictly before session start). No older values fill missing contexts.
-K is stored as `max_history_games` in feature/export manifests and in the data card.
-Move-value pools are built once per game; medians/MADs/counts are prepared once per
-capped history/context and row similarity fractions use sorted-value binary searches.
-Cross-game history counts, losing/rematch streaks and session membership keep their original
-uncapped definitions; a time sweep maintains them without rescanning full move history.
-There is no fallback to population values. History medians/MADs use nonmissing observations;
-move history pools moves, but minimum history counts distinct games rather than move count.
-SD is population SD (one valid value gives 0); means/SD of no observed values are missing.
-Rates are fractions unless explicitly percentages. No future opponent reply is used to assign an offer/risk feature.
+Bảng giữ nguyên bản tiếng Anh vì nó là tài liệu tra cứu cho người sửa code: tên
+cột, nhóm, bảng chứa cột, đơn vị, định nghĩa và nguồn công thức. Giải thích bằng
+tiếng Việt cho các khái niệm chính (thời gian suy nghĩ, công thức, mức thường lệ,
+ngưỡng tối thiểu) ở [Dữ liệu Lichess](du-lieu-lichess.md).
 
-Window/event tables are retrospective and expose `available_after_ply`. A window contains only own moves
-whose board ply is in its interval. An adverse own move is excluded from both surrounding windows.
-An adverse opponent move is anchored at the previous ply, so the first response is in the post-window.
-Game and session aggregates are available only after their entire scope; moment dataset joins never use whole-game aggregates.
-Recovery can need the rest of the game and is marked censored/missing explicitly.
+Nhóm cột: **1** chất lượng nước đi; **2** quản lý thời gian; **3** phong cách,
+độ liều; **4** phản ứng sau sự kiện bất lợi; **5** giữa các ván, buổi chơi;
+**6** mức thường lệ của người chơi; **7** ngữ cảnh, metadata kiểm tra.
 
-Raw schemas are in `src/tilt/data/storage.py`, API semantics in `docs/architecture/API_SEMANTICS.md`, and human label schema in
-`src/tilt/labels/labels.py`. Human targets, survey answers, annotator/source/delay fields are never generated here.
-The build-dataset manifest supplies a numerical/categorical predictor allowlist; use it instead of all numeric columns.
-Internal feature tables retain raw game/session/player identifiers for local display and joins.
-Every dataset table in `out/` exports game ids as HMAC-SHA256(salt, `"game:" + id`) and
-session ids as HMAC-SHA256(salt, `"session:" + id`), preserving game-id case. User and
-annotator identifiers are HMAC pseudonyms. Opponent usernames/ids, `previous_game_id`
-and raw session game lists are omitted. Shared-game purging uses internal membership
-before writing; pseudonymisation does not prevent reidentification from timing/behaviour.
-The label app permits consent/self-reports only for the OAuth-verified account; experts
-also authenticate and can select only consented players. Current consent version is
-`draft-research-v2-oauth`; legacy v1 consents require owner re-consent and do not
-authorise new expert ratings. Existing labels retain their original provenance. PKCE verifier/state stay server-side;
-account access tokens are revoked immediately after identity lookup and never persisted.
-Salt fingerprints use HMAC(salt, `"tilt-salt-fingerprint-v1"`), with transparent legacy migration.
-Dump collectors enforce a staging/disk budget (default 5 GiB); collect-dump requires users or a limit.
+Quy ước chung:
 
-Style, complexity and event thresholds are transparent research heuristics requiring validation, not psychological measurements.
+- Bảng đặc trưng không có cột nhãn; giá trị thiếu được giữ là thiếu.
+- Chỉ ván của cùng người có `end_upper_ms` nhỏ hơn lúc ván đang xét bắt đầu mới
+  vào lịch sử. Không điền giá trị trung bình của người khác.
+- Bảng `windows`, `events` là hồi cứu và có cột `available_after_ply`; cột tổng
+  hợp cả ván hoặc cả buổi chỉ có sau khi ván hoặc buổi kết thúc.
+- Tỉ lệ là phân số (0–1) trừ khi ghi rõ là phần trăm.
 
 | Name | Group | Granularity/table | Unit | Definition | Source |
 |---|---:|---|---|---|---|
