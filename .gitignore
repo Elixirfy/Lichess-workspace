@@ -12,14 +12,19 @@ data/
 services/prediction/.venv/
 
 # Local agent configuration and working notes
-.agents/
-.codex/
-.claude/
-AGENTS.md
-CLAUDE.md
-SKILL.md
+/.agents/
+/.codex/
+/.claude/
+/AGENTS.md
+/CLAUDE.md
+/SKILL.md
 /workflow-lock.json
-/openspec/
+/openspec/config.yaml
+/openspec/changes/branch-documentation/
+/openspec/changes/human-win-probability/
+/openspec/changes/live-win-probability/
+/openspec/changes/shared-probability/
+/openspec/changes/vietnamese-voice-input/
 
 # Generated local run reports
 /reports/acceptance/
