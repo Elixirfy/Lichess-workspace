@@ -152,27 +152,28 @@ produce slightly different scores on another machine. No parameter was fitted us
 
 ## Reproduce
 
-From the workspace root with `uv` installed:
+With `uv` installed, from `services/prediction`:
 
-```powershell
-.\scripts\model.ps1 collect
-.\scripts\model.ps1 train
+```sh
+uv run --group ml --frozen python -m training.collect --month 2026-08 --games 8000 --max-mib 128 --output ../../data/human/2026-08-balanced.jsonl
+uv run --group ml --frozen python -m training.collect --month 2026-09 --games 2000 --max-mib 64 --output ../../data/human/2026-09-balanced.jsonl
+uv run --group ml --frozen python -m training.collect --month 2026-10 --games 2000 --max-mib 64 --output ../../data/human/2026-10-balanced.jsonl
+uv run --group ml --frozen python -m training.train \
+  --train ../../data/human/2026-08-balanced.jsonl \
+  --calibration ../../data/human/2026-09-balanced.jsonl \
+  --test ../../data/human/2026-10-balanced.jsonl \
+  --model ../../artifacts/human-reproduction/human-v1.json \
+  --report ../../artifacts/human-reproduction
 ```
 
-`collect` skips existing data, refuses partial data without a manifest, and respects byte/game
-limits. `train` checks dataset hashes and temporal/game separation. Its output goes to
+`collect` respects byte/game limits. `train` checks dataset hashes and temporal/game separation. Its output goes to
 `artifacts/human-reproduction/`, preserving the shipped artifact. The pinned environment is
 `services/prediction/uv.lock`, group `ml`. Recollection depends on the upstream archive
 remaining unchanged; compare manifests to the committed provenance.
 
-The shipped file is `services/prediction/models/human-v1.json`. Rebuild the prediction image
-after deliberately replacing it. The engine-transfer diagnostic is reproducible with:
-
-```powershell
-docker compose -f infra/compose.yml run --rm --no-deps `
-  -v "${PWD}/scripts:/checks:ro" -v "${PWD}/data/human:/data:ro" `
-  prediction python /checks/probe_engine_transfer.py --data /data/2026-10-balanced.jsonl
-```
+The shipped file is `services/prediction/models/human-v1.json`. Restart the prediction service
+after deliberately replacing it. The engine-transfer diagnostic ran inside the former Docker image, which was removed
+on 22/11/2026; its result is kept in [engine-transfer.json](engine-transfer.json).
 
 Code, tests and this report were prepared with Codex assistance. No upstream contribution
 or public deployment was made.
@@ -182,5 +183,5 @@ or public deployment was made.
 The later local acceptance audit retains the same model bytes and evaluation data. It fixes
 a socket reconnect race and a UCI cancellation race, then selects two engine workers under
 the existing 2 CPU / 512 MiB container limit. Each search still uses one thread, 64 MiB hash
-and 250 ms. See the [Vietnamese acceptance report](../acceptance/bao-cao-nghiem-thu.md) for
+and 250 ms. See the Vietnamese acceptance report for
 fresh suites, browser endings/reconnect checks, bounded concurrency measurements and evidence.

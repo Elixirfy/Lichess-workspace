@@ -215,5 +215,4 @@ Mạnh Dũng, hai ID không hợp lệ bị server từ chối và câu chào th
 
 Nano vẫn là model thử nghiệm. Tốc độ nói, thời gian tổng hợp và cảm nhận rõ/đều
 là ba tiêu chí khác nhau; kết quả vài câu thử không thay thế benchmark hay đánh
-giá nghe. Sửa đổi upstream được lưu bằng patch trong `patches/`; revision nền
-ở `upstream-lock.json`, bằng chứng kiểm tra ở task list của feature.
+giá nghe. Sửa đổi upstream được lưu bằng patch trong `patches/`.
