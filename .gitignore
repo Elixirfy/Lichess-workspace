@@ -32,3 +32,22 @@ data/
 .env
 *.log
 services/prediction/.venv/
+
+# Local agent configuration and working notes
+.agents/
+.codex/
+.claude/
+AGENTS.md
+CLAUDE.md
+SKILL.md
+/workflow-lock.json
+/openspec/
+
+# Generated local run reports
+/reports/acceptance/
+/reports/voice-v1/
+/docs/branches/validation.json
+
+# Local editor state
+/.metals/
+/.vscode/

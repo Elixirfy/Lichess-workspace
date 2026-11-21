@@ -33,8 +33,7 @@ WebMCP trong thao tác tách ownership này.
 
 Các mốc cũ có 360 test frontend trên branch kết hợp và browser review 4 ván/22
 snapshot. Đây là bằng chứng lịch sử, không gán nguyên số đó cho source main mới.
-[Báo cáo tách phần chung](../../reports/acceptance/shared-probability/README.md)
-ghi các kiểm tra vừa chạy và lỗi nền nếu còn. Không coi các snapshot lặp của
+Khi kiểm tra source hiện tại, chạy lại các lệnh trong README. Không coi các snapshot lặp của
 flip/reload là mẫu đánh giá model độc lập.
 
 Human model còn thiên lệch prefix sample, ít hòa, tập tháng 10 từng được xem
@@ -45,9 +44,8 @@ Không đo hiệu quả học cờ/nghe bình luận trong lần tách Git này.
 ## Cách chạy và tài liệu
 
 [README gốc](../../README.md), [chuẩn bị model browser](../../scripts/prepare-analysis-engine.mjs),
-[spec](../../openspec/changes/live-win-probability/specs/win-probability/spec.md),
 [patch](../../patches/lila-win-probability.patch),
-[review](../../reports/acceptance/replay-advantage/README.md),
+[mã thanh dọc review](../../lila/ui/analyse/src/advantage.ts),
 [bình luận đang có](../binh-luan-vien-tieng-viet.md).
 
 Voice input có sẵn của Lichess vẫn còn; phần mở rộng tiếng Việt Vosk/PhoWhisper,
