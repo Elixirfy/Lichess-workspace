@@ -1,38 +1,46 @@
 # Lichess — chơi cờ bằng giọng nói tiếng Việt
 
-Branch `codex/vietnamese-voice-input` chỉ bổ sung **voice tiếng Việt** trên nền
-[commit chung `2fe2155`](https://github.com/trantrien1/Lichess-workspace/commit/2fe21556654885236fe3851ac0e420804b225865).
-Tỷ lệ live và thanh ưu thế xem lại thuộc `main`, được kế thừa nguyên vẹn.
+Nhánh `codex/vietnamese-voice-input` bổ sung cách đi quân bằng lời nói tiếng Việt
+cho bản Lichess tự host. Người chơi bật mic, đọc nước đi và hệ thống thực hiện
+nếu câu lệnh xác định được một nước hợp lệ.
+
+Phần hiển thị ưu thế Trắng/Đen được quản lý trên [nhánh main](https://github.com/trantrien1/Lichess-workspace/tree/main).
+
 Code bình luận Nano/ba BLV của nhóm cũng được giữ nguyên từ main.
 
-Lịch sử kết hợp cũ được giữ tại
-[nhánh lưu trữ](https://github.com/trantrien1/Lichess-workspace/tree/codex/archive-voice-and-probability-e4d8477).
-Branch này được dựng lại từ main để phần chênh lệch chỉ có voice, cấu hình ASR,
-recorder, fixture và bằng chứng của tính năng đó.
+## Cách hoạt động
 
-## Tính năng
+Vosk nhận dạng tiếng nói ngay trên trình duyệt, với bộ câu lệnh được tạo từ
+các nước có thể đi ở thế cờ hiện tại. Khi Vosk chưa xử lý được câu nói, âm thanh
+được chuyển tới PhoWhisper chạy trên máy local để nhận dạng tiếp.
 
-Mic trên web → Vosk với grammar theo thế cờ → PhoWhisper local khi cần → parser
-tiếng Việt → đối chiếu nước hợp lệ → đi quân. **Chưa dùng LLM**. Chế độ đi ngay
-không yêu cầu xác nhận khi câu lệnh xác định duy nhất một nước; câu sai/không hợp
-lệ có phản hồi. Không tự chọn nước khi còn mơ hồ. Âm thanh cũ bị loại sau đổi
-lượt, mất kết nối hoặc kết thúc ván.
+Kết quả nhận dạng được phân tích thành tên quân, ô xuất phát, ô đích và các
+thông tin như ăn quân hoặc phong cấp. Hệ thống đối chiếu lại với nước hợp lệ
+trước khi gửi lên server. Nếu chỉ còn một lựa chọn, quân đi ngay; câu chưa rõ
+hoặc không hợp lệ sẽ có thông báo để người chơi đọc lại hoặc chọn nước.
 
-Hỗ trợ tên quân, ô đích, từ–đến, ăn quân, nhập thành, phong cấp; nhiều cách đọc
-cột B/D và dạng “cột hai hàng hai”. Có trang thu nguyên câu ngay trên web và
-harness kiểm tra từ ASR qua parser đến nước thực nhận ở server và phản hồi bot.
-Các cách đọc còn phụ thuộc giọng, tiếng ồn, ngắt câu và ngữ cảnh nước hợp lệ.
+Phần nhận dạng hiện dùng Vosk, PhoWhisper và bộ phân tích lệnh cờ, chưa tích hợp LLM.
 
-| Upstream / mốc trước | Phần voice bổ sung | Lợi ích |
-|---|---|---|
-| Voice chưa có grammar cờ tiếng Việt | Từ vựng và nhiều cấu trúc câu tiếng Việt | Dùng lời nói quen thuộc |
-| Chỉ một kết quả ASR | Vosk + PhoWhisper/VAD local và ràng buộc thế cờ | Có đường xử lý câu khó mà không cần LLM |
-| Xác nhận mỗi nước | Đi ngay với nước hợp lệ, duy nhất | Giảm thao tác khi chơi |
-| Khó tái hiện lỗi người đọc | Recorder và báo cáo audio/server/bot | Giữ bằng chứng và đo lại |
+## Một số cách nói
 
-## Chạy Docker local
+```text
+Tốt trắng e hai e bốn
+Mã nhảy lên ép ba
+Tốt bê hai tới bê bốn
+Tốt từ cột đê hàng hai đến cột đê hàng bốn
+Nhập thành ngắn
+Tốt e bảy tới e tám phong cấp thành hậu
+```
 
-Dùng Docker Desktop Linux containers, Git, PowerShell, Node và `uv`.
+Nhập thành và phong cấp cần thế cờ cho phép thực hiện nước đó. Với cột B/D,
+có thể đọc “bê/đê”, “bờ/dờ”, “bi/đi” hoặc dùng số cột, chẳng hạn
+“cột hai hàng hai”. Nếu mic nghe nhầm âm ngắn, đọc rõ “cột bê, hàng hai”
+hoặc “cột đê, hàng hai” sẽ dễ phân biệt hơn.
+
+## Chạy trên máy local
+
+Cần Docker Desktop ở chế độ Linux containers, Git, PowerShell, Node.js và `uv`.
+Chạy tại thư mục gốc:
 
 ```powershell
 .\scripts\dev.ps1 bootstrap
@@ -40,29 +48,31 @@ Dùng Docker Desktop Linux containers, Git, PowerShell, Node và `uv`.
 .\scripts\voice.ps1 live
 ```
 
-`live` chuẩn bị/kiểm checksum model local, bật `voice_asr`, build UI và reload
-proxy. Trên bàn chơi bật microphone, chọn tiếng Việt, cấp quyền mic rồi nói.
-Web: [http://localhost:8080](http://localhost:8080).
-Recorder: [http://localhost:8080/voice-asr/record](http://localhost:8080/voice-asr/record).
-Không phát hành audio người dùng trong `artifacts/voice-recordings/`; fixture WAV
-đã công bố trong `scripts/fixtures/voice/` có nguồn/giấy phép riêng.
+Lệnh `live` chuẩn bị model, bật dịch vụ `voice_asr`, build giao diện và cập nhật
+proxy. Sau đó mở [http://localhost:8080](http://localhost:8080), vào một ván đấu,
+bật mic, chọn tiếng Việt và cấp quyền microphone cho trình duyệt.
 
-Source voice được cập nhật cả trong `lila/` của nhóm và
-`patches/lila-vietnamese-voice.patch` cho checkout Docker đã khóa revision.
-Workflow monorepo cần cấu hình proxy `/voice-asr/*` và service/model tương ứng;
-chỉ build UI không tự khởi động PhoWhisper.
+Trang [thu âm mẫu](http://localhost:8080/voice-asr/record) dùng để ghi lại nguyên
+câu khi cần kiểm tra lỗi nhận dạng. Bản thu riêng được lưu trong
+`artifacts/voice-recordings/` trên máy local. Các file WAV có trong repo là
+[dữ liệu kiểm thử CC0](scripts/fixtures/voice/README.md).
 
-## Kiểm thử và báo cáo
+## Kiểm tra và mã nguồn
 
 ```powershell
 .\scripts\voice.ps1 check
 .\scripts\voice.ps1 browser
 ```
 
-[Hồ sơ tính năng](docs/branch-report/README.md) ghi kiến trúc, ưu điểm và
-giới hạn. Log, ảnh và kết quả từng lần chạy được lưu local; chạy lại
-các lệnh kiểm thử để đánh giá source hiện tại.
+[Tài liệu tính năng](docs/branch-report/README.md) giải thích thiết kế,
+các cách nói được hỗ trợ và hạn chế của việc nhận dạng.
 
-Phần dùng chung: [danh mục branch](docs/branches/README.md),
-[model card xác suất](reports/human-v1/model-card.md). Không sửa công thức,
-model hay bản vá tỷ lệ trong delta của nhánh voice.
+- [Phía trình duyệt](lila/ui/voice/src/) xử lý mic, bộ câu lệnh và việc chọn nước.
+- [Dịch vụ ASR](services/voice/) chạy PhoWhisper và trang thu âm.
+- [Bản vá voice](patches/lila-vietnamese-voice.patch) dùng cho bản dựng Docker.
+
+Nếu build trực tiếp từ `lila/`, cần cấu hình thêm dịch vụ ASR và proxy
+`/voice-asr/*`.
+
+Phần dùng chung có tài liệu phân nhánh và hồ sơ mô hình dự đoán.
+[Danh mục branch](docs/branches/README.md) · [Model card xác suất](reports/human-v1/model-card.md)
