@@ -16,41 +16,16 @@ Giữ nguyên bình luận tiếng Việt Nano/ba BLV và phần việc đã có
 [cài dịch vụ](services/commentary/README.md). Các nhánh coach/WebMCP tiếp tục
 độc lập; lần tách này không tự nhập chúng vào main.
 
+Phần **mục tiêu hằng ngày và chuỗi ngày luyện tập** cho người chơi đặt số bài
+tập và số ván mỗi ngày tại `/account/daily-goal`. Đủ mục tiêu thì chuỗi ngày
+tăng, bỏ lỡ một ngày thì chuỗi về 0; thẻ tiến độ nằm trên trang chủ.
+[Tổng quan và kiểm thử](docs/daily-goal/README.md),
+[kiến trúc](docs/daily-goal/kien-truc.md), [giao diện](docs/daily-goal/giao-dien.md),
+[luồng xử lý](docs/daily-goal/luong-xu-ly.md).
+
 [README phục vụ viết báo cáo](docs/branch-report/README.md) có kiến trúc,
 ưu điểm so với Lichess sẵn có, kết quả và giới hạn.
 [Danh mục branch](docs/branches/README.md).
-
-## Mục tiêu hằng ngày và chuỗi ngày luyện tập
-
-Người chơi đã đăng nhập đặt mục tiêu tại `/account/daily-goal`: mỗi ngày 0, 3,
-5, 10, 15, 20 hoặc 30 bài tập và 0, 1, 2, 3 hoặc 5 ván, ít nhất một chỉ tiêu
-lớn hơn 0 (mặc định 10 bài tập, 1 ván). Đủ cả hai chỉ tiêu thì ngày được tính
-là đạt và chuỗi tăng một; bỏ lỡ một ngày thì chuỗi về 0. Chuỗi được giữ đến
-hết ngày kế tiếp ngày đạt gần nhất. Ngày kết thúc lúc nửa đêm theo múi giờ
-người chơi chọn; lần đầu, trình duyệt điền sẵn múi giờ của máy.
-
-- Bài tập được tính ở lần hoàn thành đầu tiên, đúng hay sai đều tính. Ván được
-  tính khi kết thúc, trừ ván bị hủy.
-- Trang chủ có thẻ hiện chuỗi và hai thanh tiến độ; chưa đặt mục tiêu thì thẻ
-  là lời mời đặt mục tiêu. Trang tài khoản hiện chuỗi hiện tại, chuỗi dài nhất,
-  bảy ngày gần nhất và nút tắt mục tiêu (xóa cả chuỗi).
-
-Module `lila/modules/dailyGoal` nhận sự kiện `Puzzle.UserResult`, `FinishGame`
-và `UserDelete` qua Bus của lila, nên không sửa luồng xử lý bài tập hay ván.
-Dữ liệu nằm ở collection `daily_goal`, mỗi người chơi một tài liệu, giữ tối đa
-31 ngày đạt gần nhất. Các cập nhật của cùng một người chơi chạy lần lượt để
-không mất lượt đếm khi bài tập và ván kết thúc cùng lúc. Thẻ trang chủ được đọc
-song song với truy vấn sẵn có trong `lila/app/mashup/Preload.scala`.
-
-Kiểm thử trong `lila/` (8 ca, múi giờ `Asia/Ho_Chi_Minh`):
-
-```sh
-sbt 'dailyGoal/Test/testOnly lila.dailyGoal.*'
-```
-
-Giới hạn: chữ giao diện của module là tiếng Anh, chưa qua hệ thống dịch; thẻ
-trang chủ chỉ cập nhật khi tải lại trang; ván không xếp hạng và ván với máy
-cũng được tính.
 
 ## Hai cách chạy source
 
