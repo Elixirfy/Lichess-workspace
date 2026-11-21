@@ -6,7 +6,7 @@ kiểm tra thế cờ, chọn câu tiếng Việt viết sẵn và tổng hợp 
 bình luận, chọn trực tiếp tên BLV và nghe câu chào mang tên người đó.
 
 Tài liệu thiết kế, luồng dữ liệu, hàng chờ, quyền truy cập và các giới hạn:
-[Chức năng bình luận viên tiếng Việt](../../docs/binh-luan-vien-tieng-viet.md).
+[Chức năng bình luận viên tiếng Việt](../../docs/commentary/README.md).
 
 ## Cài worker và model
 
@@ -61,7 +61,7 @@ kiểm tra bộ chọn trên trình duyệt thật.
 
 Worker bind `127.0.0.1:9666`, yêu cầu bearer token. Nếu chạy `uvicorn` trực
 tiếp, phải export cấu hình trước; launcher mới tự đọc `.env`. Không commit
-`.env`, không đưa token xuống browser. Chi tiết stack ở [LOCAL.md](../../LOCAL.md).
+`.env`, không đưa token xuống browser. Cách dựng cả hệ thống ở [README gốc](../../README.md).
 
 ## Kiểm thử
 
