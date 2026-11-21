@@ -17,7 +17,7 @@ docs/
 │   ├── giao-dien.md
 │   ├── luong-xu-ly.md
 │   └── images/
-└── branches.md                Danh sách nhánh và tag lưu trữ
+└── branches.md                Danh sách nhánh
 ```
 
 ## Ưu thế Trắng/Đen (Win%)
@@ -45,4 +45,4 @@ docs/
 
 ## Khác
 
-- [Danh sách nhánh và tag lưu trữ](branches.md)
+- [Danh sách nhánh](branches.md)

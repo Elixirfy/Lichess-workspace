@@ -170,8 +170,7 @@ thành; mỗi nhánh có README và tài liệu riêng.
 | [feature/webmcp](https://github.com/trantrien1/Lichess-workspace/tree/feature/webmcp) | Hai công cụ WebMCP trong trang Lichess cho trợ lý AI: tìm ván theo bộ lọc nâng cao và trả các bước ngoặt của ván từ đánh giá engine có sẵn, đều dạng JSON | [Elixirfy](https://github.com/Elixirfy) |
 | [codex/vietnamese-voice-input](https://github.com/trantrien1/Lichess-workspace/tree/codex/vietnamese-voice-input) | Chơi cờ bằng giọng nói tiếng Việt: Vosk nhận dạng ngay trên trình duyệt, PhoWhisper chạy local khi Vosk chưa nhận ra; lệnh được đối chiếu với các nước hợp lệ trước khi đi quân | [ceokon1](https://github.com/ceokon1) |
 
-Danh sách đầy đủ các nhánh và các mốc đã lưu thành tag:
-[docs/branches.md](docs/branches.md).
+Danh sách đầy đủ các nhánh: [docs/branches.md](docs/branches.md).
 
 ## Giấy phép
 
