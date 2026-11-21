@@ -80,7 +80,7 @@ Khi xem lại, phiên bản hoặc độ sâu engine khác với lúc chơi có 
 Giao diện mobile một cột tiếp tục ẩn thanh dọc theo bố cục của Lichess.
 
 Thử nghiệm dự đoán theo rating và đồng hồ được mô tả riêng trong
-[model card](../../reports/human-v1/model-card.md); kết quả đó không được dùng
+[model card](human-model-v1/model-card.md); kết quả đó không được dùng
 để tính Win% đang hiển thị.
 
 ## Các file chính
@@ -89,7 +89,6 @@ Thử nghiệm dự đoán theo rating và đồng hồ được mô tả riêng
 - [Thanh ngang khi chơi](../../lila/ui/round/src/view/winProbability.ts).
 - [Thanh dọc khi xem lại](../../lila/ui/lib/src/ceval/view/main.ts) và [xử lý kết quả cuối ván](../../lila/ui/analyse/src/advantage.ts).
 - [Dịch vụ prediction](../../services/prediction/).
-- [Bản vá Docker](../../patches/lila-win-probability.patch) và [phiên bản nguồn](../../upstream-lock.json).
 
 Xem [README gốc](../../README.md) để cài đặt, chạy và kiểm thử.
 
