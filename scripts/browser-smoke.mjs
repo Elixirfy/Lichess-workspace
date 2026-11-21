@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { expectedWhiteWinPercent } from './win-percent-reference.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pnpm = resolve(root, 'infra/lila-docker/repos/lila/node_modules/.pnpm');
@@ -14,12 +15,13 @@ const { chromium } = await import(pathToFileURL(resolve(pnpm, core, 'node_module
 const base = process.env.BASE_URL || 'http://localhost:8080';
 const humanPlayers = process.env.HUMAN_PLAYERS === '1';
 const prefix = humanPlayers ? 'human' : 'wdl';
-const artifacts = resolve(root, 'artifacts');
+const artifacts = resolve(root, process.env.SMOKE_ARTIFACTS_DIR ?? 'artifacts');
 await mkdir(artifacts, { recursive: true });
 const browser = await chromium.launch({ headless: true });
+const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36`;
 const contexts = [];
 const errors = [];
-const report = { base, humanPlayers, assertions: [], latency_ms: [] };
+const report = { base, humanPlayers, metric: 'lichess-win-percent', assertions: [], latency_ms: [] };
 let workerStopped = false;
 const check = (condition, message) => {
   assert.ok(condition, message);
@@ -27,12 +29,22 @@ const check = (condition, message) => {
 };
 
 async function page() {
-  const context = await browser.newContext({ baseURL: base, locale: 'en-US', viewport: { width: 1365, height: 900 } });
+  const context = await browser.newContext({ baseURL: base, userAgent, locale: 'en-US', viewport: { width: 1365, height: 900 } });
   contexts.push(context);
   const tab = await context.newPage();
   tab.on('pageerror', error => errors.push(error.message));
   tab.setDefaultTimeout(15000);
   return tab;
+}
+
+async function waitForAdvantage(tab, prediction) {
+  const white = expectedWhiteWinPercent(prediction.evaluation_cp, prediction.mate);
+  await tab.waitForFunction(white => {
+    const panel = document.querySelector('.win-probability');
+    const values = [...(panel?.querySelectorAll('.win-probability__values span') ?? [])].map(n => n.textContent);
+    return panel?.getAttribute('data-source') === 'engine' && panel?.getAttribute('data-metric') === 'lichess-win-percent' &&
+      values.length === 2 && values[0] === `Trắng ${white}%` && values[1] === `Đen ${100 - white}%`;
+  }, white);
 }
 
 async function register(tab, color) {
@@ -101,8 +113,14 @@ try {
     await panel.locator('.win-probability__values').waitFor();
     check(await panel.locator('.win-probability__bar').count() === 1, 'Exactly one probability bar is shown');
     check(await panel.locator('.win-probability__heading').count() === 0, 'Engine name/depth heading is removed');
-    check(await white.locator('.win-probability').count() === 0, 'Active player does not see WDL panel');
-    check((await white.request.get(`/game/${report.gameId}/win-probability`)).status() === 403, 'Active player cannot call WDL endpoint');
+    for (const [color, tab] of [['white', white], ['black', black]]) {
+      const response = await tab.request.get(`/game/${report.gameId}/win-probability`);
+      check(response.status() === 200, `${color}: active human player can call the prediction endpoint (HTTP ${response.status()})`);
+      await tab.locator('.win-probability__values').waitFor();
+      check(await tab.locator('.win-probability__bar > span').count() === 2 &&
+        await tab.locator('.win-probability__draw').count() === 0,
+        `${color}: two advantage percentages appear on the actual player board`);
+    }
 
     async function clickMove(tab, from, to, color) {
       const board = await tab.locator('cg-board').boundingBox();
@@ -125,29 +143,39 @@ try {
         const body = await rsp.json();
         return body.ply === ply && body.status === 'ready';
       });
+      const participantUpdates = [white, black].map(player => player.waitForResponse(async rsp => {
+        if (!rsp.url().endsWith('/win-probability') || rsp.status() !== 200) return false;
+        const body = await rsp.json();
+        return body.ply === ply && body.status === 'ready';
+      }));
       await clickMove(tab, from, to, color);
       const prediction = await (await updated).json();
-      const source = prediction.human?.status === 'ready' ? 'human' : 'engine';
-      const selected = source === 'human' ? prediction.human.probabilities : prediction.probabilities;
-      await spectator.waitForFunction(({ source, selected }) => {
-        const panel = document.querySelector('.win-probability');
-        const values = [...(panel?.querySelector('.win-probability__values')?.textContent ?? '').matchAll(/(\d+\.\d)%/g)]
-          .map(match => Number(match[1]));
-        return panel?.getAttribute('data-source') === source && values.length === 3 &&
-          values.every((value, index) => Math.abs(value - selected[index] * 100) <= 0.100001);
-      }, { source, selected: [selected.white, selected.draw, selected.black] });
+      for (const [i, player] of [white, black].entries()) {
+        const ownPrediction = await (await participantUpdates[i]).json();
+        await waitForAdvantage(player, ownPrediction);
+        check(true, `Ply ${ply}: ${i ? 'black' : 'white'} player displays Win% from its engine score`);
+        (report.playerSamples ??= []).push({ color: i ? 'black' : 'white', ply,
+          revision: ownPrediction.revision, source: 'engine', rawWdl: ownPrediction.probabilities,
+          cp: ownPrediction.evaluation_cp, mate: ownPrediction.mate,
+          displayed: await player.locator('.win-probability__values').innerText() });
+      }
+      await waitForAdvantage(spectator, prediction);
       report.latency_ms.push(Math.round(performance.now() - start));
       const labels = await panel.locator('.win-probability__values').innerText();
-      const values = [...labels.matchAll(/(\d+\.\d)%/g)].map(m => Number(m[1]));
-      check(values.length === 3 && Math.abs(values.reduce((a, b) => a + b, 0) - 100) < 0.01, `Ply ${ply}: displayed WDL sums to 100%`);
-      check((await panel.innerText()).match(/\d+\.\d%/g)?.length === 3,
-        `Ply ${ply}: exactly one set of percentages matches the ${source} estimate`);
+      const values = [...labels.matchAll(/ (\d+)%/g)].map(m => Number(m[1]));
+      check(values.length === 2 && Math.abs(values.reduce((a, b) => a + b, 0) - 100) < 0.01,
+        `Ply ${ply}: White and Black Win% add to 100%`);
+      check((await panel.innerText()).match(/ \d+%/g)?.length === 2,
+        `Ply ${ply}: exactly two advantage percentages match the engine score`);
+      check(await panel.locator('.win-probability__draw').count() === 0 &&
+        await panel.locator('.win-probability__source, .win-probability__explanation').count() === 0 &&
+        (await panel.getAttribute('title')).includes('Win% của Lichess'),
+        `Ply ${ply}: only the two percentages are visible and their meaning is available in a tooltip`);
       if (humanPlayers && ply >= 4) {
         check(prediction.human?.status === 'ready', `Ply ${ply}: server ratings/clocks produce a human prediction`);
         report.model_id = prediction.human.model_id;
       } else if (!humanPlayers) {
         check(prediction.human?.reason === 'missing_context', `Ply ${ply}: anonymous ratings are not invented`);
-        check(await panel.getAttribute('data-source') === 'engine', `Ply ${ply}: engine fallback is identified without ratings`);
       }
     }
 
@@ -161,7 +189,7 @@ try {
     await panel.screenshot({ path: resolve(artifacts, `${prefix}-panel.png`) });
     const beforeFlip = await panel.locator('.win-probability__values').innerText();
     await spectator.keyboard.press('f');
-    check(await panel.locator('.win-probability__values').innerText() === beforeFlip, 'Board flip preserves White/draw/Black labels');
+    check(await panel.locator('.win-probability__values').innerText() === beforeFlip, 'Board flip preserves White/Black Win%');
     await spectator.keyboard.press('ArrowLeft');
     await spectator.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'replay');
     check(await panel.locator('.win-probability__values').count() === 0, 'Historical replay hides live-position percentages');
@@ -171,6 +199,9 @@ try {
     await spectator.reload();
     await panel.locator('.win-probability__values').waitFor();
     check(true, 'Spectator reload restores current WDL');
+    await white.reload();
+    await white.locator('.win-probability__values').waitFor();
+    check(true, 'Human player reload restores the same-board prediction panel');
 
     let reconnectNavigations = 0;
     const onReconnectNavigation = frame => {
@@ -184,7 +215,7 @@ try {
     check(await panel.getAttribute('data-source') === null, 'Network disconnect clears the selected prediction source');
     await spectator.context().setOffline(false);
     await panel.locator('.win-probability__values').waitFor({ timeout: 30000 });
-    if (humanPlayers) await spectator.locator('.win-probability[data-source="human"]').waitFor();
+    await spectator.locator('.win-probability[data-metric="lichess-win-percent"]').waitFor();
     spectator.off('framenavigated', onReconnectNavigation);
     check(reconnectNavigations === 0,
       'Network reconnect restores the authoritative current position without a page reload');
@@ -227,8 +258,13 @@ try {
     const confirm = black.locator('.act-confirm button.yes');
     if (await confirm.isVisible()) await confirm.click();
     await spectator.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'finished');
-    check((await panel.locator('.win-probability__values').innerText()).includes('Trắng 100.0%'), 'Official resignation result overrides engine WDL');
+    check((await panel.locator('.win-probability__values').innerText()).includes('Trắng 100%'), 'Official resignation result overrides engine WDL');
     check(await panel.getAttribute('data-source') === 'official', 'Official result overrides the human prediction');
+    for (const [color, player] of [['white', white], ['black', black]]) {
+      await player.waitForFunction(() => document.querySelector('.win-probability')?.dataset.source === 'official');
+      check((await player.locator('.win-probability__values').innerText()).includes('Trắng 100%'),
+        `${color}: official result overrides the prediction on the player board`);
+    }
     await spectator.screenshot({ path: resolve(artifacts, `${prefix}-finished.png`), fullPage: true });
 
     async function endingGame(kind, moves, initialSeconds = 600) {
@@ -258,7 +294,7 @@ try {
     report.endingGames = {};
     report.endingGames.checkmate = await endingGame('checkmate', ['f2f3', 'e7e5', 'g2g4', 'd8h4']);
     await spectator.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'finished');
-    check((await panel.locator('.win-probability__values').innerText()).includes('Đen 100.0%'),
+    check((await panel.locator('.win-probability__values').innerText()).includes('Đen 100%'),
       'Official checkmate overrides both predictions with Black win');
     check(await panel.getAttribute('data-source') === 'official', 'Checkmate removes experimental percentages');
 
@@ -268,8 +304,18 @@ try {
     if (await drawConfirm.isVisible()) await drawConfirm.click();
     await black.locator('.rcontrols .question .yes').click();
     await spectator.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'finished');
-    check((await panel.locator('.win-probability__values').innerText()).includes('Hòa 100.0%'),
-      'Agreed draw overrides both predictions with 100% draw');
+    check((await panel.locator('.win-probability__status').innerText()).includes('Ván đấu kết thúc hòa') &&
+      await panel.locator('.win-probability__values').count() === 0 &&
+      await panel.locator('.win-probability__bar').count() === 0 &&
+      await panel.getAttribute('data-source') === 'official',
+      'Agreed draw shows the official result without invented White/Black percentages');
+    for (const [color, player] of [['white', white], ['black', black]]) {
+      await player.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'finished');
+      check(await player.locator('.win-probability__values').count() === 0 &&
+        (await player.locator('.win-probability__status').innerText()).includes('Ván đấu kết thúc hòa'),
+        `${color}: agreed draw shows the official result without invented player percentages`);
+    }
+    await panel.screenshot({ path: resolve(artifacts, `${prefix}-draw.png`) });
 
     report.endingGames.aborted = await endingGame('abort', []);
     await white.locator('button.abort').click();
@@ -280,10 +326,11 @@ try {
       report.endingGames.timeout = await endingGame('timeout', ['e2e4', 'e7e5'], 15);
       await spectator.waitForFunction(() => document.querySelector('.win-probability')?.dataset.state === 'finished',
         undefined, { timeout: 45000 });
-      check((await panel.locator('.win-probability__values').innerText()).includes('Đen 100.0%'),
+      check((await panel.locator('.win-probability__values').innerText()).includes('Đen 100%'),
         'Official clock timeout overrides predictions with Black win');
     }
     check(errors.length === 0, `No browser exceptions (${errors.length})`);
+    report.sameBoardPlayers = true;
   }
   console.log(JSON.stringify(report, null, 2));
   await writeFile(resolve(artifacts, `${humanPlayers ? 'human-' : ''}browser-smoke.json`), JSON.stringify(report, null, 2));

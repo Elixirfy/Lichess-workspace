@@ -25,6 +25,7 @@ final class Round(
 
   private[controllers] def renderPlayer(pov: Pov)(using ctx: Context): Fu[Result] =
     pov.game.playableByAi.so(env.fishnet.player(pov.game))
+    val winProbability = env.winProbability.enabled && pov.game.variant.standard
     for
       tour <- env.tournament.api.gameView.player(pov)
       users <- env.user.api.gamePlayers(pov.game.userIdPair, pov.game.perfKey)
@@ -48,7 +49,7 @@ final class Round(
                 page <- renderPage(
                   views.round.player(
                     pov,
-                    data,
+                    data.add("winProbability" -> winProbability),
                     tour = tour,
                     simul = simul,
                     cross = crosstable,
@@ -65,7 +66,9 @@ final class Round(
             for
               data <- env.api.roundApi.player(pov, Preload(users), tour)
               chat <- getPlayerChat(pov.game, none)
-            yield Ok(data.add("chat", chat.flatMap(_.game).map(_.lines))).noCache
+            yield Ok(
+              data.add("winProbability" -> winProbability).add("chat", chat.flatMap(_.game).map(_.lines))
+            ).noCache
       )
     yield res.enforceCrossSiteIsolation
 
@@ -115,7 +118,6 @@ final class Round(
     else
       Found(env.round.proxyRepo.game(gameId)): game =>
         if !game.variant.standard then notFound
-        else if playablePovForReq(game).isDefined then fuccess(Forbidden)
         else
           isBlockedByPlayer(game).flatMap:
             if _ then notFound

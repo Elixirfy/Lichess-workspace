@@ -9,6 +9,7 @@ import { licon } from 'lib/licon';
 import { type VNode, onInsert, hl } from 'lib/view';
 import { watchers } from 'lib/view/watchers';
 
+import { reviewGaugeOptions } from '@/advantage';
 import crazyView from '@/crazy/crazyView';
 import type AnalyseCtrl from '@/ctrl';
 import forecastView from '@/forecast/forecastView';
@@ -44,7 +45,7 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
   return renderMain(
     ctx,
     renderBoard(ctx),
-    ctx.gaugeOn && cevalView.renderGauge(ctrl),
+    ctx.gaugeOn && cevalView.renderGauge(ctrl, reviewGaugeOptions(ctrl)),
     crazyView(ctrl, ctrl.topColor(), 'top'),
     renderTools(ctx),
     crazyView(ctrl, ctrl.bottomColor(), 'bottom'),

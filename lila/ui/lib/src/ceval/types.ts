@@ -6,8 +6,13 @@ import type { MaybeVNode } from '@/view';
 
 import type { Prop } from '../index';
 import type { CevalCtrl } from './ctrl';
+import type { Wdl } from './wdl';
 
 export type WinningChances = number;
+export interface GaugeOptions {
+  expectedScore: boolean;
+  result?: Wdl;
+}
 export type SearchBy = { movetime: number } | { depth: number } | { nodes: number };
 export type Search = { by: SearchBy; multiPv: number; indeterminate?: boolean };
 export type NodeEfficiencyVsFishnet = Partial<Record<'chess' | 'variant', number>>;

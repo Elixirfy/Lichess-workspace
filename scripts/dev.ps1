@@ -40,17 +40,19 @@ function Bootstrap {
             }
         }
         $lila = $lock.repositories.lila.path
-        $patch = Join-Path $workspaceRoot 'patches/lila-win-probability.patch'
-        if (!(Test-Path -LiteralPath $patch)) { throw 'Missing feature patch.' }
-        & git -C $lila apply --reverse --check $patch 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            Invoke-Checked git @('-C', $lila, 'apply', '--check', $patch)
-            Invoke-Checked git @('-C', $lila, 'apply', $patch)
+        foreach ($patchName in @('lila-win-probability.patch')) {
+            $patch = Join-Path $workspaceRoot ('patches/' + $patchName)
+            if (!(Test-Path -LiteralPath $patch)) { throw "Missing feature patch: $patchName" }
+            & git -C $lila apply --reverse --check $patch 2>$null
+            if ($LASTEXITCODE -ne 0) {
+                Invoke-Checked git @('-C', $lila, 'apply', '--check', $patch)
+                Invoke-Checked git @('-C', $lila, 'apply', $patch)
+            }
         }
     } finally { $env:GIT_LFS_SKIP_SMUDGE = $previousLfs }
     Compose build lila ui prediction
     Compose run --rm --no-deps -v "${workspaceRoot}/scripts:/bootstrap:ro" ui node /bootstrap/prepare-lila.mjs
-    Compose run --rm --no-deps ui bash ./ui/build --debug
+    Compose run --rm --no-deps ui bash ./ui/build -p
     Compose up -d --wait mongodb mongodb_secondary redis prediction lila_ws
     Compose exec -T mongodb mongosh --quiet lichess /lila/bin/mongodb/indexes.js
     Compose run --rm --no-deps lila bash ./lila.sh stage
@@ -62,12 +64,15 @@ function Start-Stack {
     if (!(Test-Path -LiteralPath $stage) -or !(Test-Path -LiteralPath $manifest)) {
         throw 'Missing compiled application or UI. Run .\scripts\dev.ps1 bootstrap first.'
     }
-    Compose up -d --wait mongodb mongodb_secondary redis prediction lila_ws lila caddy
+    Compose up -d --wait mongodb mongodb_secondary redis prediction lila_ws lila_fishnet fishnet_play
+    Compose up -d --wait lila caddy
     $deadline = [DateTime]::UtcNow.AddSeconds(120)
     do {
         try {
             $response = Invoke-WebRequest 'http://127.0.0.1:8080/' -UseBasicParsing -TimeoutSec 3
             if ($response.StatusCode -eq 200) {
+                # Requests published while Fishnet was stopped need to be queued again.
+                Compose exec -T redis redis-cli PUBLISH fishnet-in start | Out-Null
                 Write-Host 'Lichess is ready at http://localhost:8080.'
                 return
             }
@@ -83,12 +88,12 @@ try {
         'start' { Start-Stack }
         'stop' { Compose stop }
         'status' { Compose ps -a }
-        'logs' { Compose logs --tail 80 lila prediction lila_ws caddy }
+        'logs' { Compose logs --tail 80 lila prediction lila_ws lila_fishnet fishnet_play caddy }
         'check' {
             Invoke-Checked uv @('run', '--project', 'services/prediction', '--group', 'ml', '--frozen', 'python', '-m', 'pytest', 'services/prediction/tests', '-q')
             Invoke-Checked uv @('run', '--project', 'services/prediction', '--group', 'ml', '--frozen', 'ruff', 'check', 'services/prediction')
             if ($Full) {
-                Compose run --rm --no-deps lila bash ./lila.sh ';scalafmtCheckAll;test'
+                Compose run --rm --no-deps lila bash ./lila.sh ';scalafmtCheckAll;testFull'
                 Compose run --rm --no-deps ui node ui/test --test-concurrency=2
             } else {
                 Compose run --rm --no-deps ui node ui/test round

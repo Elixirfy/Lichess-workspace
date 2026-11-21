@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { setImmediate } from 'node:timers/promises';
 
 import type { RoundData } from '../src/interfaces';
-import WinProbability, { validWdl, wdlPercentages, wdlRevision } from '../src/winProbability';
+import WinProbability, { validWdl, expectedScorePercentages, wdlRevision } from '../src/winProbability';
 
 const round = (moves: string[] = []): RoundData =>
   ({
@@ -22,15 +22,33 @@ const ready = (d: RoundData, white = 0.7): Response =>
     }),
   );
 
-test('all rounded WDL values sum to exactly 100.0%', () => {
+test('expected-score percentages sum to 100.0% and preserve the raw WDL', () => {
   for (let white = 0; white <= 1; white += 0.017) {
     for (let draw = 0; draw <= 1 - white; draw += 0.019) {
-      const values = wdlPercentages({ white, draw, black: 1 - white - draw });
+      const p = Object.freeze({ white, draw, black: 1 - white - draw });
+      const values = expectedScorePercentages(p)!;
+      assert.equal(values.length, 2);
       assert.equal(Math.round(values.reduce((a, b) => a + b, 0) * 10), 1000);
       assert.ok(values.every(v => v >= 0 && v <= 100));
+      assert.ok(Math.abs(values[0] - 100 * (white + draw / 2)) <= 0.050001);
     }
   }
-  assert.deepEqual(wdlPercentages({ white: 1, draw: 0, black: 0 }), [100, 0, 0]);
+  assert.deepEqual(expectedScorePercentages({ white: 1, draw: 0, black: 0 }), [100, 0]);
+  assert.deepEqual(expectedScorePercentages({ white: 0.6, draw: 0.1, black: 0.3 }), [65, 35]);
+  assert.deepEqual(expectedScorePercentages({ white: 0, draw: 1, black: 0 }), [50, 50]);
+  assert.equal(expectedScorePercentages({ white: NaN, draw: 0.5, black: 0.5 }), undefined);
+  assert.equal(expectedScorePercentages({ white: 0.3, draw: 0.3, black: 0.3 }), undefined);
+});
+
+test('draw-heavy, balanced and winning reference positions have intuitive expected scores', () => {
+  for (const [p, expected] of [
+    [{ white: 0, draw: 0.876, black: 0.124 }, [43.8, 56.2]],
+    [{ white: 0.037, draw: 0.961, black: 0.002 }, [51.8, 48.2]],
+    [{ white: 0, draw: 0.98, black: 0.02 }, [49, 51]],
+    [{ white: 0.8, draw: 0.1, black: 0.1 }, [85, 15]],
+    [{ white: 0.98, draw: 0.02, black: 0 }, [99, 1]],
+  ] as const)
+    assert.deepEqual(expectedScorePercentages(Object.freeze(p)), expected);
 });
 
 test('reject invalid and nonfinite probabilities', () => {

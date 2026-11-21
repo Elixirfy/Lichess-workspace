@@ -31,9 +31,10 @@ import { cmnToggle } from '@/view/cmn-toggle';
 import stepwiseScroll from '@/view/stepwiseScroll';
 
 import type { CevalCtrl } from '../ctrl';
-import { type CevalHandler, type NodeEvals, CevalState } from '../types';
+import { type CevalHandler, type NodeEvals, type GaugeOptions, CevalState } from '../types';
 import { renderEval } from '../util';
-import { povChances } from '../winningChances';
+import { expectedScoreDisplay } from '../wdl';
+import { lichessWinPercentages, povChances } from '../winningChances';
 import { renderCevalSettings } from './settings';
 
 type EvalInfo = { knps: number; npsText: string; depthText: string };
@@ -148,13 +149,68 @@ export const getBestEval = (ctrl: CevalHandler): EvalScore | undefined => {
 let gaugeLast = 0;
 let gaugeTicks: VNode[];
 
-export function renderGauge(ctrl: CevalHandler): VNode | undefined {
+export function renderGauge(ctrl: CevalHandler, options?: GaugeOptions): VNode | undefined {
   if (ctrl.ongoing || !ctrl.showEvalGauge()) return undefined;
   gaugeTicks ??= Array.from({ length: 7 }, (_, i) =>
     hl('tick', { class: { zero: i === 3 }, attrs: { style: `height: ${(i + 1) * 12.5}%` } }),
   );
   const outcome = ctrl.getNode().outcome();
   const bestEv = outcome ? undefined : getBestEval(ctrl);
+  if (options?.expectedScore) {
+    const result =
+      options.result ??
+      (outcome && {
+        white: Number(outcome.winner === 'white'),
+        draw: Number(!outcome.winner),
+        black: Number(outcome.winner === 'black'),
+      });
+    const winPercent = !result && bestEv ? lichessWinPercentages(bestEv) : undefined;
+    const wdl = result ?? bestEv?.wdl;
+    const display = winPercent ?? (wdl && expectedScoreDisplay(wdl, result ? 'result' : 'estimate'));
+    const source = options.result
+      ? 'official'
+      : result
+        ? 'position-result'
+        : winPercent
+          ? 'engine-score'
+          : 'engine-wdl';
+    const metric = result ? 'result' : winPercent ? 'lichess-win-percent' : 'expected-score';
+    const description =
+      source === 'official'
+        ? 'Kết quả chính thức.'
+        : source === 'position-result'
+          ? 'Kết quả của vị trí đang chọn.'
+          : source === 'engine-score'
+            ? 'Win% của Lichess từ điểm Stockfish. Tỷ lệ đã làm tròn.'
+            : 'WDL từ engine phân tích. Hòa tính nửa điểm. Tỷ lệ đã làm tròn.';
+    const title = display
+      ? `${result ? 'Điểm' : 'Ưu thế'} Trắng ${display[0]}% · Đen ${display[1]}%. ${description}`
+      : 'Chưa có đánh giá cho vị trí đang chọn. Bật engine để phân tích.';
+    return div(
+      '.eval-gauge.expected-score',
+      {
+        class: { empty: !display, reverse: ctrl.getOrientation() === 'black' },
+        attrs: {
+          style: `--eval-percent: ${display?.[1] ?? 50}%`,
+          title,
+          role: 'img',
+          'aria-label': title,
+          'data-metric': display ? metric : false,
+          'data-source': display ? source : false,
+        },
+      },
+      [
+        gaugeTicks,
+        display &&
+          ['white', 'black'].map((color, i) =>
+            span(`.eval-gauge__${color}`, [
+              span(i ? 'Đen' : 'Trắng'),
+              span('.eval-gauge__value', `${display[i]}%`),
+            ]),
+          ),
+      ],
+    );
+  }
   let ev;
   if (outcome) ev = outcome.winner === 'white' ? 1 : outcome.winner === 'black' ? -1 : 0;
   else if (bestEv) {

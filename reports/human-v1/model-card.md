@@ -2,9 +2,16 @@
 
 Artifact: `human-logit-v1-54213e4fef50`, evaluated 05/11/2026. This is an experimental
 prediction of White win / draw / Black win in human games. The compact UI prefers this
-estimate when supported and otherwise displays Stockfish WDL, with a caption identifying
-the selected source. These outputs are not blended. It has not been calibrated for the
-local server's population.
+estimate when supported and otherwise uses Stockfish WDL, with a tooltip identifying
+the selected source. These outputs are not blended. Since 18/11/2026, the UI displays
+White/Black expected-score advantage: W+D/2 and B+D/2, rounded together to
+100.0%, with source, 50% balance and half-point draw explanations in the hover tooltip. A live
+all-draw estimate has equal expected points; an official draw is shown as the
+confirmed result without an estimated bar. This replaces conditional win percentages
+after the user reported misleading 0/100 displays from draw-heavy WDL. The model,
+API, three-class evaluation below and raw WDL remain unchanged. Neither the original
+predictions nor the derived advantage have been calibrated for the local server's
+population; the bar is not a personal win-probability claim.
 
 ## Data and evaluation protocol
 
@@ -117,14 +124,21 @@ produce slightly different scores on another machine. No parameter was fitted us
 
 ## Serving behavior and limits
 
+- Standard game review also displays White/Black expected points on the vertical
+  analysis gauge using the shared W+D/2 projection. Review uses the selected
+  node's native analysis-engine WDL, or an identified Stockfish 15.1 conversion
+  for cp-only historical scores. It does not reconstruct human ratings/clocks
+  or claim to reproduce this human pilot. Different engines/depths can give
+  different WDL despite sharing the display formula. These review projections
+  are not new calibration or evaluation results for the human model.
 - Standard blitz/rapid only; both ratings 600–3000; ply 4–140; initial time 30–1800 seconds;
   increment at most 60 seconds; both current clocks must be known.
 - Ratings and clocks come from authoritative Lichess game state. Anonymous players get no
   invented rating. New registered users do have Lichess's provisional initial rating;
   uncertainty in that rating is not modeled separately in v1.
-- The UI shows one bar and three percentages. Supported human output is captioned
-  “Người chơi · thử nghiệm”; engine fallback is captioned “Ước tính từ thế cờ” with an
-  engine explanation on hover. Engine name/depth diagnostics are omitted. Official
+- The UI shows one bar and two expected-score percentages. A hover tooltip identifies
+  experimental human output or engine fallback and explains the half-point draw.
+  The two former live captions are hidden at the user's request. Engine name/depth diagnostics are omitted. Official
   terminal results override both. Replay, disconnect and stale-response rules apply to both.
 - Predictions update on moves/reconnects. Clock decay between moves is not continuously
   re-evaluated. Ratings/clocks do not enter the engine cache key: current human context
