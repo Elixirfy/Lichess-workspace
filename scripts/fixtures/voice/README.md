@@ -74,5 +74,6 @@ with text, not acoustic recordings.
 No new human source recordings were added in this extension (download attempts
 returned HTTP 429/404). The same small corpus was used during tuning and final
 validation; it is not held out. Real microphone, connected speech, new speakers
-and naturally noisy-room accuracy remain unverified. Full results and retained
-failures are in [reports/voice-v1](../../../reports/voice-v1/README.md).
+and naturally noisy-room accuracy remain unverified.
+Generated run reports are kept locally in the ignored
+`reports/voice-v1/` directory.

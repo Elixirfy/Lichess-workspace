@@ -59,15 +59,10 @@ chỉ build UI không tự khởi động PhoWhisper.
 .\scripts\voice.ps1 browser
 ```
 
-[Báo cáo tách branch](reports/voice-v1/branch-separation/README.md) ghi kiểm tra
-mới và các lỗi nền của main. [Hồ sơ tính năng](docs/branch-report/README.md)
-ghi kiến trúc, ưu điểm và giới hạn. [Báo cáo voice](reports/voice-v1/README.md),
-[audio người thật](reports/voice-v1/human-audio/README.md),
-[B/D](reports/voice-v1/bd-numbered-retake/README.md),
-[đi ngay](reports/voice-v1/direct-moves/README.md) giữ nguyên revision và điều
-kiện đo cũ; không xem chúng là benchmark mới sau khi tách Git.
+[Hồ sơ tính năng](docs/branch-report/README.md) ghi kiến trúc, ưu điểm và
+giới hạn. Log, ảnh và kết quả từng lần chạy được lưu local; chạy lại
+các lệnh kiểm thử để đánh giá source hiện tại.
 
 Phần dùng chung: [danh mục branch](docs/branches/README.md),
-[bằng chứng main](reports/acceptance/shared-probability/README.md),
 [model card xác suất](reports/human-v1/model-card.md). Không sửa công thức,
 model hay bản vá tỷ lệ trong delta của nhánh voice.

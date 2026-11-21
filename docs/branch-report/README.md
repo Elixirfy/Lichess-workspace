@@ -33,10 +33,7 @@ Monorepo `lila/` cũng có mã voice, nhưng vẫn cần dựng ASR và route pr
 
 ## Bằng chứng, giới hạn và cách chạy
 
-[Báo cáo tách branch](../../reports/voice-v1/branch-separation/README.md) ghi
-kiểm tra mới. Các báo cáo [voice](../../reports/voice-v1/README.md),
-[B/D](../../reports/voice-v1/bd-numbered-retake/README.md),
-[đi ngay](../../reports/voice-v1/direct-moves/README.md) là bằng chứng lịch sử.
+Log và kết quả chi tiết từng lần chạy được lưu local.
 Giữ nguyên cách chia dữ liệu và provenance; nhiều lần nghe lại cùng audio là
 regression, không phải test set mới. Không cộng số test các branch thành nghiệm
 thu toàn nhóm. Giọng/mic/tiếng ồn/mạng ảnh hưởng nhận dạng và độ trễ.
