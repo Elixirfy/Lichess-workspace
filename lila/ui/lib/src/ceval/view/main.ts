@@ -33,8 +33,8 @@ import stepwiseScroll from '@/view/stepwiseScroll';
 import type { CevalCtrl } from '../ctrl';
 import { type CevalHandler, type NodeEvals, type GaugeOptions, CevalState } from '../types';
 import { renderEval } from '../util';
-import { evalWdl, expectedScorePercentages } from '../wdl';
-import { povChances } from '../winningChances';
+import { expectedScoreDisplay } from '../wdl';
+import { lichessWinPercentages, povChances } from '../winningChances';
 import { renderCevalSettings } from './settings';
 
 type EvalInfo = { knps: number; npsText: string; depthText: string };
@@ -157,57 +157,55 @@ export function renderGauge(ctrl: CevalHandler, options?: GaugeOptions): VNode |
   const outcome = ctrl.getNode().outcome();
   const bestEv = outcome ? undefined : getBestEval(ctrl);
   if (options?.expectedScore) {
-    const evaluation = options.result
-      ? { probabilities: options.result, source: 'official' }
-      : outcome
-        ? {
-            probabilities: {
-              white: Number(outcome.winner === 'white'),
-              draw: Number(!outcome.winner),
-              black: Number(outcome.winner === 'black'),
-            },
-            source: 'position-result',
-          }
-        : bestEv
-          ? evalWdl(bestEv, ctrl.getNode().ply)
-          : undefined;
-    const values = evaluation && expectedScorePercentages(evaluation.probabilities);
-    const source = values ? evaluation.source : undefined;
+    const result =
+      options.result ??
+      (outcome && {
+        white: Number(outcome.winner === 'white'),
+        draw: Number(!outcome.winner),
+        black: Number(outcome.winner === 'black'),
+      });
+    const winPercent = !result && bestEv ? lichessWinPercentages(bestEv) : undefined;
+    const wdl = result ?? bestEv?.wdl;
+    const display = winPercent ?? (wdl && expectedScoreDisplay(wdl, result ? 'result' : 'estimate'));
+    const source = options.result
+      ? 'official'
+      : result
+        ? 'position-result'
+        : winPercent
+          ? 'engine-score'
+          : 'engine-wdl';
+    const metric = result ? 'result' : winPercent ? 'lichess-win-percent' : 'expected-score';
     const description =
       source === 'official'
         ? 'Kết quả chính thức.'
         : source === 'position-result'
           ? 'Kết quả của vị trí đang chọn.'
-          : source === 'engine-wdl'
-            ? 'WDL từ engine phân tích.'
-            : 'Quy đổi đánh giá sang WDL theo mô hình Stockfish 15.1.';
-    const title = values
-      ? `${source === 'official' || source === 'position-result' ? 'Điểm' : 'Ưu thế'} Trắng ${values[0].toFixed(1)}% · Đen ${values[1].toFixed(1)}%. ${description} 50% = cân bằng · Hòa tính nửa điểm.`
+          : source === 'engine-score'
+            ? 'Win% của Lichess từ điểm Stockfish. Tỷ lệ đã làm tròn.'
+            : 'WDL từ engine phân tích. Hòa tính nửa điểm. Tỷ lệ đã làm tròn.';
+    const title = display
+      ? `${result ? 'Điểm' : 'Ưu thế'} Trắng ${display[0]}% · Đen ${display[1]}%. ${description}`
       : 'Chưa có đánh giá cho vị trí đang chọn. Bật engine để phân tích.';
     return div(
       '.eval-gauge.expected-score',
       {
-        class: { empty: !values, reverse: ctrl.getOrientation() === 'black' },
+        class: { empty: !display, reverse: ctrl.getOrientation() === 'black' },
         attrs: {
-          style: `--eval-percent: ${values?.[1] ?? 50}%`,
+          style: `--eval-percent: ${display?.[1] ?? 50}%`,
           title,
           role: 'img',
           'aria-label': title,
-          'data-metric': values
-            ? source === 'official' || source === 'position-result'
-              ? 'result'
-              : 'expected-score'
-            : false,
-          'data-source': source ?? false,
+          'data-metric': display ? metric : false,
+          'data-source': display ? source : false,
         },
       },
       [
         gaugeTicks,
-        values &&
+        display &&
           ['white', 'black'].map((color, i) =>
             span(`.eval-gauge__${color}`, [
               span(i ? 'Đen' : 'Trắng'),
-              span('.eval-gauge__value', `${values[i].toFixed(1)}%`),
+              span('.eval-gauge__value', `${display[i]}%`),
             ]),
           ),
       ],

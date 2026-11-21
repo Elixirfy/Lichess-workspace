@@ -12,8 +12,20 @@ const rawWinningChances = (cp: number): WinningChances => {
   return 2 / (1 + Math.exp(MULTIPLIER * cp)) - 1;
 };
 
+const cpCeiling = 1000;
+
 export const cpWinningChances = (cp: number): WinningChances =>
-  rawWinningChances(Math.min(Math.max(-1000, cp), 1000));
+  rawWinningChances(Math.min(Math.max(-cpCeiling, cp), cpCeiling));
+
+// Lichess WinPercent.fromScore uses ceiled cp for both finite scores and mate lines.
+// Use the rounded White value and its complement for the two-color display.
+export function lichessWinPercentages(score: EvalScore): [number, number] | undefined {
+  if (score.mate !== undefined && (!Number.isSafeInteger(score.mate) || score.mate === 0)) return undefined;
+  const cp = score.mate === undefined ? score.cp : Math.sign(score.mate) * cpCeiling;
+  if (cp === undefined || !Number.isFinite(cp)) return undefined;
+  const white = Math.round(50 + 50 * cpWinningChances(cp));
+  return [white, 100 - white];
+}
 
 const mateWinningChances = (mate: number): WinningChances => {
   const cp = (21 - Math.min(10, Math.abs(mate))) * 100;
