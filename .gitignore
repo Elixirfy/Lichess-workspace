@@ -34,3 +34,6 @@ services/prediction/.venv/
 # Local editor state
 /.metals/
 /.vscode/
+
+# Personal diagnostics and speech experiments (local only)
+/scripts/probe_worker_load.py
