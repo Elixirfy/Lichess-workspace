@@ -73,16 +73,14 @@ và độ sâu khác nhau có thể cho điểm khác ngay trên cùng một th�
 ván của nhánh chính gốc lấy kết quả chính thức. Lật bàn giữ đúng tỷ lệ của từng
 màu. Giao diện mobile một cột ẩn thanh dọc theo upstream.
 
-[Model card và giới hạn](reports/human-v1/model-card.md),
-[thanh dọc review](reports/acceptance/replay-advantage/README.md),
-[quyền và lifecycle](openspec/changes/live-win-probability/specs/win-probability/spec.md).
+[Model card và giới hạn](reports/human-v1/model-card.md).
+[Tài liệu tính năng](docs/branch-report/README.md) mô tả kiến trúc,
+cách hiển thị khi chơi và khi xem lại ván đấu.
 
-## Kiểm thử và bằng chứng
+## Kiểm thử
 
-[Báo cáo tách phần chung](reports/acceptance/shared-probability/README.md) ghi
-kiểm tra trên source main và đối chiếu hai nhánh. Các báo cáo acceptance cũ giữ
-revision/điều kiện ban đầu; một số chứa kiểm tra tương thích voice trong lịch
-sử, không có nghĩa main chứa ASR hoặc các lệnh audio đó chạy được trên main.
+Các lệnh dưới đây chạy lại kiểm tra trên source hiện tại. Kết quả chạy thử
+được lưu local và không đưa vào Git.
 
 ```powershell
 .\scripts\dev.ps1 check -Full
@@ -94,4 +92,4 @@ Lệnh full không thay bằng incremental test. Không khẳng định test/bui
 đã qua chỉ dựa trên log cũ. Vị trí code chính: `lila/ui/lib/src/ceval/wdl.ts`,
 `lila/ui/round/src/winProbability.ts`, `lila/ui/analyse/src/advantage.ts`,
 `lila/app/controllers/Round.scala`, `services/prediction/`,
-`patches/lila-win-probability.patch`. [Nhiệm vụ và evidence](openspec/changes/live-win-probability/tasks.md).
+`patches/lila-win-probability.patch`.
