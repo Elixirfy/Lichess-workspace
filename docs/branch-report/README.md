@@ -1,66 +1,96 @@
-# Tỷ lệ và ưu thế — phần dùng chung trên main
+# Ưu thế Trắng/Đen theo thời gian thực
 
-## Phạm vi và nguồn
+Tính năng hiển thị ưu thế của hai bên bằng phần trăm để người chơi dễ theo dõi
+sự thay đổi của thế cờ trong các ván standard. Thanh ngang nằm trên giao diện
+chơi với bot, chơi giữa hai người và trang người xem. Khi xem lại ván đấu,
+thanh dọc bên cạnh bàn cờ hiển thị tỷ lệ tại nước đang chọn. Phần này được
+phát triển trên `main`.
 
-Phần ưu thế lúc chơi và xem lại thuộc bản dùng chung của nhóm trên `main`.
-Từ commit `9d92cdc` ngày 19/11/2026, cả hai giao diện dùng Win% của Lichess.
-Người chơi ở cả hai phía và người xem đều được xem ưu thế trong ván standard
-trên bản tự host, theo lựa chọn phục vụ luyện tập và demo của nhóm. Nhánh
-giọng nói được quản lý riêng. Revision upstream và đường dựng
-Docker nằm trong `upstream-lock.json`.
+## Cơ sở phát triển
 
-## Chức năng và kiến trúc
+Lichess đã có Stockfish, điểm đánh giá cp/mate và thanh đánh giá trong trang
+phân tích. Phần bổ sung dùng lại các thành phần đó, đưa tỷ lệ ra giao diện
+chơi và dùng cùng một công thức cho cả lúc chơi lẫn xem lại.
 
-Live lấy lịch sử từ Lila, phân tích qua Stockfish trong worker có cache và
-trả điểm cp/mate theo góc nhìn Trắng. Review lấy điểm của nước đang chọn.
-Cả hai gọi `lichessWinPercentages` với điểm giới hạn ở ±1.000 cp, kể cả dự
-báo chiếu hết. Trắng bằng `round(100 / (1 + exp(-0.00368208 × cp)))`, Đen bằng
-`100 − Trắng`. Các số hiển thị là số nguyên và cộng đúng 100%.
+Ban đầu, tỷ lệ được suy ra từ WDL của Stockfish. Sau khi thử thấy nhiều thế cờ
+dồn về mức 99%, phần hiển thị được chuyển sang
+[Win% của Lichess](https://lichess.org/page/accuracy), tính trực tiếp từ điểm cp.
 
-Khi thiếu điểm hợp lệ, giao diện dùng `W + D/2` và `B + D/2` từ WDL engine,
-với tooltip nêu nguồn. API tiếp tục lưu riêng WDL và human pilot. Kết quả
-chính thức được ưu tiên tại đúng điểm cuối nhánh chính của ván. Mỗi phản hồi
-phải khớp lịch sử hiện tại sau nước mới, hoàn tác và kết nối lại.
+## Luồng xử lý
 
-Nguồn có trong `lila/` và patch tái lập cho Docker. Không đưa ASR/recorder vào
-main. Giữ nguyên code bình luận Nano/ba BLV của nhóm, không nhập nhánh coach hay
-WebMCP trong thao tác tách ownership này.
+Lila lấy lịch sử nước đi và trạng thái ván rồi gửi tới dịch vụ prediction.
+Stockfish phân tích trong worker riêng, trả điểm theo góc nhìn Trắng. Kết quả
+được lưu đệm theo ván và toàn bộ lịch sử nước đi để nhiều người xem có thể dùng
+chung một lần tính. Worker có giới hạn tài nguyên và hàng đợi để việc đánh giá
+không cản xử lý nước đi.
+
+Sau một nước mới, hoàn tác hoặc kết nối lại, giao diện đối chiếu lịch sử trước
+khi nhận kết quả. Phản hồi của thế cờ cũ được bỏ. Khi xem lại, thanh dọc đọc
+đánh giá của đúng nước đang chọn, kể cả khi người dùng mở một nhánh phân tích.
+
+## Công thức hiển thị
+
+```text
+cp     = giới hạn điểm Stockfish trong [−1000, 1000]
+Trắng  = round(100 / (1 + exp(-0.00368208 × cp)))
+Đen    = 100 − Trắng
+```
+
+Điểm dương nghiêng về Trắng, điểm âm nghiêng về Đen. Hai số là số nguyên và
+luôn cộng thành 100%:
+
+| Điểm Stockfish | Trắng | Đen |
+|---|---|---|
+| 0 cp | 50% | 50% |
+| +100 cp | 59% | 41% |
+| +300 cp | 75% | 25% |
+
+Giới hạn cp khiến tỷ lệ quy đổi nằm trong khoảng 2–98%. Dự báo chiếu hết của
+engine cũng được quy về ±1.000 cp. Khi ván hoặc vị trí đã có kết quả xác định,
+thanh hiển thị theo kết quả đó. Kết quả của ván chỉ áp dụng tại điểm cuối
+nhánh chính; các nước trước đó vẫn dùng đánh giá của vị trí đang xem. Ván hòa
+chính thức có thông báo kết quả riêng trên giao diện chơi.
+
+Nếu thiếu điểm cp/mate, giao diện dùng WDL của engine: `W + D/2` cho Trắng,
+`B + D/2` cho Đen, sau đó làm tròn. Nguồn tính được ghi trong tooltip.
 
 ## Ưu điểm so với tính năng có sẵn
 
-| Có sẵn / mốc trước | Phần chung bổ sung | Ý nghĩa và giới hạn |
-|---|---|---|
-| Analysis có thanh cp/mate | Win% trên thanh dọc tại nước đang chọn | Dùng chung công thức với thanh ngang lúc chơi |
-| Phải mở tab người xem | Panel trên cả hai bàn standard | Theo dõi biến động sau từng nước ngay trên bàn chơi |
-| WDL dồn về 99% trên nhiều thế | Chuyển điểm cp sang Win% trước khi làm tròn | Trên 118 thế, nhóm từ 95% trở lên giảm từ 49 xuống 5 |
-| Dự đoán chỉ theo engine | API có thêm human pilot khi đủ rating/clock | Giữ dữ liệu thử nghiệm riêng để tiếp tục đánh giá |
-| Đánh giá riêng/trả số cũ sau takeback | Cache và revision theo toàn lịch sử | Giảm việc trùng, tránh nhầm cùng ply khác thế cờ |
+| Nội dung | Phần bổ sung |
+|---|---|
+| Xem đánh giá khi đang chơi | Người chơi xem trực tiếp trên bàn của mình, cả khi đấu bot và đấu người. |
+| Đọc thanh đánh giá khi xem lại | Có nhãn Trắng/Đen và phần trăm tại từng nước, dùng cùng công thức với thanh ngang. |
+| Tỷ lệ quá sát 100% | Dùng Win% từ điểm cp và giới hạn điểm trước khi quy đổi. |
+| Nhiều người xem cùng ván | Dùng chung kết quả phân tích; kiểm tra lịch sử để tránh hiển thị số cũ sau hoàn tác. |
 
-## Kiểm thử và giới hạn
+## Kết quả đã ghi nhận và hạn chế
 
-Phép so sánh Win% dùng 118 thế từ 24 ván, cùng một lần phân tích Stockfish
-15.1 trong 250 ms cho mỗi thế. Mốc tích hợp `9d92cdc` có 62/62 test liên quan
-đạt và Chromium bao phủ PvP, AI, người xem và review.
-Đây là kết quả lịch sử tại mốc tích hợp đã nêu, không phải phép đo mới
-trên source sau các thay đổi khác. Log chi tiết được lưu local.
+Lần so sánh Win% với WDL dùng 118 thế cờ từ 24 ván, cùng kết quả phân tích
+Stockfish 15.1 trong 250 ms cho mỗi thế. Số thế có tỷ lệ của một bên từ 95%
+trở lên giảm từ 49 xuống 5. Đây là kết quả trên bộ thử dùng để so sánh hai
+cách hiển thị.
 
-Human model còn thiên lệch prefix sample, ít hòa, tập tháng 10 từng được xem
-lại sau sửa lấy mẫu. [Model card](../../reports/human-v1/model-card.md) là nguồn
-cho protocol/metric; không biến cải thiện log loss thành tỷ lệ thắng tăng.
-Hiệu quả luyện tập và độ chính xác dự đoán kết quả thực tế cần được đánh giá
-trên một bộ dữ liệu độc lập phù hợp với người chơi của máy chủ.
+Ở đợt tích hợp công thức này, 62/62 test liên quan đã qua; các luồng đấu người,
+đấu máy, người xem và xem lại đã được thử trên Chromium. Log từng lần chạy
+được lưu local. Các lệnh trong README gốc dùng để kiểm tra lại phiên bản hiện tại.
 
-## Cách chạy và tài liệu
+Win% phản ánh đánh giá thế cờ của engine. Cấp độ bot, trình độ người chơi và
+khả năng tìm ra nước tốt trong thời gian còn lại chưa được tính vào chỉ số này.
+Khi xem lại, phiên bản hoặc độ sâu engine khác với lúc chơi có thể cho số khác.
+Giao diện mobile một cột tiếp tục ẩn thanh dọc theo bố cục của Lichess.
 
-[README gốc](../../README.md), [chuẩn bị model browser](../../scripts/prepare-analysis-engine.mjs),
-[patch](../../patches/lila-win-probability.patch),
-[mã thanh dọc review](../../lila/ui/analyse/src/advantage.ts),
-[bình luận đang có](../binh-luan-vien-tieng-viet.md).
+Thử nghiệm dự đoán theo rating và đồng hồ được mô tả riêng trong
+[model card](../../reports/human-v1/model-card.md); kết quả đó không được dùng
+để tính Win% đang hiển thị.
 
-Voice input có sẵn của Lichess vẫn còn; phần mở rộng tiếng Việt Vosk/PhoWhisper,
-grammar mới, thu âm và đi ngay ở branch voice. WebMCP/coach do các nhánh riêng
-cung cấp, chưa mặc định đã được nghiệm thu chung trên main.
+## Các file chính
 
-README này được tổng hợp với hỗ trợ của Codex. Khi viết báo cáo, trích revision,
-tập dữ liệu, điều kiện đo và giới hạn; không ghép số test các branch thành một
-nghiệm thu toàn bộ nhóm.
+- [Quy đổi Win%](../../lila/ui/lib/src/ceval/winningChances.ts).
+- [Thanh ngang khi chơi](../../lila/ui/round/src/view/winProbability.ts).
+- [Thanh dọc khi xem lại](../../lila/ui/lib/src/ceval/view/main.ts) và [xử lý kết quả cuối ván](../../lila/ui/analyse/src/advantage.ts).
+- [Dịch vụ prediction](../../services/prediction/).
+- [Bản vá Docker](../../patches/lila-win-probability.patch) và [phiên bản nguồn](../../upstream-lock.json).
+
+Xem [README gốc](../../README.md) để cài đặt, chạy và kiểm thử.
+
+Có sử dụng Codex để hỗ trợ triển khai và biên soạn tài liệu.

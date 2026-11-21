@@ -1,15 +1,11 @@
 # Lichess workspace — bản dùng chung của nhóm
 
-Phần **ưu thế Trắng–Đen** dùng chung của nhóm có thanh ngang lúc chơi và thanh
-dọc khi xem lại ván standard. Cả hai dùng [Win% của Lichess](https://lichess.org/page/accuracy),
-làm tròn số nguyên với tổng đúng 100%. Tooltip ghi nguồn của số hiển thị.
-Đây là ưu thế từ thế cờ. Độ chính xác dự đoán kết quả theo trình độ người chơi
-chưa được kiểm chứng cho cộng đồng local.
+Trên `main`, giao diện hiển thị ưu thế Trắng/Đen khi chơi và khi xem lại
+các ván cờ tiêu chuẩn (standard).
+Số phần trăm được tính từ đánh giá Stockfish theo công thức Win% của Lichess.
 
-Phần **giọng nói tiếng Việt Vosk + PhoWhisper, recorder và đi ngay** nằm ở
-[nhánh voice riêng](https://github.com/trantrien1/Lichess-workspace/tree/codex/vietnamese-voice-input).
-Nhánh đó kế thừa phần tỷ lệ từ main; không sở hữu một bản tỷ lệ khác. Voice
-input có sẵn của upstream không bị xóa khỏi main.
+Tính năng [chơi cờ bằng giọng nói tiếng Việt](https://github.com/trantrien1/Lichess-workspace/tree/codex/vietnamese-voice-input)
+được phát triển trên nhánh riêng, dùng Vosk và PhoWhisper để nhận dạng lệnh.
 
 Giữ nguyên bình luận tiếng Việt Nano/ba BLV và phần việc đã có của nhóm.
 [Thiết kế bình luận](docs/binh-luan-vien-tieng-viet.md),
@@ -62,23 +58,28 @@ README bình luận từng nhắc launcher `lichess-local`/`LOCAL.md` chưa có 
 tree; không mặc định clone repo đã có launcher đó. Worker bình luận được cấu
 hình riêng theo README dịch vụ; chạy Docker prediction không tự bật Nano.
 
-## Cách tính và dữ liệu
+## Ưu thế Trắng/Đen được tính thế nào?
 
-Live nhận lịch sử, trạng thái, rating và đồng hồ từ Lila. Worker Stockfish có
-giới hạn CPU, hàng đợi và cache, dùng chung công việc theo vị trí. Giao diện
-lấy điểm Stockfish theo góc nhìn Trắng và giới hạn ở ±1.000 cp, kể cả dự báo
-chiếu hết. Công thức là `100 / (1 + exp(-0.00368208 × cp))`. Sau khi làm tròn
-Trắng, Đen bằng 100 trừ phần Trắng. [Mã WinPercent của Lichess](https://github.com/lichess-org/scalachess/blob/master/core/src/main/scala/eval.scala).
+Giao diện lấy điểm Stockfish theo góc nhìn Trắng, tính bằng centipawn (cp),
+rồi áp dụng công thức sau. [Công thức Win% của Lichess](https://lichess.org/page/accuracy)
 
-API giữ WDL và dự báo thử nghiệm theo trình độ ở các trường riêng. Khi thiếu
-điểm engine hợp lệ, giao diện dùng `W + D/2`, `B + D/2` từ engine WDL và ghi
-nguồn trong tooltip. Phản hồi cũ bị loại sau nước mới, takeback và reconnect.
-Kết quả chính thức được ưu tiên. Ván hủy có trạng thái riêng.
+```text
+Trắng = round(100 / (1 + exp(-0.00368208 × cp)))
+Đen   = 100 − Trắng
+```
 
-Khi xem lại, thanh dọc áp dụng cùng công thức cho **nước đang chọn**. Engine
-và độ sâu khác nhau có thể cho điểm khác ngay trên cùng một thế. Chỉ điểm cuối
-ván của nhánh chính gốc lấy kết quả chính thức. Lật bàn giữ đúng tỷ lệ của từng
-màu. Giao diện mobile một cột ẩn thanh dọc theo upstream.
+Điểm `cp` được giới hạn trong khoảng −1.000 đến +1.000 nên Win% nằm trong khoảng
+2–98%. Dự báo chiếu hết cũng dùng ngưỡng này. Khi đã có kết quả xác định, giao
+diện hiển thị theo kết quả đó.
+
+Thanh ngang cập nhật theo thế cờ mới nhất cho cả người chơi và người xem.
+Khi xem lại, thanh dọc hiển thị ưu thế tại nước đang chọn. Nếu thiếu điểm
+cp/mate, giao diện dùng WDL (thắng/hòa/thua) của engine, tính nửa điểm cho hòa
+và ghi nguồn trong tooltip.
+Khi mất kết nối hoặc đổi thế cờ, kết quả cũ được bỏ để chờ đánh giá mới.
+
+Đây là cách đọc ưu thế theo engine. Trình độ người chơi và cấp độ bot chưa
+được đưa vào phép tính hiển thị.
 
 [Model card và giới hạn](reports/human-v1/model-card.md).
 [Tài liệu tính năng](docs/branch-report/README.md) mô tả kiến trúc,
