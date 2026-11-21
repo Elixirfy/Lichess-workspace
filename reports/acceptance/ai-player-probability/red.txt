@@ -1,7 +1,0 @@
-AssertionError [ERR_ASSERTION]: The AI player must be allowed by the server
-
-403 !== 200
-
-    at probability (file:///E:/codex/Lichess/scripts/ai-smoke.mjs:52:12)
-    at async file:///E:/codex/Lichess/scripts/ai-smoke.mjs:142:30
-Report: E:\codex\Lichess\artifacts\ai-smoke\2026-11-18T13-08-26.142Z

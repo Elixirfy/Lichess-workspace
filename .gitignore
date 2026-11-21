@@ -56,3 +56,11 @@ services/prediction/.venv/
 # Local editor state
 /.metals/
 /.vscode/
+
+# Local-only scaffolding, not part of the WebMCP module
+/analysis-engine-lock.json
+/upstream-lock.json
+/infra/
+/openspec/
+/reports/
+/scripts/

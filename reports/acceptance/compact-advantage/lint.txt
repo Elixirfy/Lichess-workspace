@@ -1,4 +1,0 @@
- Container lichess-wdl-ui-run-ac2b64754ca8 Creating 
- Container lichess-wdl-ui-run-ac2b64754ca8 Created 
-Found 0 warnings and 0 errors.
-Finished in 56.4s on 2 files with 164 rules using 16 threads.

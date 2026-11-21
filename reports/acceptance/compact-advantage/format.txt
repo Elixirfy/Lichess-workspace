@@ -1,6 +1,0 @@
- Container lichess-wdl-ui-run-ca7ff65eb8b3 Creating 
- Container lichess-wdl-ui-run-ca7ff65eb8b3 Created 
-Checking formatting...
-
-All matched files use the correct format.
-Finished in 44ms on 3 files using 16 threads.

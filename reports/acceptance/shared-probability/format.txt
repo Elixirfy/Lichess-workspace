@@ -1,6 +1,0 @@
- Container lichess-wdl-ui-run-8127b29fb3d9 Creating 
- Container lichess-wdl-ui-run-8127b29fb3d9 Created 
-Checking formatting...
-
-All matched files use the correct format.
-Finished in 180ms on 19 files using 16 threads.

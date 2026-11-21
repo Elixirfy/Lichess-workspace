@@ -1,6 +1,0 @@
- Container lichess-wdl-ui-run-4f521ca7ae78 Creating 
- Container lichess-wdl-ui-run-4f521ca7ae78 Created 
-Checking formatting...
-
-All matched files use the correct format.
-Finished in 81ms on 1 files using 16 threads.
