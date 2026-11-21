@@ -1,3 +1,26 @@
+# Local/dev artifacts
+PROMPT.md
+HUONG-DAN-KHOI-DONG.md
+BAO-CAO-CHUC-NANG-WEBMCP.md
+script/
+.commandcode/
+
+# Local service distributions (large, not source)
+elasticsearch-*/
+elasticsearch-9.*/
+
+# lila-search: commit source, ignore build/runtime artifacts
+lila-search/target/
+lila-search/project/target/
+lila-search/project/project/target/
+lila-search/logs/
+lila-search/.bsp/
+lila-search/.idea/
+lila-search/.metals/
+lila-search/.vscode/
+
+# Prediction/commentary services + local infra
+infra/lila-docker/
 .venv/
 **/__pycache__/
 .pytest_cache/
@@ -33,6 +56,3 @@ services/prediction/.venv/
 # Local editor state
 /.metals/
 /.vscode/
-
-# Personal diagnostics and speech experiments (local only)
-/scripts/probe_worker_load.py
