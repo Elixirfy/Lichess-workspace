@@ -40,9 +40,9 @@ WebMCP trong thao tác tách ownership này.
 
 Phép so sánh Win% dùng 118 thế từ 24 ván, cùng một lần phân tích Stockfish
 15.1 trong 250 ms cho mỗi thế. Mốc tích hợp `9d92cdc` có 62/62 test liên quan
-đạt và Chromium bao phủ PvP, AI, người xem và review. Các số liệu cùng điều
-kiện đo nằm trong [task list](../../openspec/changes/live-win-probability/tasks.md).
-Các báo cáo acceptance có revision riêng lưu kết quả của từng mốc.
+đạt và Chromium bao phủ PvP, AI, người xem và review.
+Đây là kết quả lịch sử tại mốc tích hợp đã nêu, không phải phép đo mới
+trên source sau các thay đổi khác. Log chi tiết được lưu local.
 
 Human model còn thiên lệch prefix sample, ít hòa, tập tháng 10 từng được xem
 lại sau sửa lấy mẫu. [Model card](../../reports/human-v1/model-card.md) là nguồn
@@ -53,9 +53,8 @@ trên một bộ dữ liệu độc lập phù hợp với người chơi của 
 ## Cách chạy và tài liệu
 
 [README gốc](../../README.md), [chuẩn bị model browser](../../scripts/prepare-analysis-engine.mjs),
-[spec](../../openspec/changes/live-win-probability/specs/win-probability/spec.md),
 [patch](../../patches/lila-win-probability.patch),
-[review](../../reports/acceptance/replay-advantage/README.md),
+[mã thanh dọc review](../../lila/ui/analyse/src/advantage.ts),
 [bình luận đang có](../binh-luan-vien-tieng-viet.md).
 
 Voice input có sẵn của Lichess vẫn còn; phần mở rộng tiếng Việt Vosk/PhoWhisper,
