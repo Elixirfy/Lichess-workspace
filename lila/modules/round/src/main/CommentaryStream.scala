@@ -175,6 +175,9 @@ final class CommentaryStream(
             Bus.unsub[FinishGame](finishes)
 
 object CommentaryStream:
+  def supports(game: Game): Boolean =
+    game.variant.standard && !(game.hasAi && game.hasRule(_.noTakeback) && game.hasRule(_.noRematch))
+
   // While a player thinks: a first remark after 25 s, a second 30 s later, no more for that position.
   // A remark every few moves felt like chatter; most moves are made well within 25 s.
   val idleFirst = 25.seconds

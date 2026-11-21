@@ -76,7 +76,7 @@ final class JsonView(
     Json
       .obj(
         "commentary" -> (appConfig.getOptional[Boolean]("commentary.enabled").getOrElse(false) &&
-          game.variant == chess.variant.Standard && !player.isAi),
+          CommentaryStream.supports(game) && !player.isAi),
         "game" -> gameJsonView.baseWithChessDenorm(game, initialFen),
         "player" -> {
           commonPlayerJson(game, player, users(pov.color), flags) ++ Json

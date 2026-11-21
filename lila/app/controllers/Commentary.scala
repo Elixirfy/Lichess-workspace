@@ -73,7 +73,7 @@ final class Commentary(env: Env, ws: StandaloneWSClient)
     else
       Found(env.round.proxyRepo.game(gameId)): game =>
         val player = game.players.find(p => isMyPov(Pov(game, p)))
-        if game.variant != chess.variant.Standard || player.isEmpty then fuccess(Forbidden)
+        if !lila.round.CommentaryStream.supports(game) || player.isEmpty then fuccess(Forbidden)
         else
           val key = ctx.me.fold(s"anon:${game.id}:${player.get.id}")(_.userId.value)
           val takeover = Promise[JsObject]()
