@@ -1,12 +1,9 @@
 import json
-import re
 import sqlite3
 
-from fastapi.testclient import TestClient
 import pandas as pd
 import pytest
 
-from tilt.api.app import create_app
 from tilt.data.dataset import build_dataset, _split_player
 from tilt.features.features import compute
 from tilt.labels.labels import (CONSENT_VERSION, database, insert_label, pseudonym, private_id)
@@ -118,52 +115,6 @@ def test_time_split_purges_crossing_games_and_stays_chronological(corpus):
     assert frame[frame.split=='train'].end_upper_ms.max() < frame[frame.split=='validation'].start_ms.min()
 
 
-def csrf(html):
-    return re.search(r'name="csrf" value="([^"]+)"',html)[1]
-
-
-def login(client, user, mode='self_report', annotator=''):
-    from urllib.parse import parse_qs, urlparse
-    token = csrf(client.get('/identity').text)
-    response = client.post('/oauth/login', data={'csrf': token, 'mode': mode}, follow_redirects=False)
-    query = parse_qs(urlparse(response.headers['location']).query)
-    response = client.get('/oauth/callback', params={'code': user, 'state': query['state'][0]})
-    token = csrf(response.text)
-    if mode == 'self_report':
-        response = client.post('/consent', data={'csrf': token, 'agree': 'yes', 'username': 'ignored-forged-user'})
-    else:
-        response = client.post('/identity', data={'csrf': token, 'player': 'alice', 'annotator': annotator})
-    return token, response
-
-
-def test_app_consent_self_report_game_moment_session_and_expert(corpus, oauth_mock):
-    data,add = corpus
-    add(1)
-    compute(data,min_prior_games=1)
-    client = TestClient(create_app(data))
-    assert client.post('/consent',data={'agree':'yes'}).status_code == 403
-    token,response = login(client,'alice')
-    assert response.status_code == 200 and '<svg' in response.text
-    assert 'Bản nháp' in response.text
-    common = {'csrf':token,'game_id':'game0001','tilt_score':'6','frustration':'4'}
-    assert client.post('/rate',data={**common,'scope':'game'}).status_code == 200
-    assert client.post('/rate',data={**common,'scope':'moment','ply_start':'3','ply_end':'5'}).status_code == 200
-    assert client.post('/rate',data={**common,'scope':'moment','ply_start':'3','ply_end':'999'}).status_code == 400
-    sid = pd.read_parquet(data/'processed/features/sessions.parquet').query("player=='alice'").iloc[0].session_id
-    assert client.post('/rate',data={'csrf':token,'scope':'session','session_id':sid,'tilt_score':'3'}).status_code == 200
-    assert client.post('/rate',data={**common,'scope':'game','game_id':'someoneelse'}).status_code == 400
-    token,response = login(client,'expert-owner',mode='expert',annotator='forged-annotator')
-    assert response.status_code == 200
-    assert client.post('/rate',data={**common,'csrf':token,'scope':'game'}).status_code == 200
-    with database(data) as conn:
-        rows = conn.execute('SELECT * FROM labels ORDER BY label_id').fetchall()
-        assert len(rows) == 4
-        assert {r['scope'] for r in rows} == {'game','moment','session'}
-        assert rows[-1]['source'] == 'expert'
-        assert rows[-1]['annotator_id'] == pseudonym('expert-owner')
-        assert all(r['player_id']==pseudonym('alice') for r in rows)
-
-
 def test_session_report_does_not_absorb_later_games(corpus):
     data,add=corpus
     add(1,start=100000,end=300000)
@@ -180,121 +131,6 @@ def test_session_report_does_not_absorb_later_games(corpus):
     after=pd.read_parquet(data/'processed/out/labelled.parquet')
     assert after.iloc[0].game_count==1
     assert after.iloc[0].mean_cpl==before.iloc[0].mean_cpl
-
-
-def oauth_start(client, mode='self_report'):
-    from urllib.parse import parse_qs, urlparse
-    response = client.post('/oauth/login', data={'csrf': csrf(client.get('/identity').text), 'mode': mode}, follow_redirects=False)
-    assert response.status_code == 303
-    url = urlparse(response.headers['location'])
-    assert (url.scheme, url.netloc, url.path) == ('https', 'lichess.org', '/oauth')
-    return parse_qs(url.query, keep_blank_values=True)
-
-
-def test_oauth_pkce_server_side_state_single_use_and_no_secret_persistence(corpus, oauth_mock, caplog):
-    import base64
-    import hashlib
-    data, add = corpus
-    add(1)
-    client = TestClient(create_app(data, port=8765))
-    assert 'name="username"' not in client.get('/identity').text
-    query = oauth_start(client)
-    assert query['redirect_uri'] == ['http://127.0.0.1:8765/oauth/callback']
-    assert query['client_id'] == ['tilt-research-local'] and query['scope'] == ['']
-    assert query['response_type'] == ['code'] and query['code_challenge_method'] == ['S256']
-    cookie = client.cookies.get('tilt_session')
-    assert query['state'][0] not in cookie
-    assert client.get('/oauth/callback', params={'state': 'forged', 'code': 'alice'}).status_code == 403
-    assert not oauth_mock
-    assert client.get('/oauth/callback', params={'state': query['state'][0], 'code': 'alice'}).status_code == 403
-    query = oauth_start(client)
-    callback = client.get('/oauth/callback', params={'state': query['state'][0], 'code': 'alice'})
-    assert callback.status_code == 200
-    assert [c[0] for c in oauth_mock] == ['token', 'account', 'revoke']
-    posted = oauth_mock[0][1]['data']
-    assert posted['grant_type'] == 'authorization_code'
-    assert posted['redirect_uri'] == query['redirect_uri'][0]
-    assert posted['client_id'] == query['client_id'][0] and 'client_secret' not in posted
-    verifier = posted['code_verifier']
-    assert 43 <= len(verifier) <= 128 and verifier not in cookie
-    assert base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode() == query['code_challenge'][0]
-    assert oauth_mock[1][1]['headers'] == oauth_mock[2][1]['headers']
-    assert client.get('/oauth/callback', params={'state': query['state'][0], 'code': 'alice'}).status_code == 403
-    # Forged identity fields cannot grant Bob's consent or create a self-report.
-    token = csrf(client.get('/').text)
-    assert client.post('/identity', data={'csrf': token, 'username': 'bob', 'mode': 'self_report'}).status_code == 403
-    assert client.post('/consent', data={'csrf': token, 'agree': 'yes', 'username': 'bob'}).status_code == 200
-    with database(data) as conn:
-        assert [r[0] for r in conn.execute('SELECT player_id FROM consents')] == [pseudonym('alice')]
-    secrets_to_check = [verifier, 'never-persist-this-token-alice']
-    content = callback.text + repr(dict(client.cookies)) + caplog.text
-    for file in data.rglob('*'):
-        if file.is_file():
-            content += file.read_bytes().decode(errors='ignore')
-    assert all(secret not in content for secret in secrets_to_check)
-
-
-@pytest.mark.parametrize('failure', ['account', 'revoke'])
-def test_oauth_failure_revokes_and_never_authenticates(corpus, oauth_mock, monkeypatch, failure):
-    import requests
-    data, add = corpus
-    add(1)
-    client = TestClient(create_app(data))
-    query = oauth_start(client)
-    def fail(*a, **kw):
-        oauth_mock.append((failure + '_failed', kw))
-        raise requests.RequestException('provider error containing never-persist-this-token-alice')
-    monkeypatch.setattr(requests, 'get' if failure == 'account' else 'delete', fail)
-    response = client.get('/oauth/callback', params={'state': query['state'][0], 'code': 'alice'})
-    assert response.status_code == 502
-    assert any(c[0].startswith('revoke') for c in oauth_mock)
-    assert 'never-persist' not in response.text
-    token = csrf(client.get('/identity').text)
-    assert client.post('/consent', data={'csrf': token, 'agree': 'yes'}).status_code == 403
-    assert client.post('/rate', data={'csrf': token, 'scope': 'game', 'game_id': 'game0001', 'tilt_score': 6}).status_code == 403
-
-
-def test_oauth_requires_state_session_code_and_accepts_denial_safely(corpus, oauth_mock):
-    data, _ = corpus
-    client = TestClient(create_app(data))
-    query = oauth_start(client)
-    other = TestClient(create_app(data))
-    assert other.get('/oauth/callback', params={'state': query['state'][0], 'code': 'alice'}).status_code == 403
-    assert client.get('/oauth/callback', params={'state': query['state'][0], 'error': 'access_denied'}).status_code == 400
-    query = oauth_start(client)
-    assert client.get('/oauth/callback', params={'code': 'alice'}).status_code == 403
-    assert not oauth_mock
-
-
-def test_expert_selects_only_consented_players_and_uses_verified_annotator(corpus, oauth_mock):
-    data, add = corpus
-    add(1)
-    with database(data) as conn:
-        conn.execute('INSERT INTO consents VALUES (?,?,?)', (pseudonym('alice'), 'draft-research-v1', 1))
-    expert = TestClient(create_app(data))
-    token, response = login(expert, 'verified-expert', mode='expert')
-    assert response.status_code == 400  # legacy unverified consent is insufficient
-    token = csrf(expert.get('/identity').text)
-    assert expert.post('/consent', data={'csrf': token, 'agree': 'yes'}).status_code == 403
-    for user in ('alice', 'bob'):
-        participant = TestClient(create_app(data))
-        assert login(participant, user)[1].status_code == 200
-    page = expert.get('/identity')
-    assert '<option value="alice">' in page.text and '<option value="bob">' in page.text
-    assert 'verified-expert</option>' not in page.text
-    token = csrf(page.text)
-    assert expert.post('/identity', data={'csrf': token, 'player': 'unconsented'}).status_code == 400
-    for user in ('alice', 'bob'):
-        assert expert.post('/identity', data={'csrf': token, 'player': user, 'annotator': 'forged'}).status_code == 200
-        assert expert.post('/rate', data={'csrf': token, 'scope': 'game', 'game_id': 'game0001', 'tilt_score': 5}).status_code == 200
-    # Consent is rechecked at submission, not just when choosing the target.
-    with database(data) as conn:
-        conn.execute('DELETE FROM consents WHERE player_id=?', (pseudonym('bob'),))
-    assert expert.post('/rate', data={'csrf': token, 'scope': 'game', 'game_id': 'game0001', 'tilt_score': 5}).status_code == 400
-    with database(data) as conn:
-        rows = conn.execute('SELECT player_id,annotator_id FROM labels').fetchall()
-        assert {r[0] for r in rows} == {pseudonym('alice'), pseudonym('bob')}
-        assert {r[1] for r in rows} == {pseudonym('verified-expert')}
 
 
 def test_legacy_salt_fingerprint_migrates_without_losing_labels(tmp_path, monkeypatch):
@@ -362,22 +198,3 @@ def test_session_baseline_uses_cap_before_session_began(corpus):
     assert session.baseline_mean_cpl_games == 2
     recent = feature_games[(feature_games.player == 'alice') & feature_games.game_id.isin(['game0002', 'game0003'])]
     assert session.baseline_mean_cpl_median == recent.mean_cpl.median()
-
-
-def test_oauth_state_expires_before_token_exchange(corpus, oauth_mock, monkeypatch):
-    import time
-    data, _ = corpus
-    client = TestClient(create_app(data))
-    query = oauth_start(client)
-    monotonic = time.monotonic
-    monkeypatch.setattr('tilt.api.app.time.monotonic', lambda: monotonic() + 601)
-    assert client.get('/oauth/callback', params={'state': query['state'][0], 'code': 'alice'}).status_code == 403
-    assert not oauth_mock
-
-
-def test_non_ascii_forged_oauth_state_is_rejected(corpus, oauth_mock):
-    data, _ = corpus
-    client = TestClient(create_app(data))
-    oauth_start(client)
-    assert client.get('/oauth/callback', params={'state': 'giả-mạo', 'code': 'alice'}).status_code == 403
-    assert not oauth_mock

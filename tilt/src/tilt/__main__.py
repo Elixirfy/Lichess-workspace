@@ -48,8 +48,6 @@ def parser():
     feature.add_argument('--window', type=int, default=12)
     feature.add_argument('--min-prior-games', type=int, default=5)
     feature.add_argument('--session-gap-minutes', type=int, default=30)
-    app = sub.add_parser('label-app', help='Run the local Vietnamese human-labelling app')
-    app.add_argument('--port', type=int, default=8000)
     dataset = sub.add_parser('build-dataset', help='Join human labels, audit leakage, pseudonymise and split')
     dataset.add_argument('--time-validation-ms', type=int)
     dataset.add_argument('--time-test-ms', type=int)
@@ -105,11 +103,6 @@ def main(argv=None):
             case 'features':
                 from .features.features import compute
                 result = compute(args.data, args.window, args.min_prior_games, args.session_gap_minutes, args.max_history_games)
-            case 'label-app':
-                from .api.app import create_app
-                import uvicorn
-                uvicorn.run(create_app(args.data, port=args.port), host='127.0.0.1', port=args.port)
-                return
             case 'build-dataset':
                 from .data.dataset import build_dataset
                 result = build_dataset(args.data, args.time_validation_ms, args.time_test_ms)

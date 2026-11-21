@@ -9,8 +9,7 @@ The supplied round-2.5 run has 196 sampled players. Both saved train outcome
 gates fail: non-loss weak-TILT rates are about 3%, below the required 10%.
 Round 2.6 fixes clock missingness, adds an LF-provenance proxy audit to every
 variant, and narrows conflicting LF scopes. Revised real-data labels and metrics
-remain unmeasured; the saved outputs are preserved as evidence. See
-MODEL_STATUS.md for train-only diagnostics and estimated exclusions. Regenerate
+remain unmeasured; the saved outputs are preserved as evidence. Regenerate
 features, weak labels, training and evaluation on Colab. The failure banner stays
 until a new run actually passes the unchanged gate.
 

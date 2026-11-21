@@ -108,21 +108,14 @@ Baseline cấp ván cùng speed; baseline cấp nước còn cùng áp lực đ�
 
 Behavioral Deviation Score (BDS) = `10 × mean(min(10, abs(z)))` trên các z hợp lệ, khoảng 0–100; có số feature tham gia. BDS là mức khác thường so với bản thân, **không phải nhãn tilt**. Test thêm một ván tương lai và ván chồng thời gian chứng minh các hàng feature trước đó không đổi.
 
-## Thu nhãn con người
-
-Tạo salt riêng ổn định bằng một trình quản lý bí mật hoặc biến môi trường (không ghi salt vào source):
+## Salt
 
 ```bash
 export TILT_SALT="$(python -c 'import secrets; print(secrets.token_hex(32))')"
-# Lưu salt an toàn ngoài Git để các phiên sau dùng lại đúng giá trị.
-python -m tilt label-app --port 8000
+# Lưu salt an toàn ngoài Git (ví dụ ~/.tilt-salt) để các phiên sau dùng lại đúng giá trị.
 ```
 
-Mở `http://127.0.0.1:8000`. Quy trình: chọn vai trò → **Đăng nhập bằng Lichess** → đọc và đồng ý cho đúng tài khoản đã xác minh → xem tối đa 30 ván gần đây (kết quả, đối thủ, biểu đồ eval và hai đồng hồ) → gửi điểm tilt 0–10 cho cả ván hoặc một khoảng ply. Có thể gửi riêng cả hai. Đánh giá phiên là tùy chọn sau khi chạy `features`. Các câu Likert 1–5 đều có thể bỏ qua. Không tự điền điểm từ blunder, tốc độ hay chuỗi thua.
-
-[QUESTIONNAIRE.vi.md](docs/research/QUESTIONNAIRE.vi.md) là **bản nháp cần nhóm nghiên cứu thẩm định**, không phải thang đo đã kiểm định. Chuyên gia cũng đăng nhập bằng Lichess; `annotator_id` là HMAC của tài khoản chuyên gia đã xác minh. Sau đó chọn người chơi từ danh sách tài khoản đã có consent đúng phiên bản và có dữ liệu ván; app kiểm tra lại consent khi gửi điểm. Phiên bản consent mới là `draft-research-v2-oauth`: consent `draft-research-v1` từ ứng dụng nhập tên cũ không được dùng để mở quyền chấm; chủ tài khoản cần đăng nhập và đồng ý lại. Bản ghi/nhãn cũ vẫn được giữ với provenance ban đầu, không tự nâng thành đã xác minh. Không có ô nhập username/annotator tự do hay cờ bỏ qua xác thực. Đăng nhập xác minh quyền sở hữu tài khoản; nhóm nghiên cứu vẫn xét tư cách chuyên môn trong quy trình tuyển chuyên gia. `participant_verified` là nguồn có sẵn trong schema cho báo cáo đã được người tham gia xác nhận; không tự động nâng nhãn lên nguồn này. API Python `tilt.labels.insert_label` hỗ trợ nhập các báo cáo người thật đã được xác minh và có consent; không cung cấp rule labeller.
-
-SQLite `labels/labels.sqlite` lưu riêng player id giả danh, game/session/range, điểm, câu trả lời, nguồn, annotator, timestamp báo cáo UTC, delay (giây, thiếu khi không biết giờ kết thúc), và consent version. Mỗi lần gửi là một annotation độc lập; không ghi đè hoặc gộp ngầm các người chấm. Fingerprint là `HMAC-SHA256(salt, "tilt-salt-fingerprint-v1")`; fingerprint SHA256 cũ được chuyển đổi tự động khi mở bằng đúng salt, giữ nguyên nhãn/consent. Salt khác với fingerprint của kho nhãn sẽ bị từ chối. Dùng salt ngẫu nhiên mạnh và lưu an toàn. Đăng nhập dùng OAuth2 authorization code + PKCE S256, scope rỗng, client id ổn định `tilt-research-local`, không cần đăng ký app hoặc client secret. Callback cố định `http://127.0.0.1:<port>/oauth/callback` theo `--port`; dùng đúng `127.0.0.1` thay vì `localhost`. State ngẫu nhiên, dùng một lần, hết hạn sau 10 phút; verifier chỉ nằm trong bộ nhớ phiên phía server. Token chỉ dùng để đọc `/api/account`, được thu hồi ngay bằng DELETE `/api/token` kể cả khi đọc danh tính lỗi; không ghi token vào cookie, kho dữ liệu hay log. Lỗi xác minh/thu hồi không tạo phiên đăng nhập. Cookie HttpOnly/SameSite=Lax chỉ chứa mã phiên ngẫu nhiên, hết hạn sau 8 giờ; khởi động lại server cần đăng nhập lại. Form có CSRF; server chỉ bind loopback. Đây là công cụ nghiên cứu cục bộ, chưa phải dịch vụ tuyển người qua Internet.
+Username, game id và session id được giả danh bằng HMAC-SHA256 với salt này trước khi xuất. Nhãn người thật (nếu có) được nhập qua `tilt.labels.insert_label` vào `raw/labels/labels.sqlite`; kho nhãn từ chối salt khác với salt đã dùng khi tạo.
 
 ## Xuất dataset
 
@@ -157,16 +150,14 @@ tilt/
     labels/              # labels (nhãn người), weak_labels
     evaluation/          # evaluate
     workers/             # lila_worker
-    api/                 # app (web thu nhãn)
-  templates/             # HTML của web thu nhãn
   data/{raw,processed,external}/   # dữ liệu riêng tư, git-ignore
-  tests/{unit,integration,regression}/
-  benchmarks/            # features_bench.py, RESULTS.md
-  scripts/start-lichess.sh
+  tests/{unit,integration}/
+  scripts/               # start-lichess.sh, fishnet-local.py
+  reports/               # báo cáo tổng kết, đặc tả triển khai, bộ luật v3
   docs/{architecture,research,guides}/
 ```
 
-`normalize.py` nằm trong `data/` vì nó chuyển response API/PGN thành schema lưu trữ và được `collect` gọi trực tiếp. `train.py` nằm trong `core/` cạnh `score.py`. `api/app.py` là web thu nhãn (FastAPI). Gói cài ở chế độ editable (`pip install -e`) vì `templates/` và `data/` nằm ngoài `src/`.
+`normalize.py` nằm trong `data/` vì nó chuyển response API/PGN thành schema lưu trữ và được `collect` gọi trực tiếp. `train.py` nằm trong `core/` cạnh `score.py`. Gói cài ở chế độ editable (`pip install -e`) vì `data/` nằm ngoài `src/`.
 
 ## Dữ liệu và quyền riêng tư
 
@@ -214,14 +205,9 @@ TILT_SALT="$(cat ~/.tilt-salt)" tilt/.venv/bin/python -m tilt lila-worker   # --
 ## Kiểm thử
 
 ```bash
-python -m pytest tilt/tests -q        # hoặc tilt/tests/unit, integration, regression
-python tilt/benchmarks/features_bench.py --games 250
-python tilt/benchmarks/features_bench.py --games 500
-python tilt/benchmarks/features_bench.py --games 1000
+python -m pytest tilt/tests -q        # hoặc tilt/tests/unit, tilt/tests/integration
 ```
 
-Test chặn toàn bộ HTTP, dùng NDJSON/PGN tổng hợp nhỏ (tự nén zstd trong test), kiểm tra công thức port, clock/increment/mate zero, retry 429/resume, min-games/sampling, no-leakage, labels, app và split. Test engine thực chạy Stockfish với 1000 node trên vài vị trí cục bộ; bỏ qua riêng test đó nếu không có binary. Không test nào tải dump thật. Test mock các endpoint token/account/revoke của OAuth, kiểm tra state/PKCE/quyền consent/chuyên gia, đối chiếu baseline với thuật toán tham chiếu, cap theo end-time, kiểm tra mọi file xuất và staging/disk guard. Test hiệu năng chạy 300 ván tổng hợp × 80 ply với ngưỡng 20 giây; benchmark mặc định 1000 ván, eval/clock tổng hợp, không mạng/Stockfish, đo riêng `compute` gồm đọc/ghi bảng feature (không tính tạo dữ liệu). `requirements-lock.txt` ghi phiên bản môi trường đã kiểm tra.
-
-Kết quả benchmark của lượt sửa này: [benchmarks/RESULTS.md](benchmarks/RESULTS.md).
+Test chặn toàn bộ HTTP, dùng NDJSON/PGN tổng hợp nhỏ (tự nén zstd trong test), kiểm tra công thức port, clock/increment/mate zero, retry 429/resume, min-games/sampling, no-leakage, kho nhãn, split, bộ luật v3, worker lila và chấm điểm trực tiếp. Test engine thực chạy Stockfish với 1000 node trên vài vị trí cục bộ; bỏ qua riêng test đó nếu không có binary. Không test nào tải dump thật. `requirements-lock.txt` ghi phiên bản môi trường đã kiểm tra.
 
 Mã port công thức tham chiếu đường dẫn Lichess ngay cạnh hàm; giữ giấy phép AGPL của nguồn (LICENSE/NOTICE). Không có commit tự động. Ngoài `tilt/`, chỉ phần tích hợp ở trên chạm vào `lila/`.

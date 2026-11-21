@@ -433,9 +433,7 @@ Mã nguồn chính:
 | Chấm trực tiếp, worker | `tilt/src/tilt/core/live_v3.py`, `tilt/src/tilt/workers/lila_worker.py` |
 | lila | `lila/modules/tilt/` (`TiltGame`, `TiltBanner`, `TiltText`, `TiltApi`, `ui/TiltUi`), `lila/app/controllers/Tilt.scala` |
 
-Số liệu chi tiết của từng bước nằm trong `tilt/reports/`:
+Tài liệu chi tiết trong `tilt/reports/`:
 - `label_v3_preregistration.md`: định nghĩa luật và quy tắc đánh giá;
-- `label_v3_S4.md`: kiểm định;
-- `label_v3_S5.md`: đánh giá cuối;
 - `label_v3_deployment.md`: đặc tả triển khai;
-- `label_v3_I1.md`, `label_v3_I2_I3.md`: worker, lila, kiểm thử.
+- `final_model_comparison.md`: so sánh các mô hình trước v3, gồm P3-B đang chạy ẩn.

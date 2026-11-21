@@ -1,7 +1,0 @@
-{% extends "base.html" %}{% block content %}
-<p>Tài khoản đã xác minh: {{ account }}. Đồng ý chỉ được ghi cho tài khoản này.</p>
-<p>Nghiên cứu xem xét cảm xúc và hành vi chơi cờ. Tham gia là tự nguyện; bạn có thể bỏ qua câu hỏi hoặc dừng bất cứ lúc nào. Điểm tilt do con người tự báo cáo hoặc đánh giá, không suy ra tự động từ lỗi cờ.</p>
-<p>Ván cờ công khai, tên tài khoản, thời gian chơi và câu trả lời có thể là dữ liệu cá nhân. Ứng dụng lưu dữ liệu cục bộ, dùng mã băm có salt khi xuất bộ dữ liệu. Mã băm không đảm bảo ẩn danh tuyệt đối. Nhóm nghiên cứu phải xác nhận mục đích, người truy cập, thời hạn lưu và cách rút dữ liệu trước khi tuyển người tham gia.</p>
-<p>Phiên bản đồng ý: {{ version }}. Không dùng bảng hỏi này để chẩn đoán sức khỏe.</p>
-<form method="post" action="/consent" class="panel"><input type="hidden" name="csrf" value="{{ csrf }}"><label><input type="checkbox" name="agree" value="yes" required> Tôi đã đọc và đồng ý tham gia theo bản nháp này.</label><button>Tiếp tục</button></form>
-{% endblock %}
