@@ -34,3 +34,21 @@ services/prediction/.venv/
 # Local editor state
 /.metals/
 /.vscode/
+
+# Personal diagnostics and speech experiments (local only)
+/scripts/probe_worker_load.py
+/scripts/tests/test_voice_cascade.py
+/scripts/tests/test_voice_tuning_report.py
+/scripts/tests/voice-recording-set.test.mjs
+/scripts/tests/voice-setup-request.test.mjs
+/scripts/voice-recorded-e2e.mjs
+/scripts/voice-recorder-smoke.mjs
+/scripts/voice-recording-set.mjs
+/scripts/voice-setup-request.mjs
+/scripts/voice_benchmark_report.py
+/scripts/voice_cascade.py
+/scripts/voice_cascade_benchmark.py
+/scripts/voice_challenge.py
+/scripts/voice_phowhisper_tune.py
+/scripts/voice_tuning_report.py
+/scripts/voice_vad_probe.py
