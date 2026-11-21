@@ -1,6 +1,6 @@
 # Pipeline dữ liệu tilt và weak-label model — mục 2.3–2.6
 
-Gói Python 3.12 thu thập ván cờ chuẩn, tạo đặc trưng hành vi và thu nhãn **do con người cung cấp**. Mục 2.4–2.6 bổ sung pipeline **weak-label model** riêng: các nhãn suy luận là proxy hành vi, **không đo cảm xúc** và không ghi vào kho nhãn con người. Xem [WEAK_LABELS.md](WEAK_LABELS.md) cho ngưỡng, anti-circularity, mô hình, đánh giá và giới hạn.
+Gói Python 3.12 thu thập ván cờ chuẩn, tạo đặc trưng hành vi và thu nhãn **do con người cung cấp**. Mục 2.4–2.6 bổ sung pipeline **weak-label model** riêng: các nhãn suy luận là proxy hành vi, **không đo cảm xúc** và không ghi vào kho nhãn con người. Xem [WEAK_LABELS.md](docs/research/WEAK_LABELS.md) cho ngưỡng, anti-circularity, mô hình, đánh giá và giới hạn.
 
 ```bash
 export TILT_SALT=$(cat ~/.tilt-salt)
