@@ -1,218 +1,116 @@
-# Chức năng bình luận viên tiếng Việt
+# Bình luận viên tiếng Việt
 
-Tài liệu mô tả cấu trúc và cách vận hành phiên bản hiện tại trong workspace
-Lichess local. Code và tài liệu được xây dựng với sự hỗ trợ của Codex.
+Bình luận viên tiếng Việt đọc lời bình trực tiếp khi người chơi tham gia ván cờ tiêu chuẩn. Lời bình dựa trên dữ kiện của ván cờ, các mẫu câu tiếng Việt viết sẵn và, với một số nhận xét về nước đi, phân tích ngắn của Stockfish. Dịch vụ xử lý lời bình và âm thanh độc lập với luồng xử lý nước đi của Lila.
 
-## Trải nghiệm người dùng
+## Sử dụng trong ván cờ
 
-Trong ván cờ tiêu chuẩn, người chơi bật **Bình luận tiếng Việt** ở khung ván đấu.
-Chức năng hỗ trợ tài khoản đăng nhập và khách có cookie người chơi. Người xem
-không được mở luồng bình luận của người chơi.
+Trong trang ván đang chơi, chọn **Bật bình luận tiếng Việt** rồi chọn tên ở mục **Giọng đọc**. Tính năng dành cho người chơi được Lila xác thực qua tài khoản hoặc phiên khách. Người xem và ván luyện tập AI Coach nằm ngoài phạm vi hỗ trợ.
 
-Bộ chọn dùng trực tiếp tên bình luận viên:
+| Giọng đọc | ID |
+|---|---|
+| Mạnh Dũng (mặc định) | `vieneu-manh-dung` |
+| Hữu Quân | `vieneu-huu-quan` |
+| Anh Khôi | `vieneu-anh-khoi` |
 
-| Tên | ID dùng trong hệ thống | Tốc độ nói hiệu lực với cấu hình hiện tại |
-|---|---|---|
-| Mạnh Dũng — mặc định | `vieneu-manh-dung` | 1,20 |
-| Hữu Quân | `vieneu-huu-quan` | 1,20 |
-| Anh Khôi | `vieneu-anh-khoi` | 1,38 |
+Trình duyệt lưu lựa chọn giọng. Khi đổi giọng, trình duyệt kết nối lại luồng sự kiện theo lựa chọn mới và phát câu chào mẫu. Phụ đề hiển thị lời bình và có thể kèm nhãn nước đi hoặc **Đang chờ**. Âm thanh dùng mức âm lượng của trang. Nếu dịch vụ trả lời bình hợp lệ mà thiếu âm thanh, giao diện có thể hiển thị phụ đề.
 
-Lựa chọn được lưu trong trình duyệt. Nếu giá trị đã lưu không còn hợp lệ,
-giao diện dùng Mạnh Dũng. Backend và frontend cùng kiểm tra danh sách ID.
-
-Khi chọn người mới, lời đang phát dừng lại và trình duyệt phát câu chào của
-giọng đó. Ba câu chào là:
-
-- “Xin chào, tôi là Mạnh Dũng, sẽ cùng bạn tận hưởng ván cờ này.”
-- “Xin chào, tôi là Hữu Quân, sẽ cùng bạn tận hưởng ván cờ này.”
-- “Xin chào, tôi là Anh Khôi, sẽ cùng bạn tận hưởng ván cờ này.”
-
-Lời bình có phụ đề riêng. Âm lượng theo âm lượng trang. Nếu tổng hợp giọng
-thất bại và kết quả còn hợp lệ, giao diện vẫn có thể hiển thị phụ đề.
-
-## Kiến trúc
+## Luồng xử lý
 
 ```mermaid
-flowchart LR
-    G[Trạng thái ván cờ trên Lila] --> S[Luồng sự kiện bình luận Scala]
-    S --> W[Python commentary worker]
-    W --> F[python-chess và Stockfish]
-    F --> C[Chọn và ghép câu tiếng Việt]
-    C --> N[Subprocess VieNeu v3 Nano]
-    N --> W
-    W --> S
-    S --> B[Frontend: SSE, phụ đề và phát WAV]
+sequenceDiagram
+    participant B as Trình duyệt
+    participant L as Lila
+    participant P as Worker Python
+    participant N as VieNeu v3 Nano
+    B->>L: GET /commentary/{gameId}?voice={id}
+    L->>L: Kiểm tra quyền và đăng ký sự kiện ván cờ
+    L-->>B: SSE state
+    L->>P: POST /comment với snapshot của ván
+    P->>P: Kiểm tra lịch sử, trích xuất dữ kiện và soạn lời
+    P->>N: Văn bản đã chuẩn hóa và ID giọng
+    N-->>P: WAV mã hóa base64
+    P-->>L: Kết quả kèm định danh công việc
+    L-->>B: SSE kết quả còn hiệu lực
+    B->>B: Kiểm tra thế cờ, hiện phụ đề và phát âm thanh
 ```
 
-Lila giữ trạng thái ván cờ chính thức. Phân tích và tạo âm thanh chạy ở worker
-riêng, không được chờ trong vòng xử lý nước đi. Stockfish dùng để máy chơi cờ
-và Stockfish dùng trong worker bình luận là hai luồng công việc riêng.
+### 1. Lila nhận sự kiện và gửi snapshot
 
-### 1. Nhận sự kiện và tạo công việc
+`Commentary.stream` kiểm tra tính năng, ID giọng và quyền của người chơi trước khi mở kết nối SSE. `CommentaryStream.apply` đăng ký sự kiện nước đi, hoàn tác và kết thúc, sau đó lấy trạng thái mới nhất của ván từ Lila. Mỗi công việc mang ID yêu cầu, revision và thời hạn riêng. Snapshot gồm FEN ban đầu, lịch sử SAN đầy đủ, FEN hiện tại, trạng thái ván và bên thắng nếu có. Bình luận lúc chờ dùng thêm dữ liệu đồng hồ khi ván có đồng hồ.
 
-`CommentaryStream.scala` đăng ký sự kiện nước đi, hoàn tác và kết thúc ván.
-Mỗi trạng thái có request ID, revision, thời điểm nhận và hạn sử dụng. Snapshot
-gửi tới worker gồm game ID, FEN ban đầu, toàn bộ lịch sử SAN, FEN hiện tại,
-trạng thái và kết quả chính thức; các câu lúc chờ có thêm thông tin đồng hồ.
+Một kết nối xử lý tối đa một công việc cùng một trạng thái mới nhất đang chờ. `CommentaryRequests.apply` chia sẻ kết quả giữa các kết nối nếu dữ liệu công việc và giọng trùng nhau. Khi không còn kết nối nào cần kết quả đó, `cancelRequest` gửi yêu cầu hủy đến worker. Hoàn tác cập nhật thế cờ và loại công việc cũ. Khi kết nối lại giữa ván, trạng thái hiện tại là điểm bắt đầu để nhận sự kiện mới.
 
-Lịch sử đầy đủ giúp dựng lại thế cờ, quyền nhập thành, bắt tốt qua đường và
-các tình huống lặp. Hệ thống không dùng số ply làm định danh duy nhất của thế cờ.
-Một subscription chỉ giữ công việc đang xử lý và trạng thái mới nhất đang chờ.
+### 2. Worker dựng lại thế cờ và tạo lời bình
 
-`CommentaryRequests.scala` chia sẻ công việc khi các subscriber có cùng snapshot
-và cùng lựa chọn giọng. Mỗi subscriber vẫn giữ định danh riêng. Khi subscriber
-cuối cùng rời công việc, Lila gửi yêu cầu hủy cho worker.
+`core.extract` dùng `chess_history.replay` để phát lại lịch sử SAN bằng python-chess và đối chiếu với FEN hiện tại. Lịch sử đầy đủ giữ được thông tin về lặp lại thế cờ. Dữ kiện nước đi bao gồm quân di chuyển, bắt quân, chiếu, nhập thành và phong cấp.
 
-### 2. Trích xuất dữ kiện và tạo lời bình
+`Worker.process` có thể gọi `Worker.analyse` để phân tích thế cờ trước và sau nước đi. Mặc định Stockfish dùng một luồng, Hash 16 MiB và ngân sách tìm kiếm cơ bản 100 ms mỗi thế cờ. Một số tình huống, như đòn chĩa có chiếu hoặc điểm đánh giá biến động lớn, được kiểm tra thêm. Khi engine không sẵn sàng, worker vẫn có thể soạn lời dựa trên dữ kiện của bàn cờ. Điểm đánh giá và biến chính của engine được giữ ở phía server.
 
-`core.py` và `chess_history.py` dùng python-chess để kiểm tra snapshot, dựng bàn
-cờ và xác định các sự kiện: quân di chuyển, bắt quân, chiếu, nhập thành, phong
-cấp, trạng thái kết thúc và các dữ kiện vị trí liên quan.
+`narrative.compose` ghép mô tả sự kiện với mẫu câu từ `phrases.py` và nhận xét theo quy tắc từ `insight.py`. Bộ chọn xét các câu gần đây để giảm lặp và ưu tiên câu ngắn khi hai nước liên tiếp cách nhau dưới 3,5 giây. Trước khi gửi sang bộ tổng hợp giọng, `core.speech_text` chuẩn hóa ký hiệu và số, chẳng hạn chuyển `f3` thành “ép ba”.
 
-Với lời bình nước đi, worker có thể phân tích thế cờ trước và sau bằng Stockfish.
-Cấu hình mặc định dùng một luồng, Hash 16 MiB và ngân sách tìm kiếm cơ bản
-100 ms mỗi thế cờ. Một số tình huống nhạy cảm được kiểm tra sâu hơn. Khi engine
-không sẵn sàng, hệ thống vẫn có phần mô tả dựa trên dữ kiện bàn cờ.
-
-Nội dung được chọn từ kho câu viết sẵn `phrases.py`, phiên bản `vi-prebuilt-2`.
-`insight.py` cung cấp các mẫu nhận xét; `narrative.py` ghép phần mô tả sự kiện
-với nhận xét phù hợp. Không dùng mô hình ngôn ngữ để tự viết lời bình.
-
-`Recent` lưu tối đa 16 mục lời bình gần đây cho mỗi ván, tối đa 64 ván trong
-RAM. Bộ chọn so sánh cả khung câu để hạn chế lặp cấu trúc, không chỉ lặp nguyên
-văn. Khi các nước đi cách nhau dưới 3,5 giây, ưu tiên câu ngắn và giảm lời dẫn.
-
-Lời bình gồm bốn loại: chào đầu ván, nước đi, lúc chờ và kết thúc. Câu lúc chờ
-bắt đầu sau 10 giây, rồi cách nhau 15 giây, tối đa bốn lần cho một thế cờ; chúng
-không chạy phân tích Stockfish mới. Kết quả chính thức của ván quyết định lời
-kết thúc. Các nhận xét dựa trên engine vẫn là heuristic, có thể có sai sót.
-
-Trước khi tổng hợp âm thanh, `speech_text` chuyển cách viết dành cho phụ đề
-sang cách đọc: ví dụ `f3` thành “ép ba”, đồng thời chuẩn hóa số và thuật ngữ.
-
-### 3. Tổng hợp giọng bằng VieNeu v3 Nano
-
-`nano_worker.py` chạy bằng Python trong `.venv-nano`, tách khỏi môi trường HTTP
-worker. Model được nạp một lần, giữ trong tiến trình để phục vụ nhiều câu.
-Giao tiếp giữa hai tiến trình là JSON từng dòng: văn bản và ID giọng ở đầu vào,
-WAV mã hóa base64 ở đầu ra.
-
-Model hoạt động trên CPU qua ONNX Runtime, xuất mono PCM 16-bit, 24 kHz. Cấu
-hình vận hành dùng 16 bước và một luồng CPU. Tốc độ nền là 1,2; hệ số riêng của
-Anh Khôi là 1,15 nên tốc độ hiệu lực là 1,38. Hai giọng còn lại giữ hệ số 1,0.
-Giới hạn tốc độ hiệu lực là 2,0. Tham số tốc độ tác động trong model, không đổi
-tần số phát WAV.
-
-`nano_audio.py` chuyển float sang PCM. Với đỉnh vượt 0,9 toàn thang, nó hạ biên
-độ theo tỉ lệ để giữ hình dạng tín hiệu, không cắt đỉnh phẳng và không khuếch
-đại âm thanh nhỏ. Xử lý này không bảo đảm loại bỏ các hiện tượng do model tạo ra.
-
-Model và dependency được cố định để có thể dựng lại:
-
-- SDK: `vieneu==3.8.4`, dependency trong `requirements-vieneu.lock`.
-- Model: `pnnbao-ump/VieNeu-TTS-v3-Nano`, revision
-  `aba295eb96a6fa6003ebe417cc1f2802a7adc1dc`.
-- Sáu tệp suy luận có URL và SHA256 trong `nano-assets.json`.
-- Model được khai báo theo Apache-2.0; không dùng voice cloning cho ba preset.
-
-### 4. Hàng chờ, cache và dữ liệu lỗi thời
-
-Worker chỉ giữ tối đa một câu Nano đang tổng hợp. Nếu request bị hủy khi còn
-chờ câu đang chạy, nó không để lại một câu tổng hợp lỗi thời trong hàng chờ.
-Câu đang chạy có thể hoàn tất để tránh phải nạp lại model. Các request giống
-nhau dùng chung kết quả; cache tối đa 64 mục theo cặp giọng và văn bản trong RAM.
-Cache mất khi worker khởi động lại.
-
-Mỗi công việc bình luận có hạn 12 giây; tổng hợp Nano có deadline mặc định
-7 giây. Worker không có hàng đợi HTTP/UCI không giới hạn; request mới chỉ chờ
-worker bận trong một khoảng hữu hạn trước khi nhận lỗi bận.
-
-Lila chỉ gửi kết quả còn thuộc trạng thái mới nhất. Frontend kiểm tra lại game,
-subscription, request, revision, thế cờ, trạng thái và hạn sử dụng cả khi nhận
-kết quả lẫn trước khi bắt đầu phát. Lời bình Nano đến muộn hơn 4,5 giây bị loại
-khi bắt đầu một lượt đọc mới. Vì vậy chơi nhanh có thể bỏ qua lời bình một số
-nước; hệ thống không cố đọc lại toàn bộ backlog.
-
-## Giao diện dịch vụ và bảo vệ truy cập
-
-| Điểm truy cập | Vai trò |
+| Loại lời bình | Khi nào được tạo |
 |---|---|
-| Lila `GET /commentary/{gameId}?voice={id}` | SSE cho người chơi đã được kiểm tra quyền |
-| Lila `GET /commentary/voice/{id}` | Câu chào WAV của giọng trong whitelist |
-| Worker `GET /health` | Trạng thái engine, backend giọng và danh sách giọng |
-| Worker `GET /sample/{id}` | Tổng hợp hoặc đọc cache câu chào |
-| Worker `POST /comment` | Xử lý snapshot ván cờ |
-| Worker `POST /cancel/{requestId}` | Hủy công việc lỗi thời |
+| Mở đầu | Khi mở luồng lúc ván đã bắt đầu và chưa có nước đi. |
+| Nước đi | Khi Lila nhận trạng thái mới sau một nước đi. |
+| Lúc chờ | Khi ván đang diễn ra, sau khoảng 25 giây không có cập nhật. Có thể thêm một câu sau 30 giây, tối đa hai câu cho một thế cờ trong mỗi kết nối. Dữ kiện lấy từ bàn cờ, lịch sử và đồng hồ. |
+| Kết thúc | Khi worker nhận trạng thái kết thúc. Lời kết dùng dữ kiện bàn cờ, trạng thái và kết quả từ Lila. |
 
-Worker chỉ bind `127.0.0.1:9666`; các route của worker yêu cầu bearer token
-`BLV_TOKEN`. Token nằm ở cấu hình riêng phía server, không đưa xuống trình duyệt.
-Lila không chuyển điểm engine/PV trong `facts` tới người chơi. Trình duyệt chỉ
-nhận phần phục vụ hiển thị và phát lời bình.
+### 3. Tổng hợp giọng và phát kết quả
 
-Stack này dành cho phát triển local. Khả năng truy cập bằng IP WSL không đồng
-nghĩa đã có cấu hình phù hợp cho public deployment.
+Khi đặt `BLV_TTS_PROVIDER=vieneu`, `nano_worker.py` nạp VieNeu v3 Nano trong tiến trình Python riêng và tổng hợp trên CPU qua ONNX Runtime. Tiến trình nhận văn bản và ID giọng bằng JSON từng dòng, trả WAV mono PCM 16-bit ở 24 kHz. Với tốc độ nền mặc định 1,2, Mạnh Dũng và Hữu Quân dùng mức 1,2, còn Anh Khôi dùng mức 1,38. Tệp khóa dependency và manifest model cố định phiên bản SDK, revision và SHA-256 của các tệp model. [Dependency của Nano](../../services/commentary/requirements-vieneu.lock) · [Manifest model](../../services/commentary/nano-assets.json)
 
-## Cấu hình và vận hành
+Worker Nano xử lý một lượt tổng hợp tại một thời điểm và lưu tối đa 64 kết quả âm thanh trong RAM theo cặp giọng và văn bản. Một lượt tổng hợp đang chạy có thể hoàn tất sau khi yêu cầu bị hủy để tái sử dụng kết quả. Lila chỉ chuyển tiếp kết quả còn hiệu lực cho trạng thái mới nhất. Hạn của công việc Lila là 12 giây, còn giới hạn chờ tổng hợp Nano mặc định là 7 giây.
 
-Launcher `./lichess-local` đọc `services/commentary/.env`; biến môi trường shell
-được ưu tiên. Không commit `.env` hay chép token thật vào tài liệu. Các mục Nano:
+`CommentaryCtrl` kiểm tra định danh ván, kết nối, công việc, revision, hạn sử dụng và thế cờ trước khi phát. Với Nano, lúc chưa có câu nào đang phát, kết quả đến sau hơn 4,5 giây kể từ khi được tiếp nhận ở server bị bỏ qua. Câu đã phát có thể đọc hết khi có nước mới. Trong thời gian đó giao diện chỉ giữ kết quả mới nhất đang chờ và kiểm tra lại trước khi phát. Khi chơi nhanh, một số nước có thể được bỏ qua.
 
-```dotenv
-BLV_TTS_PROVIDER=vieneu
-BLV_NANO_DIR=/absolute/path/to/pinned-nano-model
-BLV_NANO_PYTHON=/absolute/path/to/services/commentary/.venv-nano/bin/python
-BLV_NANO_STEPS=16
-BLV_NANO_THREADS=1
-BLV_NANO_SPEED=1.2
-BLV_NANO_TIMEOUT=7
-BLV_ENGINE_MS=100
-```
+## Giao diện tích hợp
 
-Đường dẫn Python phải giữ nguyên executable của virtualenv; không thay nó bằng
-đích symlink Python hệ thống. Hướng dẫn cài dependency nằm trong README dịch vụ.
+| Bên phục vụ | Route | Chức năng |
+|---|---|---|
+| Lila | `GET /commentary/{gameId}?voice={id}` | Mở luồng SSE của người chơi. Client cần truyền một ID hiện hành trong bảng giọng. Route đang có giá trị mặc định cũ `piper-vais1000`, nên bỏ tham số sẽ nhận HTTP 400 khi tính năng đã bật và có token. |
+| Lila | `GET /commentary/voice/{id}` | Câu chào mẫu dạng WAV cho một ID hợp lệ. |
+| Worker | `GET /health` | Báo trạng thái engine, backend giọng, danh sách giọng và trạng thái sẵn sàng. |
+| Worker | `GET /sample/{voice}` | Lấy WAV của câu chào. |
+| Worker | `POST /comment` | Nhận snapshot và trả lời bình, có thể kèm WAV mã hóa base64. |
+| Worker | `POST /cancel/{requestId}` | Hủy công việc khi thế cờ đổi hoặc kết nối đóng. |
 
-Khi đổi code frontend hoặc whitelist Scala, từ `lila/` chạy:
+Tất cả route của worker yêu cầu bearer token dùng chung với Lila. Trình duyệt chỉ gọi Lila. Lila loại trường `facts` khỏi kết quả SSE trước khi gửi cho người chơi.
+
+## Cấu hình phát triển
+
+Cài Lila, Stockfish, worker Python và model Nano theo hướng dẫn của dự án. Tạo cấu hình từ `.env.example` trong thư mục dịch vụ và nạp các biến vào môi trường của worker trước khi chạy. Các biến chính là `BLV_TOKEN`, `BLV_STOCKFISH`, `BLV_TTS_PROVIDER=vieneu` và `BLV_NANO_DIR`. Nếu đặt môi trường Nano ở vị trí khác mặc định, trỏ `BLV_NANO_PYTHON` đến executable của môi trường đó. Worker dùng Piper khi giữ mặc định `auto`, vì vậy cấu hình Nano cần chọn `vieneu` tường minh. [Hướng dẫn cài dự án](../../README.md#cài-đặt-và-chạy) · [Hướng dẫn cài worker và model](../../services/commentary/README.md#cài-worker-và-model) · [Cấu hình mẫu](../../services/commentary/.env.example)
+
+Ví dụ, khi Lila và worker chạy trên cùng máy, khởi động worker từ `services/commentary/` sau khi đã nạp cấu hình môi trường.
 
 ```sh
-./ui/build
-./lila.sh --server --batch stage
+.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 9666 --workers 1
 ```
 
-Full UI build **không kèm tên package** mới tạo asset manifest để server tìm
-được bundle mới. Build riêng một package không đủ cho việc cập nhật trang chạy.
+Trong `lila/conf/application.conf`, bật bình luận và trỏ đến worker. Nạp cùng giá trị `BLV_TOKEN` vào môi trường của Lila.
 
-Sau khi build, từ gốc workspace:
-
-```sh
-./lichess-local stop
-./lichess-local --no-build
+```hocon
+commentary.enabled = true
+commentary.endpoint = "http://127.0.0.1:9666"
+commentary.token = ${?BLV_TOKEN}
 ```
 
-Mở URL launcher in ra; hiện tại là `http://172.31.8.156:9663`. IP WSL có thể
-thay đổi giữa các phiên. Tạo ván tiêu chuẩn, bật bình luận và chọn từng tên.
-Log nằm trong `~/.local/state/lichess-main/`; đổi cấu hình cần khởi động lại.
+Giữ worker trên giao diện nội bộ và token trong cấu hình phía server. Khi thay đổi mã UI, chạy đầy đủ `./ui/build` từ `lila/` để cập nhật asset manifest. Khi thay đổi Scala hoặc route, build lại Lila theo hướng dẫn của dự án rồi khởi động lại tiến trình liên quan. [Hướng dẫn build](../../README.md#cài-đặt-và-chạy)
 
-## Các tệp chính và kiểm tra
+## Mã nguồn chính
 
-| Tệp | Trách nhiệm |
+| Phần | Điểm vào |
 |---|---|
-| `lila/app/controllers/Commentary.scala` | Quyền truy cập, whitelist và HTTP proxy |
-| `lila/modules/round/src/main/CommentaryStream.scala` | Sự kiện ván, SSE, revision và công việc mới nhất |
-| `lila/modules/round/src/main/CommentaryRequests.scala` | Chia sẻ công việc giữa subscriber |
-| `lila/ui/round/src/commentary.ts` | Chọn giọng, câu chào, kiểm tra trạng thái và phát âm thanh |
-| `lila/ui/round/src/view/commentary.ts` | Khung bình luận, phụ đề, bộ chọn tên |
-| `services/commentary/app.py` | API, engine, hàng chờ và cache |
-| `core.py`, `chess_history.py` | Dữ kiện và kiểm tra lịch sử thế cờ |
-| `phrases.py`, `narrative.py`, `insight.py` | Mẫu câu, chọn nhận xét và ghép lời bình |
-| `voices.py`, `nano_worker.py`, `nano_audio.py` | Preset, lời chào, tốc độ và âm thanh |
-| `scripts/local.py` | Khởi động, readiness, log và dừng các tiến trình được quản lý |
+| Điều kiện hiển thị và quyền truy cập | [`JsonView.scala`](../../lila/modules/round/src/main/JsonView.scala) và [`Commentary.scala`](../../lila/app/controllers/Commentary.scala) |
+| Sự kiện ván, snapshot và chia sẻ công việc | [`CommentaryStream.scala`](../../lila/modules/round/src/main/CommentaryStream.scala) và [`CommentaryRequests.scala`](../../lila/modules/round/src/main/CommentaryRequests.scala) |
+| Chọn giọng, phụ đề và phát âm thanh | [`commentary.ts`](../../lila/ui/round/src/commentary.ts) và [`view/commentary.ts`](../../lila/ui/round/src/view/commentary.ts) |
+| API, phân tích và điều phối tổng hợp | [`app.py`](../../services/commentary/app.py) |
+| Dữ kiện và nhận xét tiếng Việt | [`core.py`](../../services/commentary/core.py), [`chess_history.py`](../../services/commentary/chess_history.py), [`narrative.py`](../../services/commentary/narrative.py), [`insight.py`](../../services/commentary/insight.py) và [`phrases.py`](../../services/commentary/phrases.py) |
+| Danh sách giọng và tổng hợp WAV | [`voices.py`](../../services/commentary/voices.py), [`nano_worker.py`](../../services/commentary/nano_worker.py) và [`nano_audio.py`](../../services/commentary/nano_audio.py) |
 
-Các test Python nằm trong `services/commentary/tests`; test UI bình luận nằm
-trong `lila/ui/round/tests/commentary.test.ts`; test launcher ở `scripts/tests`.
-Các bài tổng hợp thật cần model tại `BLV_NANO_DIR` và môi trường Nano đã cài.
-Phải kiểm tra trang đang chạy sau build: bộ chọn có đúng ba tên, default là
-Mạnh Dũng, hai ID không hợp lệ bị server từ chối và câu chào thực sự trả WAV.
+## Kiểm tra trên trình duyệt
 
-Nano vẫn là model thử nghiệm. Tốc độ nói, thời gian tổng hợp và cảm nhận rõ/đều
-là ba tiêu chí khác nhau; kết quả vài câu thử không thay thế benchmark hay đánh
-giá nghe. Sửa đổi upstream được lưu bằng patch trong `patches/`.
+1. Mở một ván tiêu chuẩn với tư cách người chơi. Bật bình luận và xác nhận Mạnh Dũng là lựa chọn mặc định trên hồ sơ trình duyệt mới.
+2. Đổi qua từng giọng và nghe câu chào. Đi vài nước để kiểm tra phụ đề và âm thanh, sau đó đi nhanh hoặc hoàn tác để kiểm tra lời bình đang chờ được cập nhật theo thế cờ.
+3. Kết thúc ván để kiểm tra lời kết. Mở ván ở chế độ người xem để kiểm tra nút bật bình luận chỉ xuất hiện ở trang người chơi.
+
+Độ trễ và chất lượng đọc phụ thuộc vào tài nguyên chạy model. Nhận xét dựa trên các quy tắc và lượt phân tích Stockfish ngắn nên có thể bỏ sót ý đồ chiến thuật.
