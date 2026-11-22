@@ -138,10 +138,6 @@ commentary.endpoint = "http://127.0.0.1:9666"
 commentary.token = ${?BLV_TOKEN}
 ```
 
-`BLV_TOKEN` là biến môi trường, dùng chung giá trị với worker. Không ghi token
-thật vào tệp cấu hình.
-
-Mục tiêu hằng ngày nằm sẵn trong lila, không cần dịch vụ riêng.
 
 ## Kiểm thử
 
