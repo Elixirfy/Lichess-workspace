@@ -1,178 +1,96 @@
-# Lichess Workspace
+# AI Coach trên Lichess
 
-Bản Lichess chạy local, được nhóm bổ sung ba tính năng: **ưu thế Trắng/Đen
-theo thời gian thực**, **bình luận viên tiếng Việt** và **mục tiêu luyện tập
-hằng ngày**. Repo gom mã nguồn [Lichess](https://github.com/lichess-org/lila),
-các dự án đi kèm và các dịch vụ Python của nhóm vào một chỗ, để dựng và chạy
-toàn bộ hệ thống trên một máy.
+Nhánh `feature/coach` bổ sung chế độ học cờ cùng máy trực tiếp trên bàn đấu Lichess. Người chơi có thể xin gợi ý trước khi đi, đọc giải thích sau nước đi và thử phương án khác trên bàn luyện. Cuối buổi, Coach tổng hợp những thời điểm đáng xem lại và đề xuất nội dung luyện tập dựa trên dữ kiện đã phân tích.
 
-## Tính năng của nhóm
+## Bắt đầu buổi học
 
-| Tính năng | Người dùng thấy ở đâu | Thành phần chính |
-|---|---|---|
-| Ưu thế Trắng/Đen | Thanh ngang khi chơi và khi xem ván, thanh dọc khi xem lại | `lila/ui`, `services/prediction` |
-| Bình luận viên tiếng Việt | Nút **Bình luận tiếng Việt** trong ván cờ tiêu chuẩn | `lila/modules/round`, `services/commentary` |
-| Mục tiêu hằng ngày | Thẻ trên trang chủ, trang `/account/daily-goal` | `lila/modules/dailyGoal` |
+1. Từ trang chủ, chọn **Learn with your coach** hoặc mở `/ai-coach`.
+2. Chọn Trắng, Đen hoặc ngẫu nhiên, cấp độ máy từ 1 đến 8 và mức hỗ trợ.
+3. Bấm **Bắt đầu học**. Ván dùng luật cờ tiêu chuẩn, chơi từ thế xuất phát, không tính rating và không có đồng hồ. Người chơi có thể dùng tài khoản hoặc chơi với tư cách khách.
 
-### 1. Ưu thế Trắng/Đen (Win%)
+Ở chế độ **Chủ động**, Coach hiển thị hướng dẫn đầu buổi và nhận xét sau các nước của người học khi kết quả đã sẵn sàng. Ở chế độ **Chỉ khi tôi hỏi**, giao diện trả lời theo yêu cầu, còn các nước của người học vẫn được phân tích để chuẩn bị tổng kết.
 
-Trong ván cờ tiêu chuẩn, thanh ngang trên giao diện chơi cho biết tỷ lệ ưu thế
-của hai bên. Người chơi (khi đấu máy hoặc đấu người) và người xem đều thấy
-thanh này. Khi xem lại ván, thanh dọc cạnh bàn cờ cho biết tỷ lệ tại nước đang
-chọn.
-
-Điểm Stockfish (centipawn, giới hạn trong ±1000) được đổi sang phần trăm theo
-công thức [Win% của Lichess](https://lichess.org/page/accuracy):
-`Trắng = round(100 / (1 + exp(-0.00368208 × cp)))`, `Đen = 100 − Trắng`.
-Dịch vụ `services/prediction` chạy Stockfish trong worker riêng. Kết quả được
-lưu đệm theo ván, nên nhiều người xem cùng một ván chỉ cần tính một lần.
-
-Tài liệu: [kiến trúc, công thức và kết quả](docs/win-probability/README.md) ·
-[model card của mô hình thử nghiệm theo rating](docs/win-probability/human-model-v1/model-card.md)
-
-### 2. Bình luận viên tiếng Việt
-
-Người chơi bật **Bình luận tiếng Việt** trong ván cờ tiêu chuẩn và chọn một
-trong ba bình luận viên: Mạnh Dũng, Hữu Quân hoặc Anh Khôi. Sau mỗi nước đi,
-người chơi nghe lời bình kèm phụ đề.
-
-Lila gửi trạng thái ván tới một worker Python. Worker dùng python-chess và
-Stockfish để rút ra diễn biến, ghép câu từ kho câu tiếng Việt viết sẵn (không
-dùng mô hình ngôn ngữ), rồi đọc thành giọng nói bằng VieNeu v3 Nano trên CPU.
-Lời bình của một thế cờ đã qua sẽ bị bỏ, để không đọc trễ.
-
-Tài liệu: [thiết kế và luồng xử lý](docs/commentary/README.md) ·
-[cài đặt dịch vụ](services/commentary/README.md)
-
-### 3. Mục tiêu hằng ngày và chuỗi ngày luyện tập
-
-Người chơi đặt số bài tập và số ván cần hoàn thành mỗi ngày tại
-`/account/daily-goal`. Mỗi ngày đạt đủ mục tiêu thì chuỗi ngày tăng một; bỏ lỡ
-một ngày thì chuỗi về 0. Ngày được tính theo múi giờ của người chơi. Thẻ tiến
-độ nằm trên trang chủ.
-
-Module nghe sự kiện hoàn thành bài tập và kết thúc ván có sẵn trong Lichess,
-nên không phải sửa luồng xử lý gốc. Mỗi người chơi có một bản ghi trong
-MongoDB.
-
-Tài liệu: [tổng quan và kiểm thử](docs/daily-goal/README.md) ·
-[kiến trúc](docs/daily-goal/kien-truc.md) ·
-[giao diện](docs/daily-goal/giao-dien.md) ·
-[luồng xử lý](docs/daily-goal/luong-xu-ly.md)
-
-## Cấu trúc thư mục
-
-```text
-.
-├── lila/                      Máy chủ web Lichess (Scala 3, Play), nơi tích hợp các tính năng của nhóm
-│   ├── app/                   Controller, route, view
-│   ├── modules/               Các module nghiệp vụ (có dailyGoal)
-│   └── ui/                    Frontend TypeScript
-├── lila-ws/                   Máy chủ WebSocket
-├── lila-fishnet/              Trung gian giao việc chơi và phân tích cho fishnet
-├── fishnet/                   Worker chạy Stockfish
-├── scalachess/                Thư viện luật cờ (Scala)
-├── chessground/               Thư viện bàn cờ phía trình duyệt
-├── services/
-│   ├── prediction/            Dịch vụ đánh giá thế cờ cho Win% (FastAPI, Stockfish)
-│   └── commentary/            Dịch vụ bình luận viên tiếng Việt (FastAPI, python-chess, VieNeu)
-├── patches/                   Bản vá bình luận viên trên lila gốc, giữ để tham khảo
-└── docs/                      Tài liệu các tính năng của nhóm
-```
-
-`lila/`, `lila-ws/`, `lila-fishnet/`, `fishnet/`, `scalachess/` và
-`chessground/` là mã nguồn Lichess được đưa thẳng vào repo. Mỗi thư mục giữ
-README và giấy phép riêng.
-
-## Công nghệ
-
-| Phần | Công nghệ |
+| Thao tác | Kết quả |
 |---|---|
-| Backend | Scala 3, Play Framework, MongoDB, Redis |
-| Frontend | TypeScript, Snabbdom, Sass |
-| Dịch vụ của nhóm | Python 3, FastAPI, python-chess, Stockfish |
-| Giọng nói | VieNeu v3 Nano (ONNX Runtime, CPU) |
+| **Gợi ý** | Khi đến lượt mình ở thế hiện tại, người chơi có thể xin tối đa ba nấc cho thế đó. Coach lần lượt nêu điều cần xem xét, chỉ quân nên chú ý và đưa một nước ứng viên kèm biến tham khảo. |
+| **Giải thích nước của bạn** | Coach phân tích nước gần nhất của người học và giải thích tác dụng hoặc hệ quả bằng tiếng Việt. |
+| **Đối thủ đang đe dọa gì?** | Khi máy đã đáp và đến lượt người học, Coach có thể chỉ ra tình huống cần xử lý như đang bị chiếu, nguy cơ chiếu hết hoặc mất quân. |
+| **Thử lại từ thế này** | Khi thẻ có phương án cải thiện, nút mở bàn luyện tại thế trước nước đang được giải thích. Người học có thể đi cho cả hai bên, lùi bước hoặc xem biến gợi ý. Các nước thử chỉ tác động đến bàn luyện. |
+| **Tổng kết buổi học** | Hiển thị số nước đã phân tích, tối đa ba thời điểm đáng xem lại và hướng luyện tập nếu có đủ dữ kiện. Tổng kết có thể hiển thị dữ liệu đã xử lý trong khi một số nước chưa có kết quả. |
+
+Có thể tải lại trang hoặc mở lại ván để tìm phiên còn hạn bằng cùng tài khoản hoặc phiên khách. Khi phiên đã kết thúc, chọn **Buổi học mới** để quay lại màn hình thiết lập.
+
+## Luồng xử lý
+
+1. **Tạo buổi học.** Trang `/ai-coach` gửi cấu hình đến `AiCoach.create`. `Creator.create` quản lý phiên, còn `Processor.prepareCoach` chuẩn bị ván đấu với máy. Fishnet xử lý nước đáp của máy theo luồng ván cờ Lichess.
+2. **Ghi nhận nước đi và câu hỏi.** `Runtime.reconcile` tạo tác vụ phân tích cho các nước của người học từ trạng thái ván trên server. `Runtime.question` xử lý yêu cầu gợi ý, giải thích hoặc hỏi đe dọa. Lila lưu phiên và tác vụ trong MongoDB. Mỗi thế cờ được định danh từ FEN ban đầu và toàn bộ lịch sử đến thế đó để gắn kết quả với đúng vị trí.
+3. **Phân tích và soạn nhận xét.** Worker Python nhận `POST /analyse` qua kết nối nội bộ có bearer token. `questions.execute` kiểm tra và dựng lại thế cờ, dùng python-chess và Stockfish để xác định dữ kiện, rồi tạo nhận xét từ các mẫu tiếng Việt. Khi bật LLM, worker có thể dùng nó để chọn cách diễn đạt từ các câu đã kiểm. Lỗi provider hoặc phản hồi không hợp lệ sẽ dùng câu mẫu.
+4. **Hiển thị và tổng kết.** Lila kiểm quyền sở hữu phiên, xác thực kết quả và cung cấp snapshot qua API. Trình duyệt dùng SSE để nhận cập nhật và hiển thị thẻ theo thế đang xem. Khi ván kết thúc, `Summary.build` tổng hợp mức độ phân tích và các mốc đáng xem lại.
+
+| Thành phần | Mã nguồn |
+|---|---|
+| Trang thiết lập và API buổi học | [`AiCoach.scala`](lila/app/controllers/AiCoach.scala), [`lobby.coach.ts`](lila/ui/lobby/src/lobby.coach.ts) |
+| Tạo phiên và quản lý tác vụ | [`Creator.scala`](lila/modules/aicoach/src/main/Creator.scala), [`Runtime.scala`](lila/modules/aicoach/src/main/Runtime.scala), [`MongoStore.scala`](lila/modules/aicoach/src/main/MongoStore.scala) |
+| Khung Coach và bàn luyện | [`coach.ts`](lila/ui/round/src/coach.ts), [`view/coach.ts`](lila/ui/round/src/view/coach.ts), [`coachPractice.ts`](lila/ui/round/src/coachPractice.ts) |
+| Worker phân tích và soạn nhận xét | [`server.py`](services/coach/server.py), [`questions.py`](services/coach/questions.py), [`review.py`](services/coach/review.py), [`engine.py`](services/chess_analysis/engine.py) |
+| Tổng kết buổi học | [`Summary.scala`](lila/modules/aicoach/src/main/Summary.scala) |
 
 ## Cài đặt và chạy
 
-Cần Java, sbt, Node.js, pnpm, MongoDB, Redis và lila-ws, cài theo
-[hướng dẫn phát triển của Lichess](https://github.com/lichess-org/lila/wiki/Lichess-Development-Onboarding).
-Phần Python cần Python 3.12, [uv](https://docs.astral.sh/uv/) và Stockfish.
+### 1. Chuẩn bị Lichess
 
-**1. Dựng lila**
+Dùng checkout `feature/coach`. Chuẩn bị Java, sbt, Node.js, pnpm và các dịch vụ nền của Lichess, gồm MongoDB, Redis, lila-ws và fishnet để máy có thể đáp nước. Hướng dẫn cài Lila dẫn đến quy trình thiết lập môi trường phát triển của dự án gốc. [Cài đặt Lila](lila/README.md#installation) · [lila-ws](lila-ws/README.md) · [lila-fishnet](lila-fishnet/README.md)
+
+### 2. Chạy worker Coach
+
+Cần Python 3.10 trở lên và Stockfish có trên `PATH`. Nếu Stockfish được cài ở vị trí khác, đặt `STOCKFISH_PATH` trỏ đến tệp thực thi. Tạo một token nội bộ dài ít nhất 32 ký tự và cung cấp cùng giá trị qua biến môi trường `COACH_INTERNAL_TOKEN` cho cả Lila và worker. Có thể tạo token bằng `openssl rand -hex 32`.
+
+Từ thư mục gốc của repo, chạy:
 
 ```sh
-cd lila
+cd services
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.lock
+COACH_LLM_PROVIDER=off .venv/bin/python -m coach.server --host 127.0.0.1 --port 8137
+```
+
+Giữ worker trên địa chỉ nội bộ. Cấu hình mặc định chạy với một tác vụ phân tích đồng thời. Ví dụ trên dùng Stockfish và nhận xét theo mẫu, nên có thể thử Coach mà không cần API key của dịch vụ LLM.
+
+### 3. Bật Coach trên Lila
+
+Trong `lila/conf/application.conf`, cập nhật các khóa sau. Nếu tệp chưa tồn tại, tạo từ `lila/conf/application.conf.default`.
+
+```hocon
+aiCoach.enabled = true
+aiCoach.workerUrl = "http://127.0.0.1:8137"
+aiCoach.internalToken = ${?COACH_INTERNAL_TOKEN}
+```
+
+Từ `lila/`, cài và build đầy đủ UI để sinh asset manifest. Sau đó chạy Lila với cùng token nội bộ đã cấp cho worker.
+
+```sh
 pnpm install --frozen-lockfile
 ./ui/build
-./lila.sh --server --batch stage
+./lila.sh
 ```
 
-`./ui/build` phải chạy đầy đủ, không kèm tên package, để sinh asset manifest
-mới.
+Trong console sbt, nhập `run`. Mở `/ai-coach` trên địa chỉ Lila vừa chạy. [Cấu hình mặc định](lila/conf/application.conf.default)
 
-**2. Chạy dịch vụ Win%**
+### Tùy chọn diễn đạt bằng LLM
 
-```sh
-cd services/prediction
-uv sync --frozen
-STOCKFISH_PATH=/usr/games/stockfish uv run --frozen uvicorn app.main:app --host 127.0.0.1 --port 9667
-```
+Để bật lớp diễn đạt, đặt `COACH_LLM_PROVIDER=openai-compatible` cùng `COACH_LLM_BASE_URL`, `COACH_LLM_MODEL` và `COACH_LLM_API_KEY` theo dịch vụ sử dụng. URL cơ sở trỏ đến tiền tố API, vì worker tự nối `/chat/completions`. Cấu hình được đọc lúc worker khởi động. Giữ API key và token nội bộ trong môi trường phía server. [Cấu hình provider](services/coach/provider.py)
 
-Rồi bật tính năng trong `lila/conf/application.conf`:
+## Kiểm tra trên trình duyệt
 
-```hocon
-winProbability.enabled = true
-winProbability.url = "http://127.0.0.1:9667"
-```
+1. Mở `/ai-coach`, bắt đầu buổi học với quân Trắng và bấm **Gợi ý**.
+2. Đi `e4`, đợi máy đáp, rồi chọn **Giải thích nước của bạn**. Kiểm tra lời giải thích gắn với nước vừa đi.
+3. Tải lại trang và kiểm tra khung Coach vẫn mở đúng phiên. Khi có thẻ **Thử lại từ thế này**, thử một biến và kiểm tra bàn đấu chính vẫn giữ nguyên.
+4. Kết thúc ván và kiểm tra **Tổng kết buổi học**, gồm số nước đã phân tích và các mốc được chọn nếu có.
 
-**3. Chạy dịch vụ bình luận viên**
+## Tài liệu của nhóm
 
-Cài worker, model giọng và token theo
-[README dịch vụ bình luận](services/commentary/README.md). Worker chạy ở
-`127.0.0.1:9666`. Thêm vào `lila/conf/application.conf`:
-
-```hocon
-commentary.enabled = true
-commentary.endpoint = "http://127.0.0.1:9666"
-commentary.token = ${?BLV_TOKEN}
-```
-
-
-## Kiểm thử
-
-| Phạm vi | Lệnh |
-|---|---|
-| Win%: dịch vụ | trong `services/prediction`: `uv run --frozen --group ml pytest` |
-| Win%: giao diện | trong `lila/`: `node ui/test winProbability.test.ts winningChances.test.ts advantage.test.ts` |
-| Bình luận viên: dịch vụ | trong `services/commentary`: `python -m unittest discover -s tests` |
-| Bình luận viên: giao diện | trong `lila/`: `node ui/test commentary.test.ts` |
-| Mục tiêu hằng ngày | trong `lila/`: `sbt 'dailyGoal/Test/testOnly lila.dailyGoal.*'` |
-
-## Tài liệu
-
-Mục lục đầy đủ ở [docs/README.md](docs/README.md).
-
-## Nhánh
-
-`main` là bản chung của nhóm, gồm ba tính năng ở trên. Ngoài ra, mỗi thành
-viên phát triển một phần riêng trên nhánh của mình. Các nhánh dưới đây đã hoàn
-thành; mỗi nhánh có README và tài liệu riêng.
-
-| Nhánh | Tính năng | Thực hiện |
-|---|---|---|
-| [feature/tilt-and-ai-coach](https://github.com/trantrien1/Lichess-workspace/tree/feature/tilt-and-ai-coach) | **Tilt:** nhận biết dấu hiệu chơi mất bình tĩnh qua các ván blitz và nhắc người chơi nghỉ trên trang chủ; chỉ người chơi đó thấy kết quả. **AI Coach:** hỏi đáp bằng tiếng Việt về ván vừa kết thúc, dựa trên phân tích Stockfish | [trantrien1](https://github.com/trantrien1) |
-| [feature/coach](https://github.com/trantrien1/Lichess-workspace/tree/feature/coach) | Huấn luyện khi chơi: phiên luyện tập có hướng dẫn, phân tích từng nước bằng Stockfish, gợi ý có giới hạn và nhận xét tiếng Việt ngay trên giao diện ván | [LeHuy2109](https://github.com/LeHuy2109) |
-| [feature/webmcp](https://github.com/trantrien1/Lichess-workspace/tree/feature/webmcp) | Hai công cụ WebMCP trong trang Lichess cho trợ lý AI: tìm ván theo bộ lọc nâng cao và trả các bước ngoặt của ván từ đánh giá engine có sẵn, đều dạng JSON | [Elixirfy](https://github.com/Elixirfy) |
-| [codex/vietnamese-voice-input](https://github.com/trantrien1/Lichess-workspace/tree/codex/vietnamese-voice-input) | Chơi cờ bằng giọng nói tiếng Việt: Vosk nhận dạng ngay trên trình duyệt, PhoWhisper chạy local khi Vosk chưa nhận ra; lệnh được đối chiếu với các nước hợp lệ trước khi đi quân | [ceokon1](https://github.com/ceokon1) |
-
-Danh sách đầy đủ các nhánh: [docs/branches.md](docs/branches.md).
+Nhánh này kế thừa ba chức năng chung từ `main`. Hướng dẫn từng chức năng nằm trong [Ưu thế Trắng–Đen](docs/win-probability/README.md), [Mục tiêu luyện tập hằng ngày](docs/daily-goal/README.md) và [Bình luận viên tiếng Việt](docs/commentary/README.md). Xem [mục lục tài liệu](docs/README.md) và [README của nhánh main](https://github.com/trantrien1/Lichess-workspace/blob/main/README.md) để dựng các dịch vụ dùng chung.
 
 ## Giấy phép
 
-Lila và các dự án Lichess đi kèm dùng giấy phép riêng ghi trong từng thư mục
-(lila dùng [GNU AGPL v3](lila/LICENSE)). Phần nhóm bổ sung vào lila theo cùng
-giấy phép đó. Model giọng VieNeu v3 Nano dùng giấy phép Apache-2.0.
-
-Cảm ơn [Lichess](https://lichess.org), [Stockfish](https://stockfishchess.org)
-và [VieNeu-TTS](https://huggingface.co/pnnbao-ump/VieNeu-TTS-v3-Nano).
+Lila sử dụng [GNU AGPL v3](lila/LICENSE). Các dự án đi kèm có giấy phép trong thư mục tương ứng.
