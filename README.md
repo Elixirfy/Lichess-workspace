@@ -1,12 +1,8 @@
-# Lichess — chơi cờ bằng giọng nói tiếng Việt
+# Lichess - chơi cờ bằng giọng nói tiếng Việt
 
 Nhánh `codex/vietnamese-voice-input` bổ sung cách đi quân bằng lời nói tiếng Việt
 cho bản Lichess tự host. Người chơi bật mic, đọc nước đi và hệ thống thực hiện
 nếu câu lệnh xác định được một nước hợp lệ.
-
-Phần hiển thị ưu thế Trắng/Đen được quản lý trên [nhánh main](https://github.com/trantrien1/Lichess-workspace/tree/main).
-
-Code bình luận Nano/ba BLV của nhóm cũng được giữ nguyên từ main.
 
 ## Cách hoạt động
 
@@ -37,7 +33,7 @@ có thể đọc “bê/đê”, “bờ/dờ”, “bi/đi” hoặc dùng số
 “cột hai hàng hai”. Nếu mic nghe nhầm âm ngắn, đọc rõ “cột bê, hàng hai”
 hoặc “cột đê, hàng hai” sẽ dễ phân biệt hơn.
 
-## Chạy trên máy local
+## Run
 
 Cần Docker Desktop ở chế độ Linux containers, Git, PowerShell, Node.js và `uv`.
 Chạy tại thư mục gốc:
