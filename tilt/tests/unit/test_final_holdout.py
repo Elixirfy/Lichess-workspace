@@ -10,13 +10,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tilt.evaluation import v3_holdout as h
-from tilt.evaluation import v3_p3b as w
-from tilt.training import v3_train as t
-from tilt.features import prefix_v3 as p
-from tilt.labels import rules_v3, split_v3
-from test_prefix_v3 import fixture as history_fixture
-from test_v3_train import fixture as matrix_fixture
+from tilt.evaluation import final_holdout as h
+from tilt.evaluation import compare_p3b as w
+from tilt.training import distill as t
+from tilt.features import prefix_features as p
+from tilt.labels import tilt_rules, dev_split
+from test_prefix_features import fixture as history_fixture
+from test_distill import fixture as matrix_fixture
 
 
 class Identity:
@@ -74,17 +74,31 @@ def test_append_only_real_document_and_all_six_frozen_files():
         s3_snapshot=v3/'S3/prereg_at_S3/label_v3_preregistration.md', s3_snapshot_lock=v3/'S3/prereg_at_S3/prereg.sha256')
     h.verify_locks(args)
     assert h.whole is w and h.train is t and h.prefix is p
-    assert h.rules is rules_v3 and h.split is split_v3
+    assert h.rules is tilt_rules and h.split is dev_split
     expected = {**w.FROZEN,
-        'training/v3_train.py': 'd5af618d250f375c2a073755946abf23de89d3f967c0438deccf503eb98c8f7a',
-        'evaluation/v3_p3b.py': '00f137e02b1cca74775299fabf85f778400888775bf0857aa9f3fd67d54fa3f7',
-        'data/cohort_v3.py': '08f33a448fdf199556fc879491eb4b9f3b9d3f6e4ed938c105d3e5c5dbd2dc9d'}
+        'training/distill.py': '3147bdd0bf595548542c4e42aefc4cd0bead2cb781abc4a708f76337661ce253',
+        'evaluation/compare_p3b.py': '448862b759ad5701d0a7e4a1976eaa4fdf685202f27f12e0a365d0fbc7c1b32d',
+        'data/cohort_build.py': '08f33a448fdf199556fc879491eb4b9f3b9d3f6e4ed938c105d3e5c5dbd2dc9d'}
     for name, sha in expected.items():
-        assert split_v3.sha(code/'src/tilt'/name) == sha
-    # 2026-11-22: modules moved to common/, training/ and service/ (import lines only), so the byte
-    # hashes recorded by S4 run 1 no longer match; the same files must still be covered.
-    moved = {'core/train.py': 'training/train.py', 'core/score.py': 'service/score.py',
-             'core/deployment.py': 'service/deployment.py', 'evaluation/v3_train.py': 'training/v3_train.py'}
+        assert dev_split.sha(code/'src/tilt'/name) == sha
+    # 2026-11-22: modules moved to common/, training/ and service/ and renamed (phase1/3/5, *_v3), so
+    # the byte hashes recorded by S4 run 1 no longer match; the same files must still be covered.
+    moved = {'core/train.py': 'training/train.py',
+             'core/score.py': 'service/score.py',
+             'core/deployment.py': 'service/deployment.py',
+             'evaluation/v3_train.py': 'training/distill.py',
+             'evaluation/phase1.py': 'evaluation/eval_metrics.py',
+             'evaluation/phase3.py': 'evaluation/p3b_features.py',
+             'evaluation/phase5.py': 'evaluation/model_fit.py',
+             'evaluation/v3_p3b.py': 'evaluation/compare_p3b.py',
+             'data/cohort_v3.py': 'data/cohort_build.py',
+             'features/prefix_v3.py': 'features/prefix_features.py',
+             'labels/rules_v3.py': 'labels/tilt_rules.py',
+             'labels/split_v3.py': 'labels/dev_split.py',
+             'tests/unit/test_v3_p3b.py': 'tests/unit/test_compare_p3b.py',
+             'tests/unit/test_v3_train.py': 'tests/unit/test_distill.py',
+             'tests/unit/test_prefix_v3.py': 'tests/unit/test_prefix_features.py',
+             'tests/unit/test_split_v3.py': 'tests/unit/test_dev_split.py'}
     recorded = h.records(v3/'S4/run1/code_hash.txt')
     assert {moved.get(name, name) for name in recorded} == set(w.code_hashes())
 
@@ -111,7 +125,7 @@ def test_start_checks_frozen_code_before_any_rebuild(tmp_path, monkeypatch):
     monkeypatch.setattr(h, 'verify_locks', lambda a:None)
     monkeypatch.setattr(w, 'verify_inputs', lambda a:None)
     monkeypatch.setattr(h, 'S4_RECORDS', {})
-    (tmp_path/'code_hash.txt').write_text('wrong  labels/rules_v3.py\n')
+    (tmp_path/'code_hash.txt').write_text('wrong  labels/tilt_rules.py\n')
     with pytest.raises(ValueError, match='frozen code hash'):
         h.verify_inputs(args)
 
@@ -191,7 +205,7 @@ def test_incomplete_prefix_drop_and_both_colours_stop():
 def test_no_fit_or_calibration_and_abstain_scored(monkeypatch):
     def forbidden(*a,**kw):raise AssertionError('S5 must never fit')
     from tilt.training import train as core_train
-    for module,name in ((t,'fit_head'),(t,'fit_all'),(t,'calibrations'),(t,'calibrate'),(core_train,'calibrate'),(t.phase5.Fitted,'fit')):
+    for module,name in ((t,'fit_head'),(t,'fit_all'),(t,'calibrations'),(t,'calibrate'),(core_train,'calibrate'),(t.model_fit.Fitted,'fit')):
         monkeypatch.setattr(module,name,forbidden)
     pred=score_fixture()
     assert pred.label.eq('ABSTAIN').any()
@@ -319,7 +333,7 @@ def publish_synthetic_run(out, predictions, reports):
         elif name=='predictions_holdout.parquet':predictions.to_parquet(out/name,index=False)
         elif name in h.METRIC_FILES:h.write_json(out/name,reports[h.METRIC_FILES.index(name)])
         else:(out/name).write_bytes(b'synthetic fixture\n')
-    h.write_json(out/'verify.json',dict(artifacts={n:split_v3.sha(out/n) for n in h.RUN_FILES if n!='verify.json'}))
+    h.write_json(out/'verify.json',dict(artifacts={n:dev_split.sha(out/n) for n in h.RUN_FILES if n!='verify.json'}))
 
 
 def test_two_synthetic_score_and_evaluate_runs_identical_and_compare(tmp_path):
@@ -340,7 +354,7 @@ def test_compare_difference_withholds_adoption(tmp_path):
     target=tmp_path/'run2'/h.METRIC_FILES[2]
     target.write_text(target.read_text()+'\n')
     record=h.read_json(tmp_path/'run2/verify.json')
-    record['artifacts'][target.name]=split_v3.sha(target)
+    record['artifacts'][target.name]=dev_split.sha(target)
     h.write_json(tmp_path/'run2/verify.json',record)
     with pytest.raises(ValueError,match='two runs differ'):
         h.compare(tmp_path/'run1',tmp_path/'run2',tmp_path/'determinism.json',tmp_path/'adoption.json')
@@ -429,10 +443,10 @@ def make_cli_fixture(base):
     refs=base/'refs'
     refs.mkdir()
     p.registry().to_csv(refs/'feature_registry.csv',index=False)
-    games.assign(split_key=games.player.map(lambda v:split_v3.digest('label-v3-dev-split-1:'+v)))[h.KEYS+['part','split_key']].to_parquet(refs/'dev_split_manifest.parquet',index=False)
+    games.assign(split_key=games.player.map(lambda v:dev_split.digest('label-v3-dev-split-1:'+v)))[h.KEYS+['part','split_key']].to_parquet(refs/'dev_split_manifest.parquet',index=False)
     games[h.KEYS+['assignment']].to_parquet(refs/'holdout_manifest.parquet',index=False)
     args=SimpleNamespace(old_root=root,new_root=root,s2=refs,s3=refs,processes=1,players=0)
-    wanted=games[games.part.isin(split_v3.PARTS)]
+    wanted=games[games.part.isin(dev_split.PARTS)]
     headers=h.development_headers(args,wanted)
     assert headers.assignment.eq('B_prime').sum()==6
     result=h.rebuild(args,headers,h.select_targets(headers,False),False)
@@ -472,7 +486,7 @@ def test_all_cli_phases_fresh_processes_and_parallelism(tmp_path):
     import os,subprocess,sys
     make_cli_fixture(tmp_path)
     driver=tmp_path/'driver.py'
-    driver.write_text('from pathlib import Path\nimport sys\nfrom test_v3_holdout import synthetic_cli\n'
+    driver.write_text('from pathlib import Path\nimport sys\nfrom test_final_holdout import synthetic_cli\n'
                       'if __name__ == "__main__":\n    synthetic_cli(Path(sys.argv[1]),sys.argv[2:])\n')
     common=[]
     for name in ('old-root','new-root','s1','s2','s3','s4','prereg','lock','s3-snapshot','s3-snapshot-lock',
@@ -525,10 +539,10 @@ def shared_header_fixture(tmp_path, left='drop_shared_development', right='B_pri
     stored['game_id']=games.raw_game_id
     stored.to_parquet(root/'features/games.parquet',index=False)
     games[h.KEYS+['assignment']].to_parquet(refs/'holdout_manifest.parquet',index=False)
-    wanted=games[games.part.isin(split_v3.PARTS)].copy()
-    wanted['split_key']=wanted.player.map(lambda v:split_v3.digest('label-v3-dev-split-1:'+v))
+    wanted=games[games.part.isin(dev_split.PARTS)].copy()
+    wanted['split_key']=wanted.player.map(lambda v:dev_split.digest('label-v3-dev-split-1:'+v))
     wanted[h.KEYS+['part','split_key']].to_parquet(refs/'dev_split_manifest.parquet',index=False)
-    games[['player_id','game_id',*rules_v3.BRIDGE]].to_parquet(root/'out/weak_by_player.parquet',index=False)
+    games[['player_id','game_id',*tilt_rules.BRIDGE]].to_parquet(root/'out/weak_by_player.parquet',index=False)
     args=SimpleNamespace(old_root=root,new_root=root,s2=refs,s3=refs,players=0)
     return args,games,wanted
 
@@ -563,7 +577,7 @@ def test_shared_headers_exact_sides_and_build_targets(tmp_path,monkeypatch,left,
                         columns={'game_id':'export_id','raw_game_id':'game_id'})))
         return out
     monkeypatch.setattr(pd,'read_parquet',guarded)
-    monkeypatch.setattr(split_v3,'load_headers',lambda *a:pytest.fail('frozen loader called during equivalence'))
+    monkeypatch.setattr(dev_split,'load_headers',lambda *a:pytest.fail('frozen loader called during equivalence'))
     headers=h.development_headers(args,wanted)
     expected=allgames[~allgames.assignment.isin(h.PARTS)]
     edges=allgames[allgames.assignment.eq('B_prime')]

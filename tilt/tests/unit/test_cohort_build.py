@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 import requests
 import zstandard
-from tilt.data import cohort_v3 as v, collect, storage
+from tilt.data import cohort_build as v, collect, storage
 
 
 @pytest.fixture(autouse=True)

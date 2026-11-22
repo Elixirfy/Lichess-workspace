@@ -108,7 +108,7 @@ TILT_SALT="$(cat ~/.tilt-salt)" tilt/.venv/bin/python -m tilt lila-worker
 
 ```bash
 cd tilt/src
-TILT_SALT="$(cat ~/.tilt-salt)" ../.venv/bin/python -m tilt.service.live_v3 score \
+TILT_SALT="$(cat ~/.tilt-salt)" ../.venv/bin/python -m tilt.service.live_scoring score \
   --models ../data --root ../data/external/lila-v3/processed --player <tên> --game <id>
 ```
 
@@ -120,13 +120,13 @@ Lệnh in ra đúng các trường mà worker sẽ ghi vào `response`.
   `v3/M-v3.joblib` và danh sách đặc trưng `v3/feature_registry.csv`, kèm hash
   SHA-256 của cả hai. Worker từ chối nạp nếu hash không khớp.
 - Worker còn kiểm tra hash của sáu tệp mã tính đặc trưng, bộ luật và huấn luyện
-  (`check_frozen` trong `service/live_v3.py`). Sửa các tệp đó mà không cập nhật
+  (`check_frozen` trong `service/live_scoring.py`). Sửa các tệp đó mà không cập nhật
   hash thì worker dừng với lỗi `Frozen v3 code changed`. Danh sách tệp và cách
   cập nhật ở [Mã nguồn](ma-nguon.md#mã-bị-khóa-bằng-hash).
 - Cài một bundle mới (ghi lại `deployed_v3.json`):
 
   ```bash
-  ../.venv/bin/python -m tilt.service.live_v3 install --models ../data \
+  ../.venv/bin/python -m tilt.service.live_scoring install --models ../data \
     --bundle <M-v3.joblib> --registry <feature_registry.csv>
   ```
 

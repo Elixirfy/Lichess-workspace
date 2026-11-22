@@ -12,8 +12,8 @@ import sqlite3
 
 import pandas as pd
 
-from .rules_v3 import BRIDGE
-from ..data.cohort_v3 import public_id, PUBLIC
+from .tilt_rules import BRIDGE
+from ..data.cohort_build import public_id, PUBLIC
 
 PREREG_SHA = '827890324bdd0e17cef555b770920c972ba10d6bbc9552e830b4f1b7b06c665e'
 HOLDOUT_SHA = 'd21e5b02dbaf07c6fee3a7c608973c9f5608f8f62a9aa9cd97120c517a89ff3d'

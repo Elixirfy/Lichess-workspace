@@ -425,12 +425,12 @@ Mã nguồn chính:
 
 | Phần | File |
 |---|---|
-| Thu thập, chuẩn hóa | `tilt/src/tilt/data/collect.py`, `normalize.py`, `cohort_v3.py` |
+| Thu thập, chuẩn hóa | `tilt/src/tilt/data/collect.py`, `normalize.py`, `cohort_build.py` |
 | Stockfish, công thức | `tilt/src/tilt/common/engine.py`, `formulas.py` |
-| Đặc trưng | `tilt/src/tilt/features/features.py`, `prefix_v3.py` |
-| Luật gán nhãn, chia dữ liệu | `tilt/src/tilt/labels/rules_v3.py`, `split_v3.py` |
-| Huấn luyện, đánh giá | `tilt/src/tilt/training/v3_train.py`, `tilt/src/tilt/evaluation/v3_holdout.py` |
-| Chấm trực tiếp, worker | `tilt/src/tilt/service/live_v3.py`, `lila_worker.py` |
+| Đặc trưng | `tilt/src/tilt/features/features.py`, `prefix_features.py` |
+| Luật gán nhãn, chia dữ liệu | `tilt/src/tilt/labels/tilt_rules.py`, `dev_split.py` |
+| Huấn luyện, đánh giá | `tilt/src/tilt/training/distill.py`, `tilt/src/tilt/evaluation/final_holdout.py` |
+| Chấm trực tiếp, worker | `tilt/src/tilt/service/live_scoring.py`, `lila_worker.py` |
 | lila | `lila/modules/tilt/` (`TiltGame`, `TiltBanner`, `TiltText`, `TiltApi`, `ui/TiltUi`), `lila/app/controllers/Tilt.scala` |
 
 Tài liệu tiếng Việt theo từng chủ đề ở `tilt/docs/`. Tài liệu chi tiết trong `tilt/reports/`:

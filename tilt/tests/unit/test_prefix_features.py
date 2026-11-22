@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tilt.features import prefix_v3 as p
-from tilt.labels import rules_v3 as rules
-from tilt.labels import split_v3 as split
+from tilt.features import prefix_features as p
+from tilt.labels import tilt_rules as rules
+from tilt.labels import dev_split as split
 
 
 def fixture(n=15, plies=40):

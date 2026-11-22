@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from tilt.labels import split_v3 as s
+from tilt.labels import dev_split as s
 
 
 def pool(n=10, games=20):

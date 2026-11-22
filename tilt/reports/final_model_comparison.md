@@ -209,15 +209,15 @@ Trong `~/lichess-workspace/tilt` (WSL). Dữ liệu vào: `~/tilt-phase1/aligned
 
 ```
 # 1 lần chạy (trên Colab, xem script p5_colab.sh; thư mục --out phải mới)
-python -m tilt.evaluation.phase5 run --aligned ~/tilt-phase1/aligned \
+python -m tilt.evaluation.model_fit run --aligned ~/tilt-phase1/aligned \
   --behavior ~/tilt-phase2/behavior_features.parquet --phase1-out ~/tilt-phase1/out \
   --phase3-results ~/tilt-phase3/out/phase3_results.json \
   --prereg reports/phase5_preregistration.md --prereg-sha256 ~/tilt-phase5/prereg.sha256 \
   --registries reports --out <thư mục mới> --repetitions 1000 --threads <số lõi>
 # cổng 8: so hai lần chạy
-python -m tilt.evaluation.phase5 compare ~/tilt-phase5/run1 ~/tilt-phase5/run2
+python -m tilt.evaluation.model_fit compare ~/tilt-phase5/run1 ~/tilt-phase5/run2
 # unit test
-TILT_SALT=<chuỗi bất kỳ ≥ 16 ký tự> .venv/bin/python -m pytest tests/unit/test_phase5.py
+TILT_SALT=<chuỗi bất kỳ ≥ 16 ký tự> .venv/bin/python -m pytest tests/unit/test_model_fit.py
 ```
 
 Băm:
@@ -226,7 +226,7 @@ Băm:
 |---|---|
 | `phase5_preregistration.md` | `b90556c1582f97204e4002700cdebe6de3c8ad18e715f3aea43346d222c650cd` |
 | Manifest A / B | `3243a255…f9ec4b` / `034a3e09…e1b6` |
-| `evaluation/phase5.py` | `7ed9ed67…` |
+| `evaluation/phase5.py` (nay là `model_fit.py`) | `7ed9ed67…` |
 | `metrics.csv` (lần 1) | `84e4914e…` |
 | Bundle (lần 1) | `cbd7a3f9…` |
 

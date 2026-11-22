@@ -24,10 +24,10 @@ from sklearn.utils.class_weight import compute_sample_weight
 from ..training.train import calibrate, calibrated, choose_threshold, numeric, tree_models
 from ..features.behavior import DEVIATIONS
 from ..features.model_features import forbidden
-from . import phase1, phase3
+from . import eval_metrics, p3b_features
 
 NOTICE = 'The model predicts a behavioral proxy of tilt, not independently validated anger.'
-SPLITS = phase1.SPLITS
+SPLITS = eval_metrics.SPLITS
 A, B = SPLITS
 META = ('initial_seconds', 'increment_seconds')
 CANDIDATES = ('P3-B', 'M3')
@@ -40,15 +40,15 @@ PREREGISTERED['P3-B'] = PREREGISTERED['M3'] + ['attack_trend_3w', 'risk_volatili
 NOMETA = {c: f'{c}-nometa' for c in CANDIDATES}
 # name: (features, missing indicators?, columns without an indicator)
 XGB = {
-    'P3-B': (phase3.VARIANTS['P3-B'], True, phase3.NO_INDICATOR),
-    'M3': (phase3.VARIANTS['M3'], True, phase3.NO_INDICATOR),
-    'P3-B-nometa': ([c for c in phase3.VARIANTS['P3-B'] if c not in META], True, phase3.NO_INDICATOR),
-    'M3-nometa': ([c for c in phase3.VARIANTS['M3'] if c not in META], True, phase3.NO_INDICATOR),
-    'E0': (phase1.E0, True, set()),
-    'M1': (phase1.M1, True, set()),
+    'P3-B': (p3b_features.VARIANTS['P3-B'], True, p3b_features.NO_INDICATOR),
+    'M3': (p3b_features.VARIANTS['M3'], True, p3b_features.NO_INDICATOR),
+    'P3-B-nometa': ([c for c in p3b_features.VARIANTS['P3-B'] if c not in META], True, p3b_features.NO_INDICATOR),
+    'M3-nometa': ([c for c in p3b_features.VARIANTS['M3'] if c not in META], True, p3b_features.NO_INDICATOR),
+    'E0': (eval_metrics.E0, True, set()),
+    'M1': (eval_metrics.M1, True, set()),
     'B-length': (['lf_input__plies'], False, set()),
 }
-OTHER = {name: phase1.BASELINES[name] for name in ('B-result', 'B-streak', 'B-prior', 'B-meta')}
+OTHER = {name: eval_metrics.BASELINES[name] for name in ('B-result', 'B-streak', 'B-prior', 'B-meta')}
 MODELS = tuple(XGB) + tuple(OTHER)
 BASELINES = ('B-prior', 'B-result', 'B-streak', 'B-meta', 'B-length')
 GATE_BASELINES = ('B-prior', 'B-result', 'B-streak', 'B-meta')
@@ -66,7 +66,7 @@ PHASE0_TEST_SEEN = {'by_player lf_ablated xgboost (~E0)': .509, 'by_time lf_abla
                     'class prior': .140, 'losing_streak': .246, 'result_only': .183}
 RATING_BANDS = (('<1200', -np.inf, 1200), ('1200-1599', 1200, 1600), ('1600-1999', 1600, 2000), ('>=2000', 2000, np.inf))
 IGNORED = {'elapsed_seconds', 'bundle_sha256', 'created_utc', 'paths'}
-CODE = ('evaluation/phase5.py', 'evaluation/phase1.py', 'evaluation/phase3.py', 'training/train.py')
+CODE = ('evaluation/model_fit.py', 'evaluation/eval_metrics.py', 'evaluation/p3b_features.py', 'training/train.py')
 
 
 def sha256_file(path):
@@ -74,7 +74,7 @@ def sha256_file(path):
 
 
 class Fitted:
-    """Same matrix and model as phase3.design / phase1.design + XGBoost, but keeps the fitted pieces."""
+    """Same matrix and model as p3b_features.design / eval_metrics.design + XGBoost, but keeps the fitted pieces."""
 
     def __init__(self, features, indicator=True, no_indicator=(), threads=2, seed=42):
         self.features, self.indicator, self.no_indicator = list(features), indicator, set(no_indicator)
@@ -114,7 +114,7 @@ class Fitted:
 
 
 def ranking(y, p):
-    return phase3.ranking(y, p)
+    return p3b_features.ranking(y, p)
 
 
 def short_separation(score, plies):
@@ -127,7 +127,7 @@ def short_separation(score, plies):
 
 
 def calibration_metrics(y, prob, threshold, reference):
-    bins, ece = phase1.calibration_bins(y, prob)
+    bins, ece = eval_metrics.calibration_bins(y, prob)
     brier = float(brier_score_loss(y, np.clip(prob, 0, 1)))
     baseline = float(brier_score_loss(y, np.full(len(y), reference)))
     flagged = (prob >= threshold).astype(int)
@@ -202,7 +202,7 @@ def subgroups(part, y, scores):
 def fit_all(frame, y, train, threads):
     fitted = {name: Fitted(f, ind, no, threads).fit(frame, y, train) for name, (f, ind, no) in XGB.items()}
     raw = {name: model.predict(frame) for name, model in fitted.items()}
-    raw |= {name: phase1.fit_predict(spec, frame, y, train, threads=threads) for name, spec in OTHER.items()}
+    raw |= {name: eval_metrics.fit_predict(spec, frame, y, train, threads=threads) for name, spec in OTHER.items()}
     return fitted, raw
 
 
@@ -281,7 +281,7 @@ def registry_features(folder):
 
 
 def banned(feature):
-    return (feature.startswith('lf_input__') or feature in ('result_score', 'plies', phase1.MIDDLEGAME)
+    return (feature.startswith('lf_input__') or feature in ('result_score', 'plies', eval_metrics.MIDDLEGAME)
             or feature.endswith('_p40') or feature in DEVIATIONS or forbidden(feature))
 
 
@@ -392,7 +392,7 @@ def run(aligned, behavior, phase1_out, phase3_results, prereg, prereg_sha, regis
                   'E0': p1[s]['validation']['E0']['pr_auc']} for s in SPLITS}
     src = Path(__file__).resolve().parents[1]
     code = {c: sha256_file(src / c) for c in CODE}
-    extra = pd.read_parquet(behavior, columns=['player_id', 'game_id', *phase3.B])
+    extra = pd.read_parquet(behavior, columns=['player_id', 'game_id', *p3b_features.B])
     frames, states, results = {}, {}, dict(prereg_sha256=expected, code_sha256=code, notice=NOTICE,
                                            phase0_test_seen=PHASE0_TEST_SEEN, repetitions=repetitions, seed=42,
                                            models={n: list(XGB[n][0]) if n in XGB else OTHER[n]['features']
@@ -402,10 +402,10 @@ def run(aligned, behavior, phase1_out, phase3_results, prereg, prereg_sha, regis
         rows = len(frame)
         frame = frame.merge(extra, on=['player_id', 'game_id'], how='left', validate='one_to_one')
         assert len(frame) == rows
-        checks = phase1.split_checks(frame, s)
-        checks['manifest_sha256'] = phase1.sha256(phase1.manifest(frame))
+        checks = eval_metrics.split_checks(frame, s)
+        checks['manifest_sha256'] = eval_metrics.sha256(eval_metrics.manifest(frame))
         old = pd.read_csv(phase1_out / 'manifests' / f'{s}.csv')
-        checks['manifest_matches_phase1'] = checks['manifest_sha256'] == phase1.sha256(old)
+        checks['manifest_matches_phase1'] = checks['manifest_sha256'] == eval_metrics.sha256(old)
         if not checks['manifest_matches_phase1']:
             raise SystemExit(f'{s}: split manifest differs from Phase 1')
         states[s], summary = validation_stage(frame, threads, repetitions)

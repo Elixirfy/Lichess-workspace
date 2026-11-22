@@ -1,6 +1,6 @@
 """Locked S1 rule labels; only explicit train targets may be labelled/scored.
 
-Run with ``python -m tilt.labels.rules_v3 --help``. No model fitting, engine,
+Run with ``python -m tilt.labels.tilt_rules --help``. No model fitting, engine,
 salt, or historical weak-label implementation is used here. Non-train games
 are feature history only; their evidence and labels are never constructed.
 """

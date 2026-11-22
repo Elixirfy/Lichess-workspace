@@ -34,8 +34,8 @@ hiệu lực ngay, không cần cài lại sau khi sửa.
 
 Các gói xếp theo vai trò. Hướng phụ thuộc chính đi từ trên xuống: `common` →
 `data` → `features`, `labels` → `training` → `evaluation` → `service`. Có hai
-chỗ đi ngược, giữ nguyên để không đổi mã đã khóa: `features/prefix_v3.py` dùng
-hàm `dynamics` của `service/score.py`, và `evaluation/v3_p3b.py` dùng
+chỗ đi ngược, giữ nguyên để không đổi mã đã khóa: `features/prefix_features.py` dùng
+hàm `dynamics` của `service/score.py`, và `evaluation/compare_p3b.py` dùng
 `service/deployment.py`, `service/score.py`.
 
 ### `common/`: dùng chung
@@ -53,7 +53,7 @@ hàm `dynamics` của `service/score.py`, và `evaluation/v3_p3b.py` dùng
 | `normalize.py` | Đổi dữ liệu API/PGN về một schema chung: đồng hồ tính bằng giây, đánh giá theo góc nhìn Trắng. |
 | `storage.py` | Ghi Parquet theo lô nhỏ, chỉ mục SQLite chống trùng. Định nghĩa thư mục dữ liệu mặc định `tilt/data`. |
 | `dataset.py` | Ghép nhãn người, giả danh id, kiểm tra rò rỉ, chia tập (pipeline nhãn người cũ). |
-| `cohort_v3.py` | Dựng cohort dữ liệu cho vòng v3 (bị khóa hash). |
+| `cohort_build.py` | Dựng cohort dữ liệu cho vòng v3 (bị khóa hash). |
 
 ### `features/`: đặc trưng
 
@@ -62,14 +62,14 @@ hàm `dynamics` của `service/score.py`, và `evaluation/v3_p3b.py` dùng
 | `features.py` | Đặc trưng theo nước, cửa sổ, sự kiện, ván, buổi chơi; mức thường lệ chỉ từ các ván trước. |
 | `behavior.py` | Đặc trưng hành vi bổ sung của Phase 2 (P3-B dùng). |
 | `model_features.py` | Danh sách đặc trưng hợp lệ cho mô hình cũ, loại các cột liên quan đến nhãn yếu. |
-| `prefix_v3.py` | 104 đặc trưng của M-v3 (trước ván + 20 nửa nước đầu) (bị khóa hash). |
+| `prefix_features.py` | 104 đặc trưng của M-v3 (trước ván + 20 nửa nước đầu) (bị khóa hash). |
 
 ### `labels/`: nhãn
 
 | Tệp | Vai trò |
 |---|---|
-| `rules_v3.py` | Bộ luật v3: 5 luật ngữ cảnh, 7 luật cách chơi, bảng kết hợp (bị khóa hash). |
-| `split_v3.py` | Cách chia dữ liệu phát triển của v3, hàm hash dùng chung (bị khóa hash). |
+| `tilt_rules.py` | Bộ luật v3: 5 luật ngữ cảnh, 7 luật cách chơi, bảng kết hợp (bị khóa hash). |
+| `dev_split.py` | Cách chia dữ liệu phát triển của v3, hàm hash dùng chung (bị khóa hash). |
 | `weak_labels.py` | Nhãn yếu của P3-B. |
 | `labels.py` | Kho nhãn người thật và hàm giả danh id bằng HMAC (`private_id`). M-v3 không dùng nhãn người; nó học từ bộ luật. |
 
@@ -79,28 +79,30 @@ hàm `dynamics` của `service/score.py`, và `evaluation/v3_p3b.py` dùng
 |---|---|
 | `train.py` | Huấn luyện cây (XGBoost, LightGBM, Random Forest) cho nhãn yếu, hiệu chỉnh xác suất; hàm `predict_bundle` dùng chung. |
 | `sequence.py` | Mô hình LSTM nhỏ chạy CPU (thử nghiệm ở vòng nhãn yếu). |
-| `v3_train.py` | Huấn luyện M-v3: dựng ma trận, fit hai đầu, hiệu chỉnh, gộp điểm (bị khóa hash). |
+| `distill.py` | Huấn luyện M-v3: dựng ma trận, fit hai đầu, hiệu chỉnh, gộp điểm (bị khóa hash). |
 
 ### `evaluation/`: đánh giá
 
 | Tệp | Vai trò |
 |---|---|
 | `evaluate.py` | Đánh giá mô hình nhãn yếu; hàm `contributions` (SHAP) dùng cho P3-B. |
-| `phase1.py`, `phase3.py`, `phase5.py` | Các vòng đánh giá đã khóa trước của P3-B. |
-| `v3_p3b.py` | So sánh với P3-B trên cả ván ở vòng S4 (bị khóa hash). |
-| `v3_holdout.py` | Chấm phần đánh giá cuối đúng một lần (S5). |
+| `eval_metrics.py` | Cách chia dữ liệu, ma trận đặc trưng, các mô hình mốc và hàm đo (PR-AUC, ROC, ECE). Trước là `phase1.py`. |
+| `p3b_features.py` | Các bộ đặc trưng hành vi, trong đó có bộ của P3-B. Trước là `phase3.py`. |
+| `model_fit.py` | Cách fit XGBoost + Platt, bootstrap, danh sách cột cấm, chọn mô hình cuối (P3-B). Trước là `phase5.py`. |
+| `compare_p3b.py` | So sánh với P3-B trên cả ván ở vòng S4 (bị khóa hash). |
+| `final_holdout.py` | Chấm phần đánh giá cuối đúng một lần (S5). |
 
 ### `service/`: chấm điểm cho lila
 
 | Tệp | Vai trò |
 |---|---|
 | `lila_worker.py` | Worker đọc `tilt_queue`, tải ván, chạy Stockfish, chấm, ghi kết quả. |
-| `live_v3.py` | Chấm M-v3: nạp và kiểm tra bundle, kiểm tra hash mã, tính lý do, bộ luật sau ván. |
+| `live_scoring.py` | Chấm M-v3: nạp và kiểm tra bundle, kiểm tra hash mã, tính lý do, bộ luật sau ván. |
 | `score.py` | Chấm P3-B (chạy ẩn) và dòng thời gian thử nghiệm theo nửa nước. |
 | `deployment.py` | Nạp mô hình P3-B, từ chối khi bundle không khớp. |
 
 Worker chỉ gọi trực tiếp các module trong `service/`; phần lớn module khác được
-nạp gián tiếp qua đó. Chỉ `evaluation/v3_holdout.py` và các lệnh nghiên cứu ở
+nạp gián tiếp qua đó. Chỉ `evaluation/final_holdout.py` và các lệnh nghiên cứu ở
 bảng dưới là không dùng khi chạy thật.
 
 ## Dòng lệnh
@@ -122,7 +124,7 @@ cần giả danh id đòi biến `TILT_SALT` (xem [Salt](#salt)).
 | `weak-label`, `train`, `evaluate`, `score` | Pipeline nhãn yếu của P3-B | nghiên cứu |
 
 Các bước của vòng v3 chạy bằng module riêng, ví dụ
-`python -m tilt.training.v3_train` và `python -m tilt.service.live_v3`.
+`python -m tilt.training.distill` và `python -m tilt.service.live_scoring`.
 
 Ví dụ thu thập:
 
@@ -163,7 +165,7 @@ git.
 mỗi thư mục `raw/`, `processed/`, `external/` có một tệp rỗng `.gitkeep` để git
 giữ lại khung thư mục. Các tệp này không quan trọng: mọi chỗ ghi dữ liệu đều tự
 tạo thư mục khi cần (`mkdir(parents=True, exist_ok=True)` trong `storage.py`,
-`lila_worker.py`, `live_v3.py`). Vì vậy chúng đã được xóa, và `.gitignore` chỉ
+`lila_worker.py`, `live_scoring.py`). Vì vậy chúng đã được xóa, và `.gitignore` chỉ
 còn một dòng `data/`.
 
 ## Salt
@@ -181,24 +183,40 @@ các id giả danh cũ không khớp nữa. Không in salt ra màn hình hay log
 
 Mã tính đặc trưng, bộ luật và huấn luyện của M-v3 phải giống hệt bản đã đánh
 giá. Worker kiểm tra SHA-256 của sáu tệp sau mỗi khi khởi động
-(`FROZEN` trong `service/live_v3.py`):
+(`FROZEN` trong `service/live_scoring.py`):
 
 | Tệp | SHA-256 (22/11/2026) |
 |---|---|
-| `features/prefix_v3.py` | `92c6d277…` |
-| `labels/rules_v3.py` | `86fcd9c1…` |
-| `labels/split_v3.py` | `f426e792…` |
-| `data/cohort_v3.py` | `08f33a44…` |
-| `training/v3_train.py` | `d5af618d…` |
-| `evaluation/v3_p3b.py` | `00f137e0…` |
+| `features/prefix_features.py` | `0da5bb60…` |
+| `labels/tilt_rules.py` | `08e0ee97…` |
+| `labels/dev_split.py` | `a64b2594…` |
+| `data/cohort_build.py` | `08f33a44…` |
+| `training/distill.py` | `3147bdd0…` |
+| `evaluation/compare_p3b.py` | `448862b7…` |
 
-Hash còn được ghi ở `FROZEN` trong `evaluation/v3_p3b.py` (ba tệp đầu) và trong
-test `tests/unit/test_v3_holdout.py`.
+Hash còn được ghi ở `FROZEN` trong `evaluation/compare_p3b.py` (ba tệp đầu) và trong
+test `tests/unit/test_final_holdout.py`.
 
 Ngày 22/11/2026 mã nguồn được sắp xếp lại theo vai trò: `core/` và `workers/`
 được tách thành `common/`, `training/`, `service/`; `v3_train.py` chuyển từ
 `evaluation/` sang `training/`. Lần đó chỉ sửa dòng import và chuỗi đường dẫn,
-rồi cập nhật hash ở ba chỗ trên. Hash cũ của bản đánh giá vẫn nằm trong
+rồi cập nhật hash ở ba chỗ trên. Sau đó các tệp được đổi tên cho rõ nghĩa, chỉ đổi
+tên module trong code, không đổi logic:
+
+| Tên cũ | Tên mới |
+|---|---|
+| `evaluation/phase1.py`, `phase3.py`, `phase5.py` | `eval_metrics.py`, `p3b_features.py`, `model_fit.py` |
+| `data/cohort_v3.py` | `data/cohort_build.py` |
+| `features/prefix_v3.py` | `features/prefix_features.py` |
+| `labels/rules_v3.py`, `split_v3.py` | `labels/tilt_rules.py`, `dev_split.py` |
+| `training/v3_train.py` | `training/distill.py` |
+| `evaluation/v3_p3b.py`, `v3_holdout.py` | `evaluation/compare_p3b.py`, `final_holdout.py` |
+| `service/live_v3.py` | `service/live_scoring.py` |
+
+Chữ "v3" vẫn còn trong tên mô hình (M-v3), tên dữ liệu (`deployed_v3.json`,
+`lila-v3`) và tên báo cáo, vì đó là tên phiên bản bộ luật chứ không phải tên tệp.
+Cả ba lần, điểm chấm lại 122 ván local
+giống hệt trước khi sửa. Hash cũ của bản đánh giá vẫn nằm trong
 [`label_v3_deployment.md`](../reports/label_v3_deployment.md) và
 `label_v3_preregistration.md`.
 
@@ -206,9 +224,9 @@ Khi buộc phải sửa một tệp bị khóa (chỉ khi thật cần, ví dụ
 
 1. Ghi lại điểm của các ván local trước khi sửa.
 2. Sửa, rồi tính hash mới: `sha256sum tilt/src/tilt/<tệp>`.
-3. Cập nhật `FROZEN` trong `evaluation/v3_p3b.py` trước (vì hash của chính
-   `v3_p3b.py` phụ thuộc vào đó), rồi `FROZEN` trong `service/live_v3.py` và
-   dict trong `tests/unit/test_v3_holdout.py`.
+3. Cập nhật `FROZEN` trong `evaluation/compare_p3b.py` trước (vì hash của chính
+   `compare_p3b.py` phụ thuộc vào đó), rồi `FROZEN` trong `service/live_scoring.py` và
+   dict trong `tests/unit/test_final_holdout.py`.
 4. Chạy lại toàn bộ test và chấm lại các ván local, so với điểm ở bước 1.
 
 ## Cài đặt
@@ -237,6 +255,6 @@ tilt/.venv/bin/python -m pytest tilt/tests/unit -q     # chỉ test đơn vị
   máy không có Stockfish.
 - Một số test đọc dữ liệu nghiên cứu ở `~/tilt-labels-v3` (bản khóa của tài liệu
   bộ luật, hash của lần chạy S4); máy khác có thể trỏ tới bằng biến `S5_V3`.
-- Hai test của `test_prefix_v3.py` chạy trên mẫu dữ liệu thật và tự bỏ qua nếu
+- Hai test của `test_prefix_features.py` chạy trên mẫu dữ liệu thật và tự bỏ qua nếu
   chưa đặt biến `S3_REAL_CONFIG` trỏ tới các thư mục dữ liệu đó.
 - `requirements-lock.txt` ghi phiên bản thư viện đã chạy test.

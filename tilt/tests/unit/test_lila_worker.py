@@ -151,7 +151,7 @@ def test_cli_wires_worker(monkeypatch, tmp_path):
     assert seen['kwargs'] == dict(data_v3=tmp_path / 'v3')
 
 
-# M-v3 mode (reports/label_v3_deployment.md): live_v3 is faked; its own tests cover scoring.
+# M-v3 mode (reports/label_v3_deployment.md): live_scoring is faked; its own tests cover scoring.
 
 class FakeV3:
     def __init__(self, shadow):
@@ -171,7 +171,7 @@ V3_PRED = dict(score=41, flag=True, factors=['session'], v=3, prob=.4123, level=
 def v3(monkeypatch, tmp_path):
     calls = dict(collect=[], analyze=[], compute=[], assess=[], refresh=[], shadow=True,
                  key=lila_worker.TRAINED_SETTINGS_KEY)
-    monkeypatch.setattr(lila_worker.live_v3, 'load', lambda models: FakeV3(calls['shadow']))
+    monkeypatch.setattr(lila_worker.live_scoring, 'load', lambda models: FakeV3(calls['shadow']))
     monkeypatch.setattr(lila_worker.collect, 'collect_api',
                         lambda data, users, **k: calls['collect'].append((data.name, users, k)))
 
@@ -188,12 +188,12 @@ def v3(monkeypatch, tmp_path):
         if game_id.startswith('guest'):
             return dict(skip='incomplete')
         return dict(pred=json.loads(json.dumps(V3_PRED)))
-    monkeypatch.setattr(lila_worker.live_v3, 'assess', assess)
+    monkeypatch.setattr(lila_worker.live_scoring, 'assess', assess)
 
     def refresh_rules(root, player, game_id):
         calls['refresh'].append(game_id)
         return dict(V3_PRED['rules'], pending=[], fired=['C1', 'E1', 'E2', 'E7'])
-    monkeypatch.setattr(lila_worker.live_v3, 'refresh_rules', refresh_rules)
+    monkeypatch.setattr(lila_worker.live_scoring, 'refresh_rules', refresh_rules)
     monkeypatch.setattr(lila_worker.score, 'run', scored)
     return calls
 

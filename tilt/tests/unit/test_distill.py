@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tilt.training import v3_train as t
-from tilt.evaluation import v3_p3b as p, phase5
-from tilt.features import prefix_v3
+from tilt.training import distill as t
+from tilt.evaluation import compare_p3b as p, model_fit
+from tilt.features import prefix_features
 
 
 def fixture():
@@ -29,7 +29,7 @@ def fixture():
                 label='ABSTAIN' if j==17 else ('TILT' if j%2 else 'NOT'),
                 plies=[12,30,60][j%3],result_score=float(j%2)))
     meta = pd.DataFrame(rows)
-    registry = prefix_v3.registry()
+    registry = prefix_features.registry()
     pre = meta[p.KEYS+['part']].copy()
     signal = meta.label.map({'TILT':2.,'NOT':-2.,'ABSTAIN':50.}).to_numpy()
     for c in registry.loc[registry.block.eq('pre'),'column']:
@@ -50,7 +50,7 @@ def deployed_fixture(meta, whole):
     # Synthetic stand-in for the deployed artifact, never the actual bundle.
     y=meta.label.map({'NOT':0.,'TILT':1.}).to_numpy(float)
     rows=t.train_rows(meta)
-    f=phase5.Fitted(p.FEATURES,True,p.phase3.NO_INDICATOR,threads=2).fit(whole,y,rows)
+    f=model_fit.Fitted(p.FEATURES,True,p.p3b_features.NO_INDICATOR,threads=2).fit(whole,y,rows)
     return dict(format='phase5',features=f.features,columns=f.columns,imputer=f.imputer,
         keep=f.keep,scaler=f.scaler,classifier=f.model,calibration=dict(model=None,status='synthetic'))
 
@@ -58,7 +58,7 @@ def deployed_fixture(meta, whole):
 def test_registry_skill_subsets_and_whole_game_isolation():
     meta,pre,p20,reg,whole=fixture()
     combined=pre.merge(p20,on=p.KEYS+['part'],validate='one_to_one')
-    expected={'rating'}|{'baseline_'+f+'_'+s for f in prefix_v3.rules.FEATURES for s in ('median','mad')}
+    expected={'rating'}|{'baseline_'+f+'_'+s for f in prefix_features.rules.FEATURES for s in ('median','mad')}
     assert set(t.skill_columns(reg))==expected and len(expected)==15
     for head,frame in [('pre',pre),('p20',combined)]:
         main=t.matrix(frame,head,'M-v3',reg)
@@ -80,7 +80,7 @@ def test_only_labelled_train_enters_every_preprocessor_and_classifier_fit(monkey
     meta,pre,_,reg,_=fixture()
     matrix=t.matrix(pre,'pre','M-v3',reg)
     expected=t.train_rows(meta)
-    original=t.phase5.Fitted.fit
+    original=t.model_fit.Fitted.fit
     seen=[]
     def fit(self,frame,y,rows):
         assert len(frame)==len(expected)
@@ -89,7 +89,7 @@ def test_only_labelled_train_enters_every_preprocessor_and_classifier_fit(monkey
         assert rows.tolist()==list(range(len(expected)))
         seen.append(True)
         return original(self,frame,y,rows)
-    monkeypatch.setattr(t.phase5.Fitted,'fit',fit)
+    monkeypatch.setattr(t.model_fit.Fitted,'fit',fit)
     bundle,raw,cross,frozen,audit=t.fit_head(matrix,meta,'M-v3')
     assert seen==[True]
     assert len(raw)==len(meta) and np.isfinite(cross).all()
@@ -172,7 +172,7 @@ def test_clustered_paired_bootstrap_matches_phase5_seed42():
     y=np.tile([0,1,0,0,1,1,0,1],3)
     scores={'a':np.linspace(.1,.9,24),'b':np.linspace(.9,.1,24)}
     result=t.bootstrap(players,y,scores,[('a','b')],1000,42)
-    reference=phase5.bootstrap(players,y,scores,np.ones(len(y),bool),[('a','b')],repetitions=1000,seed=42)
+    reference=model_fit.bootstrap(players,y,scores,np.ones(len(y),bool),[('a','b')],repetitions=1000,seed=42)
     assert result['ci']==reference['ci']['primary']
     assert result['paired']==reference['paired']['primary']
     assert result==t.bootstrap(players,y,scores,[('a','b')],1000,42)
@@ -255,7 +255,7 @@ def test_synthetic_runs_in_separate_processes_identical_outputs(tmp_path):
     env=os.environ.copy()
     env['PYTHONPATH']=os.pathsep.join([str(Path(__file__).parent),str(Path(__file__).resolve().parents[2]/'src'),
                                      env.get('PYTHONPATH','')])
-    command='import sys;from test_v3_train import smoke;smoke(sys.argv[1])'
+    command='import sys;from test_distill import smoke;smoke(sys.argv[1])'
     for run in ('run1','run2'):
         subprocess.run([sys.executable,'-c',command,str(tmp_path/run)],env=env,check=True,
                        stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=600)

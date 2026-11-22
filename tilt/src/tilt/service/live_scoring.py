@@ -19,23 +19,23 @@ import numpy as np
 import pandas as pd
 
 from ..training.train import numeric
-from ..data import cohort_v3
-from ..evaluation import v3_p3b
-from ..training import v3_train as train
-from ..features import prefix_v3 as prefix
-from ..labels import rules_v3 as rules, split_v3 as split
+from ..data import cohort_build
+from ..evaluation import compare_p3b
+from ..training import distill as train
+from ..features import prefix_features as prefix
+from ..labels import tilt_rules as rules, dev_split as split
 
 POINTER = Path('processed/models/deployed_v3.json')
 MODEL = 'M-v3'
 BUNDLE_SHA = '9ebc9730c6e00ee26c51f012259c02f10eb276501744fe1d8137c3b6855baae5'
 # I0 section 1: the deployed path runs these files byte for byte.
 FROZEN = {
-    prefix: '92c6d27777142b862f70d4c042da4d6618f935a59991827d96b1662758060f42',
-    rules: '86fcd9c1eb10d67f3e90735ecdb772fda336ffa191c3683f1c43b2e3828059f6',
-    split: 'f426e79254167d3f998f1b075f720b3b89098d52b37930f4bf975bd3fb6fa4ff',
-    cohort_v3: '08f33a448fdf199556fc879491eb4b9f3b9d3f6e4ed938c105d3e5c5dbd2dc9d',
-    train: 'd5af618d250f375c2a073755946abf23de89d3f967c0438deccf503eb98c8f7a',
-    v3_p3b: '00f137e02b1cca74775299fabf85f778400888775bf0857aa9f3fd67d54fa3f7',
+    prefix: '0da5bb606daa00eb7588ae4afd059d81d512419cb74027a12984363a0142d08f',
+    rules: '08e0ee979274f5980c61658cd65f3d1c5d4863a1371a89f38cb629488003f52c',
+    split: 'a64b2594d251974ed550273f6429d68c16240cae6b1c0d1ad1160a0fbd136558',
+    cohort_build: '08f33a448fdf199556fc879491eb4b9f3b9d3f6e4ed938c105d3e5c5dbd2dc9d',
+    train: '3147bdd0bf595548542c4e42aefc4cd0bead2cb781abc4a708f76337661ce253',
+    compare_p3b: '448862b759ad5701d0a7e4a1976eaa4fdf685202f27f12e0a365d0fbc7c1b32d',
 }
 BANDS = dict(attention=.10, high=.30)
 SPEED = 'blitz'
@@ -108,7 +108,7 @@ def validated(spec, bundle, registry, path=None):
 
 
 def headers(root, player):
-    """One player's blitz headers, with the columns split_v3.load_headers produces."""
+    """One player's blitz headers, with the columns dev_split.load_headers produces."""
     root = Path(root)
     games = pd.read_parquet(root / 'features/games.parquet', columns=HEADER_COLS)
     games = games[games.player.str.lower().eq(player.lower()) & games.speed.eq(SPEED)].copy()
@@ -242,7 +242,7 @@ def fast(games, moves, target, z_model):
 
 
 def rule_check(label, later_game):
-    """I0 section 7, from the frozen rules_v3 row of this game."""
+    """I0 section 7, from the frozen tilt_rules row of this game."""
     pending = []
     if (label['E7'] == 'missing' and label['result_score'] == 0 and not later_game
             and pd.notna(label['gap_q20_seconds'])):

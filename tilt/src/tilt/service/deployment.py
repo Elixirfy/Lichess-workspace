@@ -9,7 +9,7 @@ from pathlib import Path
 
 import joblib
 
-from ..evaluation.phase5 import banned
+from ..evaluation.model_fit import banned
 from ..features.model_features import assert_no_lf_inputs
 
 DEPLOYED = Path('processed/models/deployed.json')

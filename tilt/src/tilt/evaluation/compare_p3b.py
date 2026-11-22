@@ -17,9 +17,9 @@ import numpy as np
 import pandas as pd
 
 from ..service import deployment, score
-from ..features import prefix_v3 as prefix
-from ..labels import rules_v3 as rules, split_v3 as split
-from . import phase3
+from ..features import prefix_features as prefix
+from ..labels import tilt_rules as rules, dev_split as split
+from . import p3b_features
 
 CURRENT_SHA = '851858bca40d46ff6ee76a1b62bcab19e89581b03f59e9193e43eca1f072204f'
 DEPLOYED_SHA = 'cbd7a3f9d4adfd00f8d3eaffbe87139e8d2992f45aaae1ad2ef1c66940c8613f'
@@ -32,12 +32,12 @@ INPUTS = {
     's3_gate.json': '5169cb67cc8074a6ca80c6da24c22229be0d712b845eaa5e983d47fb06e9f375',
 }
 FROZEN = {
-    'labels/split_v3.py': 'f426e79254167d3f998f1b075f720b3b89098d52b37930f4bf975bd3fb6fa4ff',
-    'features/prefix_v3.py': '92c6d27777142b862f70d4c042da4d6618f935a59991827d96b1662758060f42',
-    'labels/rules_v3.py': '86fcd9c1eb10d67f3e90735ecdb772fda336ffa191c3683f1c43b2e3828059f6',
+    'labels/dev_split.py': 'a64b2594d251974ed550273f6429d68c16240cae6b1c0d1ad1160a0fbd136558',
+    'features/prefix_features.py': '0da5bb606daa00eb7588ae4afd059d81d512419cb74027a12984363a0142d08f',
+    'labels/tilt_rules.py': '08e0ee979274f5980c61658cd65f3d1c5d4863a1371a89f38cb629488003f52c',
 }
 KEYS = split.KEYS
-FEATURES = tuple(phase3.VARIANTS['P3-B'])
+FEATURES = tuple(p3b_features.VARIANTS['P3-B'])
 WHOLE_ONLY = frozenset(FEATURES) - {
     'initial_seconds', 'increment_seconds', 'rematch_streak_before', 'baseline_risk_rate_games'}
 
@@ -60,13 +60,13 @@ def verify_locks(args):
 
 def code_hashes():
     base = Path(__file__).resolve().parents[1]
-    names = [*FROZEN, 'evaluation/v3_p3b.py', 'training/v3_train.py',
-             'evaluation/phase5.py', 'evaluation/phase1.py', 'evaluation/phase3.py',
+    names = [*FROZEN, 'evaluation/compare_p3b.py', 'training/distill.py',
+             'evaluation/model_fit.py', 'evaluation/eval_metrics.py', 'evaluation/p3b_features.py',
              'training/train.py', 'service/score.py', 'service/deployment.py',
-             'features/behavior.py', 'features/model_features.py', 'data/cohort_v3.py']
+             'features/behavior.py', 'features/model_features.py', 'data/cohort_build.py']
     result = {name: split.sha(base / name) for name in sorted(names)}
     project = base.parents[1]
-    for name in ('test_v3_p3b.py', 'test_v3_train.py', 'test_prefix_v3.py', 'test_split_v3.py'):
+    for name in ('test_compare_p3b.py', 'test_distill.py', 'test_prefix_features.py', 'test_dev_split.py'):
         result['tests/unit/' + name] = split.sha(project / 'tests/unit' / name)
     return dict(sorted(result.items()))
 
@@ -146,7 +146,7 @@ def target_bridge(root, cohort, wanted, s2):
         spec = json.loads((Path(s2) / 'assignment_metadata.json').read_text())
         if spec['pseudonym'] != 'HMAC-SHA256 keyed by public assignment string':
             raise ValueError('Portable bridge requires the recorded public S2 scheme')
-        from ..data.cohort_v3 import PUBLIC
+        from ..data.cohort_build import PUBLIC
         def public(value, namespace=''):
             return hmac.new(PUBLIC.encode(), (namespace + value).encode(), hashlib.sha256).hexdigest()
         # Only keys are scanned. No holdout header or feature value is read.
@@ -165,7 +165,7 @@ def build_player(task):
     wanted = bridge.rename(columns={'export_id': 'game_id'})
     refuse(wanted)
     raw_ids = bridge.raw_game_id.unique().tolist()
-    stored = [c for c in FEATURES if c not in (*phase3.B, 'initial_seconds', 'increment_seconds')]
+    stored = [c for c in FEATURES if c not in (*p3b_features.B, 'initial_seconds', 'increment_seconds')]
     games = pd.read_parquet(Path(root) / 'features/games.parquet',
         columns=['player', 'game_id', *stored], filters=[('player', '==', bridge.player.iloc[0]),
             ('game_id', 'in', raw_ids)], use_threads=False)
@@ -177,7 +177,7 @@ def build_player(task):
     own = pd.read_parquet(Path(root) / 'features/moves.parquet',
         columns=['player', 'game_id', 'ply', *score.FLAGS],
         filters=[('player', '==', bridge.player.iloc[0]), ('game_id', 'in', raw_ids)], use_threads=False)
-    dynamics = score.dynamics(own)[['game_id', *phase3.B]].rename(columns={'game_id': 'raw_game_id'})
+    dynamics = score.dynamics(own)[['game_id', *p3b_features.B]].rename(columns={'game_id': 'raw_game_id'})
     games = games.merge(dynamics, on='raw_game_id', how='left', validate='one_to_one')
     result = games.rename(columns={'export_id': 'game_id'})[KEYS + ['part', *FEATURES]]
     if len(result) != len(bridge):
@@ -194,7 +194,7 @@ def parity(actual, aligned, behavior):
     players = old.player_id.unique().tolist()
     reference = pd.read_parquet(aligned, columns=['player_id', 'game_id', *FEATURES[:8]],
                                filters=[('player_id', 'in', players)])
-    extra = pd.read_parquet(behavior, columns=['player_id', 'game_id', *phase3.B],
+    extra = pd.read_parquet(behavior, columns=['player_id', 'game_id', *p3b_features.B],
                            filters=[('player_id', 'in', players)])
     reference = reference.merge(extra, on=['player_id', 'game_id'], validate='one_to_one')
     joined = old.merge(reference, on=['player_id', 'game_id'], suffixes=('_actual', '_phase5'), validate='one_to_one')

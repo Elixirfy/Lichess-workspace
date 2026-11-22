@@ -18,8 +18,8 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from ..labels import rules_v3 as rules
-from ..labels import split_v3 as split
+from ..labels import tilt_rules as rules
+from ..labels import dev_split as split
 from ..common.formulas import win_percent
 from ..service.score import dynamics
 

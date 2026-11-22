@@ -196,9 +196,17 @@ The package was reorganised by role. Only import lines and path strings changed;
 | `core/formulas.py`, `core/engine.py` | `common/` |
 | `core/train.py`, `core/sequence.py`, `evaluation/v3_train.py` | `training/` |
 | `core/score.py`, `core/deployment.py`, `core/live_v3.py`, `workers/lila_worker.py` | `service/` |
+| `evaluation/phase1.py`, `phase3.py`, `phase5.py` | `evaluation/eval_metrics.py`, `p3b_features.py`, `model_fit.py` (renamed; module references updated, logic unchanged) |
+| `data/cohort_v3.py` | `data/cohort_build.py` (renamed) |
+| `features/prefix_v3.py` | `features/prefix_features.py` (renamed) |
+| `labels/rules_v3.py`, `labels/split_v3.py` | `labels/tilt_rules.py`, `labels/dev_split.py` (renamed) |
+| `training/v3_train.py` | `training/distill.py` (renamed) |
+| `evaluation/v3_p3b.py`, `evaluation/v3_holdout.py` | `evaluation/compare_p3b.py`, `evaluation/final_holdout.py` (renamed) |
+| `service/live_v3.py` | `service/live_scoring.py` (renamed) |
 
-New frozen hashes (`FROZEN` in `service/live_v3.py`; the first three also in `evaluation/v3_p3b.py`):
-`features/prefix_v3.py` `92c6d277…`, `labels/rules_v3.py` `86fcd9c1…`, `labels/split_v3.py` `f426e792…`
-(unchanged), `data/cohort_v3.py` `08f33a44…` (unchanged), `training/v3_train.py` `d5af618d…`,
-`evaluation/v3_p3b.py` `00f137e0…`. The hashes above in this document and in the pre-registration describe the
-code as evaluated, before the move.
+New frozen hashes (`FROZEN` in `service/live_scoring.py`; the first three also in `evaluation/compare_p3b.py`):
+`features/prefix_features.py` `0da5bb60…`, `labels/tilt_rules.py` `08e0ee97…`, `labels/dev_split.py`
+`a64b2594…`, `data/cohort_build.py` `08f33a44…` (content unchanged), `training/distill.py` `3147bdd0…`,
+`evaluation/compare_p3b.py` `448862b7…`. After every step (move, phase rename, v3 rename) scoring all local
+games gave byte-identical results. The hashes above in this document and in the pre-registration describe the
+code as evaluated, under its old file names.

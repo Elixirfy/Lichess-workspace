@@ -18,9 +18,9 @@ from pathlib import Path
 import requests
 
 from ..data import collect
-from . import live_v3, score
+from . import live_scoring, score
 from ..common.engine import analyze
-from ..data.cohort_v3 import KEY as TRAINED_SETTINGS_KEY
+from ..data.cohort_build import KEY as TRAINED_SETTINGS_KEY
 from ..features.features import compute
 
 # The export can lag behind lila's finish event; keep such requests queued for a while.
@@ -74,7 +74,7 @@ def p3b(data, doc, models):
 
 def answer(coll, docs, data, models, lila_url, engine, nodes=5000, data_v3=None):
     """Score queued docs. Returns the number of answered docs."""
-    v3 = live_v3.load(models)
+    v3 = live_scoring.load(models)
     if v3 is not None:
         return answer_v3(coll, docs, data, models, lila_url, engine, v3,
                          Path(data_v3) if data_v3 else Path(data).with_name(Path(data).name + '-v3'), nodes)
@@ -128,10 +128,10 @@ def answer_v3(coll, docs, data, models, lila_url, engine, v3, data_v3, nodes=500
     shadow = v3.shadow_on()
     failed, unreachable = {}, set()
     # lila sends the speed; non-blitz docs need no export or engine work.
-    skipped = [doc for doc in docs if doc.get('speed') not in (None, live_v3.SPEED)]
+    skipped = [doc for doc in docs if doc.get('speed') not in (None, live_scoring.SPEED)]
     for doc in skipped:
         respond(coll, doc, skip='speed')
-    docs = [doc for doc in docs if doc.get('speed') in (None, live_v3.SPEED)]
+    docs = [doc for doc in docs if doc.get('speed') in (None, live_scoring.SPEED)]
     users = sorted({doc['userId'] for doc in docs})
     for user in users:
         try:
@@ -139,7 +139,7 @@ def answer_v3(coll, docs, data, models, lila_url, engine, v3, data_v3, nodes=500
                 collect.collect_api(data, {user}, max_games=HISTORY_GAMES, base_url=lila_url)
             # Filter blitz here: a local lila answers perfType exports from lila-search, which it may lack.
             collect.collect_api(data_v3, {user}, max_games=HISTORY_GAMES, base_url=lila_url,
-                                keep_perf=live_v3.SPEED)
+                                keep_perf=live_scoring.SPEED)
         except (requests.ConnectionError, requests.Timeout):
             unreachable.add(user)
         except requests.HTTPError as exc:
@@ -170,12 +170,12 @@ def answer_v3(coll, docs, data, models, lila_url, engine, v3, data_v3, nodes=500
             answered += 1
             continue
         try:
-            result = live_v3.assess(v3, root, user, doc['gameId'])
+            result = live_scoring.assess(v3, root, user, doc['gameId'])
         except ValueError as exc:
             missing = str(exc).startswith(MISSING)
             if missing and doc.get('speed') is None:
                 speed = stored_speed(data, doc['gameId']) if shadow else None
-                if speed is not None and speed != live_v3.SPEED:
+                if speed is not None and speed != live_scoring.SPEED:
                     respond(coll, doc, skip='speed')
                     answered += 1
                     continue
@@ -210,7 +210,7 @@ def refresh(coll, root, user, limit=5, skip=()):
         if doc['_id'] in skip:
             continue  # just answered from the same export
         try:
-            rules = live_v3.refresh_rules(root, user, doc['gameId'])
+            rules = live_scoring.refresh_rules(root, user, doc['gameId'])
         except Exception:
             continue
         if rules != doc['response']['pred']['rules']:

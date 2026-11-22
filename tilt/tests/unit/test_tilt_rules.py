@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from tilt.features.features import robust
-from tilt.labels import rules_v3 as r
+from tilt.labels import tilt_rules as r
 
 
 def game(**kwargs):

@@ -7,17 +7,17 @@ import pytest
 
 from tilt.service import deployment, score
 from tilt.training.train import calibrate, calibrated, predict_bundle
-from tilt.evaluation import phase3, phase5
+from tilt.evaluation import p3b_features, model_fit
 from tilt.evaluation.evaluate import contributions
 
-from test_phase5 import frame
+from test_model_fit import frame
 
 
 def install(tmp_path, features=None):
     f = frame()
     y = f.weak_tilt_label.to_numpy(dtype=float)
     train = np.flatnonzero((f.split == 'train').to_numpy() & np.isfinite(y))
-    fitted = phase5.Fitted(phase3.VARIANTS['P3-B'], True, phase3.NO_INDICATOR).fit(f, y, train)
+    fitted = model_fit.Fitted(p3b_features.VARIANTS['P3-B'], True, p3b_features.NO_INDICATOR).fit(f, y, train)
     calibration = calibrate(fitted.predict(f)[train], y[train].astype(int))
     bundle = dict(variant='P3-B', split='by_player', features=fitted.features, columns=fitted.columns,
                   imputer=fitted.imputer, keep=fitted.keep, scaler=fitted.scaler, classifier=fitted.model,

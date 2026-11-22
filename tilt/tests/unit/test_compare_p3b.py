@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tilt.evaluation import v3_p3b as p
-from tilt.features import prefix_v3
-from tilt.labels import split_v3
+from tilt.evaluation import compare_p3b as p
+from tilt.features import prefix_features
+from tilt.labels import dev_split
 
 
 def sample(n=3):
@@ -26,7 +26,7 @@ def sample(n=3):
 def reference(tmp_path, frame):
     aligned, behavior = tmp_path / 'aligned.parquet', tmp_path / 'behavior.parquet'
     frame[['player_id', 'game_id', *p.FEATURES[:8]]].to_parquet(aligned, index=False)
-    frame[['player_id', 'game_id', *p.phase3.B]].to_parquet(behavior, index=False)
+    frame[['player_id', 'game_id', *p.p3b_features.B]].to_parquet(behavior, index=False)
     return aligned, behavior
 
 
@@ -79,7 +79,7 @@ def test_readonly_builder_matches_scorer_dynamics_and_stored_columns(tmp_path):
     raw = ['raw-synthetic-0', 'raw-synthetic-1']
     bridge = f[p.KEYS+['part']].rename(columns={'game_id': 'export_id'})
     bridge['player'], bridge['raw_game_id'] = 'synthetic-player', raw
-    stored = f.drop(columns=['initial_seconds', 'increment_seconds', *p.phase3.B]).copy()
+    stored = f.drop(columns=['initial_seconds', 'increment_seconds', *p.p3b_features.B]).copy()
     stored['player'], stored['game_id'] = 'synthetic-player', raw
     stored.to_parquet(root/'features/games.parquet', index=False)
     pd.DataFrame(dict(game_id=raw, initial_seconds=[180., 180.], increment_seconds=[2., 2.])).to_parquet(
@@ -95,7 +95,7 @@ def test_readonly_builder_matches_scorer_dynamics_and_stored_columns(tmp_path):
     actual = p.build_player((root, bridge))
     assert actual.initial_seconds.tolist() == [180., 180.]
     dynamics = p.score.dynamics(moves).set_index('game_id')
-    for c in p.phase3.B:
+    for c in p.p3b_features.B:
         np.testing.assert_equal(actual[c].to_numpy(), dynamics.loc[raw,c].to_numpy())
     assert set(actual) == set(p.KEYS + ['part', *p.FEATURES])
     assert p.split.sha(root/'index.sqlite') == before
@@ -112,7 +112,7 @@ def test_current_and_snapshot_append_only_guards(tmp_path, monkeypatch):
     args.lock.write_text(current_sha+'  current\n')
     args.snapshot_lock.write_text(snapshot_sha+'  snapshot\n')
     monkeypatch.setattr(p, 'CURRENT_SHA', current_sha)
-    monkeypatch.setattr(split_v3, 'PREREG_SHA', snapshot_sha)
+    monkeypatch.setattr(dev_split, 'PREREG_SHA', snapshot_sha)
     p.verify_locks(args)
     changed = b'x'+current
     args.prereg.write_bytes(changed)
@@ -132,14 +132,14 @@ def test_frozen_s3_files_and_real_document_are_unchanged():
     at_s4 = document.split(b'\n## Addendum S5', 1)[0]
     assert hashlib.sha256(at_s4).hexdigest() == p.CURRENT_SHA
     snapshot = document.split(b'\n## Addendum S4', 1)[0]
-    assert hashlib.sha256(snapshot).hexdigest() == split_v3.PREREG_SHA
+    assert hashlib.sha256(snapshot).hexdigest() == dev_split.PREREG_SHA
     for name, expected in p.FROZEN.items():
         assert p.split.sha(root/'src/tilt'/name) == expected
 
 
 def test_new_bridge_scans_membership_keys_only(tmp_path, monkeypatch):
     import hmac
-    from tilt.data.cohort_v3 import PUBLIC
+    from tilt.data.cohort_build import PUBLIC
     def public(v, namespace=''):
         return hmac.new(PUBLIC.encode(), (namespace+v).encode(), hashlib.sha256).hexdigest()
     raw = pd.DataFrame(dict(player=['synthetic-development', 'synthetic-holdout'],
@@ -157,6 +157,6 @@ def test_new_bridge_scans_membership_keys_only(tmp_path, monkeypatch):
 
 
 def test_s2_append_only_check_uses_identified_era():
-    from tilt.data import cohort_v3
-    assert cohort_v3.LOCK == '0d59ce9d79e6e9e9e9992e5116b83e39440eacfc1f3a53b83772030d8b2a0b06'
-    cohort_v3.check_lock()
+    from tilt.data import cohort_build
+    assert cohort_build.LOCK == '0d59ce9d79e6e9e9e9992e5116b83e39440eacfc1f3a53b83772030d8b2a0b06'
+    cohort_build.check_lock()

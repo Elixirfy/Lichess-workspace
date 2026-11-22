@@ -16,9 +16,9 @@ from sklearn.metrics import average_precision_score, roc_auc_score, brier_score_
 from threadpoolctl import threadpool_limits
 
 from .train import calibrate, calibrated, predict_bundle
-from ..features import prefix_v3 as prefix
-from ..labels import split_v3 as split
-from ..evaluation import phase1, phase3, phase5, v3_p3b as whole
+from ..features import prefix_features as prefix
+from ..labels import dev_split as split
+from ..evaluation import eval_metrics, p3b_features, model_fit, compare_p3b as whole
 
 FITTED = ('M-v3', 'M-v3-ns', 'B-skill', 'P3-B/v3', 'P3-B@20/v3')
 ADOPTION = ('P3-B/v3', 'R-pre', 'B-streak', 'B-skill')
@@ -78,8 +78,8 @@ def fit_head(frame, meta, candidate, threads=2):
         raise ValueError('Train head needs both classes')
     if threads != 2:
         raise ValueError('S4.2 fixes the classifier to threads=2')
-    fitted = phase5.Fitted(list(frame), True,
-        phase3.NO_INDICATOR if candidate == 'P3-B/v3' else (), threads=2, seed=42)
+    fitted = model_fit.Fitted(list(frame), True,
+        p3b_features.NO_INDICATOR if candidate == 'P3-B/v3' else (), threads=2, seed=42)
     # Fit receives only labelled train rows; even imputer/scaler never see validation.
     fitted.fit(frame.iloc[rows], y[rows], np.arange(len(rows)))
     raw = fitted.predict(frame)
@@ -219,10 +219,10 @@ def stratum(frame, name):
 def metric(y, scores, fitted):
     good = np.isfinite(y) & np.isfinite(scores)
     y, scores = y[good], scores[good]
-    result = phase1.ranking(y, scores)
+    result = eval_metrics.ranking(y, scores)
     result['prevalence'] = float(y.mean()) if len(y) else None
     if fitted:
-        bins, ece = phase1.calibration_bins(y, scores) if len(y) else ([], None)
+        bins, ece = eval_metrics.calibration_bins(y, scores) if len(y) else ([], None)
         result.update(brier=float(brier_score_loss(y, scores)) if len(y) else None,
                       ece=ece, reliability=bins)
     return result
@@ -231,7 +231,7 @@ def metric(y, scores, fitted):
 def bootstrap(players, y, scores, pairs, repetitions=1000, seed=42):
     """Phase 5 draws: sorted player groups, paired samples, percentile intervals.
 
-    Skip one-class draws (including no-positive draws), exactly as phase5.bootstrap.
+    Skip one-class draws (including no-positive draws), exactly as model_fit.bootstrap.
     Expose both skip reasons. Samples contain every row of each drawn player,
     repeated together if that player was drawn more than once.
     """

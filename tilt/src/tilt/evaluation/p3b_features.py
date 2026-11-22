@@ -16,10 +16,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_sample_weight
 
 from ..training.train import choose_threshold, numeric, tree_models
-from . import phase1
+from . import eval_metrics
 
-SPLITS = phase1.SPLITS
-M3 = list(phase1.VARIANTS['M3']['features'])
+SPLITS = eval_metrics.SPLITS
+M3 = list(eval_metrics.VARIANTS['M3']['features'])
 RATES = ['attack_rate', 'risk_rate', 'defensive_rate', 'style_switch_rate']
 D = [f'{r}_p40' for r in RATES]
 B = ['attack_trend_3w', 'risk_volatility_3w', 'behavior_change_point']
@@ -56,14 +56,14 @@ def fit_predict(features, frame, y, train, threads=2, seed=42, indicator=True):
     if indicator:
         x = design(frame, features, train)
     else:  # B-length: the Phase 1 diagnostic had no indicator
-        x = phase1.design(frame, features, train, False)
+        x = eval_metrics.design(frame, features, train, False)
     model = tree_models('xgboost', seed=seed, threads=threads, trees=100)[0]
     model.fit(x[train], y[train].astype(int), sample_weight=compute_sample_weight('balanced', y[train]))
     return model.predict_proba(x)[:, 1]
 
 
 def ranking(y, p):
-    return phase1.ranking(y, p) | dict(prevalence=float(y.mean()) if len(y) else None)
+    return eval_metrics.ranking(y, p) | dict(prevalence=float(y.mean()) if len(y) else None)
 
 
 def bootstrap(players, y, scores, long, base='M3', repetitions=1000, seed=42):
@@ -164,11 +164,11 @@ def run(aligned, behavior, out, repetitions=1000, threads=2, phase1_manifests=No
         rows = len(frame)
         frame = frame.merge(extra, on=['player_id', 'game_id'], how='left', validate='one_to_one')
         assert len(frame) == rows
-        checks = phase1.split_checks(frame, split)
-        checks['manifest_sha256'] = phase1.sha256(phase1.manifest(frame))
+        checks = eval_metrics.split_checks(frame, split)
+        checks['manifest_sha256'] = eval_metrics.sha256(eval_metrics.manifest(frame))
         if phase1_manifests:
             old = pd.read_csv(Path(phase1_manifests) / f'{split}.csv')
-            checks['manifest_matches_phase1'] = checks['manifest_sha256'] == phase1.sha256(old)
+            checks['manifest_matches_phase1'] = checks['manifest_sha256'] == eval_metrics.sha256(old)
             if not checks['manifest_matches_phase1']:
                 raise ValueError(f'{split}: split manifest differs from Phase 1')
         y = frame.weak_tilt_label.to_numpy(dtype=float, na_value=np.nan)
@@ -185,7 +185,7 @@ def run(aligned, behavior, out, repetitions=1000, threads=2, phase1_manifests=No
         validation = {}
         for name, p in raw.items():
             threshold = choose_threshold(p[train], y[train], p[val], y[val])['threshold']
-            summary = phase1.metrics(yv, p[val], threshold)
+            summary = eval_metrics.metrics(yv, p[val], threshold)
             summary.pop('calibration')
             validation[name] = dict(primary=ranking(yv, p[val]), secondary=ranking(yv[long], p[val][long]),
                                     recorded=summary, eta2_plies=eta2(p[val], plies))
@@ -198,7 +198,7 @@ def run(aligned, behavior, out, repetitions=1000, threads=2, phase1_manifests=No
             prediction[name] = p
         prediction.to_parquet(out / 'predictions' / f'validation_{split}.parquet', index=False)
         results[split] = dict(checks=checks, validation=validation, bootstrap=boot,
-                              subgroups=phase1.subgroups(frame, val, yv, scores))
+                              subgroups=eval_metrics.subgroups(frame, val, yv, scores))
         print(f'{split}: done', flush=True)
     results['decision'] = decide(results)
     results['elapsed_seconds'] = time.monotonic() - start

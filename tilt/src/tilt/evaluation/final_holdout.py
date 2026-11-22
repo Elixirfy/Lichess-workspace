@@ -19,11 +19,11 @@ import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
 from threadpoolctl import threadpool_limits
 
-from ..data import cohort_v3
-from ..features import prefix_v3 as prefix
-from ..labels import rules_v3 as rules, split_v3 as split
-from . import v3_p3b as whole
-from ..training import v3_train as train
+from ..data import cohort_build
+from ..features import prefix_features as prefix
+from ..labels import tilt_rules as rules, dev_split as split
+from . import compare_p3b as whole
+from ..training import distill as train
 
 KEYS = split.KEYS
 PARTS = ('A_prime', 'B_prime')
@@ -43,7 +43,7 @@ BUILD_FILES = ('labels_holdout.parquet', 'features_pre_holdout.parquet',
                'excluded_incomplete_moves_holdout.csv')
 METRIC_FILES = ('metrics_holdout.json', 'bootstrap_holdout.json', 'length_auc_holdout.json')
 RUN_FILES = ('verify.json', 'equivalence.json', *BUILD_FILES, 'predictions_holdout.parquet', *METRIC_FILES)
-DESELECT = 'tests/unit/test_v3_p3b.py::test_frozen_s3_files_and_real_document_are_unchanged'
+DESELECT = 'tests/unit/test_compare_p3b.py::test_frozen_s3_files_and_real_document_are_unchanged'
 write_json = whole.write_json
 
 
@@ -215,7 +215,7 @@ def player_tables(games, moves, targets, holdout=False, excluded=()):
 
 
 def public(value, namespace=''):
-    return hmac.new(cohort_v3.PUBLIC.encode(), (namespace + value).encode(), hashlib.sha256).hexdigest()
+    return hmac.new(cohort_build.PUBLIC.encode(), (namespace + value).encode(), hashlib.sha256).hexdigest()
 
 
 RAW_KEYS = ['player', 'game_id', 'color']
