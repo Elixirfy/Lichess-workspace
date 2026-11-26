@@ -153,6 +153,9 @@ commentary.token = ${?BLV_TOKEN}
 
 Mục lục đầy đủ ở [docs/README.md](docs/README.md).
 
+Tài liệu riêng của nhánh `feature/webmcp`: [báo cáo module](docs/branch-report/README.md),
+[tài liệu kỹ thuật](WEBMCP.md) và [hướng dẫn sử dụng](WEBMCP-HUONG-DAN.md).
+
 ## Nhánh
 
 `main` là bản chung của nhóm, gồm ba tính năng ở trên. Ngoài ra, mỗi thành
@@ -163,7 +166,7 @@ thành; mỗi nhánh có README và tài liệu riêng.
 |---|---|---|
 | [feature/tilt-and-ai-coach](https://github.com/trantrien1/Lichess-workspace/tree/feature/tilt-and-ai-coach) | **Tilt:** nhận biết dấu hiệu chơi mất bình tĩnh qua các ván blitz và nhắc người chơi nghỉ trên trang chủ; chỉ người chơi đó thấy kết quả. **AI Coach:** hỏi đáp bằng tiếng Việt về ván vừa kết thúc, dựa trên phân tích Stockfish | [trantrien1](https://github.com/trantrien1) |
 | [feature/coach](https://github.com/trantrien1/Lichess-workspace/tree/feature/coach) | Huấn luyện khi chơi: phiên luyện tập có hướng dẫn, phân tích từng nước bằng Stockfish, gợi ý có giới hạn và nhận xét tiếng Việt ngay trên giao diện ván | [LeHuy2109](https://github.com/LeHuy2109) |
-| [feature/webmcp](https://github.com/trantrien1/Lichess-workspace/tree/feature/webmcp) | Hai công cụ WebMCP trong trang Lichess cho trợ lý AI: tìm ván theo bộ lọc nâng cao và trả các bước ngoặt của ván từ đánh giá engine có sẵn, đều dạng JSON | [Elixirfy](https://github.com/Elixirfy) |
+| [feature/webmcp](https://github.com/trantrien1/Lichess-workspace/tree/feature/webmcp) | Hai công cụ WebMCP trong trang Lichess cho trợ lý AI: gửi bộ lọc tìm kiếm để Lichess hiển thị danh sách ván và trả JSON các bước ngoặt từ đánh giá đã lưu | [Elixirfy](https://github.com/Elixirfy) |
 | [codex/vietnamese-voice-input](https://github.com/trantrien1/Lichess-workspace/tree/codex/vietnamese-voice-input) | Chơi cờ bằng giọng nói tiếng Việt: Vosk nhận dạng ngay trên trình duyệt, PhoWhisper chạy local khi Vosk chưa nhận ra; lệnh được đối chiếu với các nước hợp lệ trước khi đi quân | [ceokon1](https://github.com/ceokon1) |
 
 Danh sách đầy đủ các nhánh: [docs/branches.md](docs/branches.md).
